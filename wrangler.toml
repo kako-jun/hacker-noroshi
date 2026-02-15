@@ -1,0 +1,9 @@
+name = "hacker-noroshi"
+compatibility_date = "2025-01-01"
+compatibility_flags = ["nodejs_compat"]
+pages_build_output_dir = ".svelte-kit/cloudflare"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "hacker-noroshi-db"
+database_id = "185871af-76c3-403c-81c8-aede8f8cd100"

@@ -1,0 +1,445 @@
+*,
+*::before,
+*::after {
+	box-sizing: border-box;
+	margin: 0;
+	padding: 0;
+}
+
+html {
+	font-size: 10pt;
+}
+
+body {
+	font-family: Verdana, Geneva, sans-serif;
+	font-size: 10pt;
+	color: #828282;
+	background-color: #f6f6ef;
+}
+
+a {
+	color: #000000;
+	text-decoration: none;
+}
+
+a:visited {
+	color: #828282;
+}
+
+a:hover {
+	text-decoration: underline;
+}
+
+.hn-page {
+	width: 85%;
+	margin: 0 auto;
+	background-color: #f6f6ef;
+}
+
+@media (max-width: 750px) {
+	.hn-page {
+		width: 100%;
+	}
+}
+
+/* Header */
+.hn-header {
+	background-color: #ff6600;
+	padding: 2px;
+	display: flex;
+	align-items: center;
+	gap: 4px;
+	line-height: 12pt;
+}
+
+.hn-header-logo {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 18px;
+	height: 18px;
+	border: 1px solid white;
+	background-color: #ff6600;
+	color: white;
+	font-weight: bold;
+	font-size: 11pt;
+	text-decoration: none;
+	margin-right: 4px;
+}
+
+.hn-header-logo:hover {
+	text-decoration: none;
+}
+
+.hn-header a {
+	color: #000000;
+	font-size: 10pt;
+	text-decoration: none;
+}
+
+.hn-header a:visited {
+	color: #000000;
+}
+
+.hn-header a:hover {
+	text-decoration: none;
+}
+
+.hn-header-left {
+	display: flex;
+	align-items: center;
+	gap: 0;
+	flex: 1;
+}
+
+.hn-header-left .hn-header-site-name {
+	font-weight: bold;
+	margin-right: 10px;
+}
+
+.hn-header-nav {
+	display: flex;
+	align-items: center;
+	gap: 0;
+}
+
+.hn-header-nav a {
+	padding: 0;
+}
+
+.hn-header-nav .nav-separator {
+	margin: 0 3px;
+	color: #000000;
+}
+
+.hn-header-right {
+	margin-left: auto;
+	white-space: nowrap;
+}
+
+.hn-header-right a {
+	color: #000000;
+}
+
+/* Story list */
+.story-list {
+	padding: 0;
+}
+
+.story-item {
+	display: flex;
+	align-items: baseline;
+	padding: 5px 0 0 0;
+}
+
+.story-item:first-child {
+	padding-top: 10px;
+}
+
+.story-rank {
+	color: #828282;
+	font-size: 10pt;
+	text-align: right;
+	min-width: 30px;
+	padding-right: 5px;
+}
+
+.story-vote {
+	padding-right: 4px;
+	cursor: pointer;
+}
+
+.story-vote .upvote {
+	display: inline-block;
+	width: 10px;
+	height: 10px;
+	font-size: 10px;
+	line-height: 10px;
+	color: #9a9a9a;
+	cursor: pointer;
+	background: none;
+	border: none;
+	padding: 0;
+	font-family: Verdana, Geneva, sans-serif;
+}
+
+.story-vote .upvote:hover {
+	color: #ff6600;
+}
+
+.story-vote .upvote.voted {
+	color: #ff6600;
+}
+
+.story-content {
+	flex: 1;
+	min-width: 0;
+}
+
+.story-title-line {
+	font-size: 10pt;
+	line-height: 14pt;
+}
+
+.story-title-line a.story-title {
+	color: #000000;
+	text-decoration: none;
+	font-size: 10pt;
+}
+
+.story-title-line a.story-title:visited {
+	color: #828282;
+}
+
+.story-title-line .story-domain {
+	font-size: 8pt;
+	color: #828282;
+	margin-left: 5px;
+}
+
+.story-title-line .story-domain a {
+	color: #828282;
+}
+
+.story-meta {
+	font-size: 7pt;
+	color: #828282;
+	line-height: 12pt;
+}
+
+.story-meta a {
+	color: #828282;
+	text-decoration: none;
+}
+
+.story-meta a:hover {
+	text-decoration: underline;
+}
+
+.story-meta a:visited {
+	color: #828282;
+}
+
+/* More link */
+.more-link {
+	padding: 10px 0 10px 40px;
+	font-size: 10pt;
+}
+
+.more-link a {
+	color: #000000;
+}
+
+/* Footer */
+.hn-footer {
+	text-align: center;
+	padding: 20px 0;
+	border-top: 2px solid #ff6600;
+	margin-top: 10px;
+	font-size: 8pt;
+	color: #828282;
+}
+
+.hn-footer a {
+	color: #828282;
+}
+
+/* Item detail page */
+.item-detail {
+	padding: 10px 0;
+}
+
+.item-detail .item-title {
+	font-size: 10pt;
+}
+
+.item-detail .item-title a {
+	color: #000000;
+}
+
+.item-detail .item-domain {
+	font-size: 8pt;
+	color: #828282;
+}
+
+.item-detail .item-meta {
+	font-size: 7pt;
+	color: #828282;
+	margin-top: 2px;
+}
+
+.item-detail .item-meta a {
+	color: #828282;
+}
+
+.item-detail .item-text {
+	font-size: 9pt;
+	color: #000000;
+	margin-top: 8px;
+	line-height: 14pt;
+}
+
+.item-detail .item-text p {
+	margin-bottom: 8px;
+}
+
+/* Comment form */
+.comment-form {
+	margin-top: 15px;
+	margin-bottom: 15px;
+}
+
+.comment-form textarea {
+	font-family: monospace;
+	font-size: 9pt;
+	width: 60%;
+	min-width: 300px;
+	display: block;
+	margin-bottom: 5px;
+}
+
+.comment-form button {
+	font-family: Verdana, Geneva, sans-serif;
+	font-size: 8pt;
+	cursor: pointer;
+}
+
+/* Comments */
+.comments-section {
+	margin-top: 15px;
+}
+
+.comment-item {
+	padding: 5px 0;
+}
+
+.comment-head {
+	font-size: 7pt;
+	color: #828282;
+}
+
+.comment-head a {
+	color: #828282;
+}
+
+.comment-head .comment-vote {
+	cursor: pointer;
+}
+
+.comment-head .upvote {
+	display: inline;
+	font-size: 8px;
+	color: #9a9a9a;
+	cursor: pointer;
+	background: none;
+	border: none;
+	padding: 0;
+	font-family: Verdana, Geneva, sans-serif;
+}
+
+.comment-head .upvote:hover {
+	color: #ff6600;
+}
+
+.comment-head .upvote.voted {
+	color: #ff6600;
+}
+
+.comment-text {
+	font-size: 9pt;
+	color: #000000;
+	margin-top: 3px;
+	line-height: 14pt;
+	overflow-wrap: break-word;
+}
+
+.comment-text p {
+	margin-bottom: 4px;
+}
+
+.comment-reply {
+	font-size: 7pt;
+	margin-top: 3px;
+}
+
+.comment-reply a {
+	color: #828282;
+	text-decoration: underline;
+}
+
+/* User page */
+.user-profile {
+	padding: 10px 0;
+	font-size: 10pt;
+}
+
+.user-profile table {
+	border-spacing: 0;
+}
+
+.user-profile td {
+	padding: 2px 5px;
+	vertical-align: top;
+}
+
+.user-profile td:first-child {
+	color: #828282;
+	text-align: right;
+}
+
+/* Forms (login, signup, submit) */
+.hn-form {
+	padding: 10px 0 10px 40px;
+	font-size: 10pt;
+}
+
+.hn-form table {
+	border-spacing: 0;
+}
+
+.hn-form td {
+	padding: 2px 5px;
+	vertical-align: top;
+}
+
+.hn-form td:first-child {
+	text-align: right;
+}
+
+.hn-form input[type='text'],
+.hn-form input[type='password'],
+.hn-form input[type='url'] {
+	font-family: monospace;
+	font-size: 9pt;
+	width: 300px;
+}
+
+.hn-form textarea {
+	font-family: monospace;
+	font-size: 9pt;
+	width: 500px;
+}
+
+.hn-form button,
+.hn-form input[type='submit'] {
+	font-family: Verdana, Geneva, sans-serif;
+	font-size: 8pt;
+	cursor: pointer;
+}
+
+.hn-form .form-error {
+	color: #ff0000;
+	font-size: 9pt;
+	margin-bottom: 10px;
+}
+
+.hn-form .form-note {
+	font-size: 8pt;
+	color: #828282;
+	margin-top: 5px;
+}
+
+/* Spacer row */
+.spacer-10 {
+	height: 10px;
+}
