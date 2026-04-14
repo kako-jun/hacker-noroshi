@@ -224,6 +224,28 @@ export async function getCommentById(db: D1Database, id: number): Promise<Commen
 	return result;
 }
 
+export async function getChildComments(
+	db: D1Database,
+	commentId: number,
+	storyId: number
+): Promise<CommentRow[]> {
+	// TODO: D1が再帰CTEに対応したらWITH RECURSIVEで直接子孫を取得する
+	// 現状はストーリー全コメントを取得してJSでBFSフィルタ
+	const all = await getCommentsByStoryId(db, storyId);
+	const childIds = new Set<number>();
+	const queue = [commentId];
+	while (queue.length > 0) {
+		const parentId = queue.shift()!;
+		for (const c of all) {
+			if (c.parent_id === parentId && !childIds.has(c.id)) {
+				childIds.add(c.id);
+				queue.push(c.id);
+			}
+		}
+	}
+	return all.filter((c) => childIds.has(c.id));
+}
+
 export async function getVotedCommentIds(
 	db: D1Database,
 	userId: number,

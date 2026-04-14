@@ -56,9 +56,9 @@
 					</button>
 				</span>
 				<a href="/user/{comment.username}">{comment.username}</a>
-				<a href="/item/{comment.story_id}">{timeAgo(comment.created_at)}</a>
-				| <a href="/item/{comment.story_id}" style="color: #828282;">parent</a>
-				| <a href="/item/{comment.story_id}" style="color: #828282;">context</a>
+				<a href="/item/{comment.id}">{timeAgo(comment.created_at)}</a>
+				| <a href="/item/{comment.parent_id ?? comment.story_id}" style="color: #828282;">parent</a>
+				| <a href="/item/{comment.id}" style="color: #828282;">context</a>
 				| on: <a href="/item/{comment.story_id}">{comment.story_title}</a>
 			</div>
 			<div class="comment-text" style="padding-left: 14px;">

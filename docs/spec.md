@@ -23,6 +23,9 @@ URL: https://hn.llll-ll.com
 - ネストスレッド（40px/段のインデント）
 - トップレベルコメントまたは既存コメントへの返信
 - プレーンテキストのみ（Markdown 不可）
+- パーマリンク: `/item/{comment_id}` でコメント単体 + 子スレッドを表示
+- parent リンク（親コメント or 親ストーリーへ）、on: リンク（親ストーリーへ）
+- タイムスタンプがパーマリンクリンクを兼ねる
 
 ### 投票
 
@@ -78,6 +81,7 @@ score = (points - 1) / (hours_since_post + 2) ^ 1.8
 - [x] 投稿・コメント編集（2時間以内）
 - [x] ガイドライン・FAQ・Show HN ルールページ
 - [x] ユーザーの submissions / comments 一覧ページ
+- [x] コメントパーマリンク（/item/{comment_id}）
 
 ## v2 以降
 

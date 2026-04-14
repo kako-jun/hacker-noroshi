@@ -21,7 +21,7 @@ hacker-noroshi/
 │   │   ├── newest/           # 新着順
 │   │   ├── ask/              # Ask HN
 │   │   ├── show/             # Show HN
-│   │   ├── item/[id]/        # 投稿詳細 + コメント + 編集
+│   │   ├── item/[id]/        # 投稿詳細 or コメントパーマリンク + コメント + 編集
 │   │   ├── user/[id]/        # プロフィール + 編集
 │   │   │   ├── submissions/  # ユーザーの投稿一覧
 │   │   │   └── comments/     # ユーザーのコメント一覧
@@ -117,7 +117,7 @@ hacker-noroshi/
 | `/newest` | 新着順 |
 | `/ask` | Ask HN（type='ask' のみ） |
 | `/show` | Show HN（type='show' のみ） |
-| `/item/[id]` | 投稿詳細 + コメントスレッド + 編集 |
+| `/item/[id]` | 投稿詳細 or コメントパーマリンク + コメントスレッド + 編集 |
 | `/user/[id]` | ユーザープロフィール + 編集 |
 | `/user/[id]/submissions` | ユーザーの投稿一覧 |
 | `/user/[id]/comments` | ユーザーのコメント一覧 |
@@ -138,7 +138,8 @@ hacker-noroshi/
 | `getStories()` | ストーリー一覧（ランキング or 新着、type フィルタ、ページネーション） |
 | `getStoryById()` | ストーリー1件取得 |
 | `getCommentsByStoryId()` | コメント一覧（ストーリーID指定） |
-| `getCommentById()` | コメント1件取得（編集時の権限チェック用） |
+| `getCommentById()` | コメント1件取得（編集時の権限チェック・パーマリンク用） |
+| `getChildComments()` | 特定コメントの子孫コメントを取得（パーマリンク用） |
 | `getUserByUsername()` | ユーザー取得（ユーザー名） |
 | `getUserById()` | ユーザー取得（ID） |
 | `getStoriesByUserId()` | ユーザーの投稿一覧 |
