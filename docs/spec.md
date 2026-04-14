@@ -77,6 +77,7 @@ score = (points - 1) / (hours_since_post + 2) ^ 1.8
 - [x] プロフィール編集
 - [x] 投稿・コメント編集（2時間以内）
 - [x] ガイドライン・FAQ・Show HN ルールページ
+- [x] ユーザーの submissions / comments 一覧ページ
 
 ## v2 以降
 
@@ -86,4 +87,4 @@ score = (points - 1) / (hours_since_post + 2) ^ 1.8
 - API 公開
 - 招待制 / カルマ制限
 - ダークモード
-- ユーザーの submissions / comments / favorites 一覧ページ
+- favorites 機能（DB テーブル追加 + お気に入りボタン + 一覧ページ）

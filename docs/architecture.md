@@ -23,6 +23,8 @@ hacker-noroshi/
 │   │   ├── show/             # Show HN
 │   │   ├── item/[id]/        # 投稿詳細 + コメント + 編集
 │   │   ├── user/[id]/        # プロフィール + 編集
+│   │   │   ├── submissions/  # ユーザーの投稿一覧
+│   │   │   └── comments/     # ユーザーのコメント一覧
 │   │   ├── submit/           # 投稿フォーム
 │   │   ├── login/            # ログイン
 │   │   ├── signup/           # サインアップ
@@ -116,7 +118,9 @@ hacker-noroshi/
 | `/ask` | Ask HN（type='ask' のみ） |
 | `/show` | Show HN（type='show' のみ） |
 | `/item/[id]` | 投稿詳細 + コメントスレッド + 編集 |
-| `/user/[id]` | ユーザープロフィール + 投稿履歴 + 編集 |
+| `/user/[id]` | ユーザープロフィール + 編集 |
+| `/user/[id]/submissions` | ユーザーの投稿一覧 |
+| `/user/[id]/comments` | ユーザーのコメント一覧 |
 | `/submit` | 投稿フォーム（要ログイン） |
 | `/login` | ログイン |
 | `/signup` | サインアップ |
@@ -138,6 +142,7 @@ hacker-noroshi/
 | `getUserByUsername()` | ユーザー取得（ユーザー名） |
 | `getUserById()` | ユーザー取得（ID） |
 | `getStoriesByUserId()` | ユーザーの投稿一覧 |
+| `getCommentsByUserId()` | ユーザーのコメント一覧（story_title 付き） |
 | `hasVoted()` | 投票済みチェック |
 | `getVotedStoryIds()` | 投票済みストーリーID一括取得 |
 | `getVotedCommentIds()` | 投票済みコメントID一括取得 |
