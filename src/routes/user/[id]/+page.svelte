@@ -1,7 +1,8 @@
 <script lang="ts">
+	import { enhance } from '$app/forms';
 	import { timeAgo, extractDomain } from '$lib/ranking';
 
-	let { data } = $props();
+	let { data, form } = $props();
 
 	function formatDate(dateString: string): string {
 		const date = new Date(dateString);
@@ -28,7 +29,18 @@
 				<td>karma:</td>
 				<td>{data.profile.karma}</td>
 			</tr>
-			{#if data.profile.about}
+			{#if data.isOwnProfile}
+				<tr>
+					<td>about:</td>
+					<td>
+						<form method="POST" action="?/update" use:enhance>
+							<textarea name="about" rows="5" cols="60">{data.profile.about ?? ''}</textarea>
+							<br />
+							<button type="submit">update</button>
+						</form>
+					</td>
+				</tr>
+			{:else if data.profile.about}
 				<tr>
 					<td>about:</td>
 					<td>{data.profile.about}</td>
