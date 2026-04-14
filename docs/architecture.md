@@ -37,6 +37,7 @@ hacker-noroshi/
 │   │   ├── server/
 │   │   │   ├── db.ts         # D1 データアクセス関数
 │   │   │   └── auth.ts       # パスワードハッシュ・セッション管理
+│   │   ├── format.ts         # テキストフォーマット（URL自動リンク、*イタリック*）
 │   │   └── ranking.ts        # timeAgo, extractDomain 等のユーティリティ
 │   ├── app.css               # グローバル CSS
 │   └── app.html              # HTML テンプレート

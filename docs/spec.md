@@ -22,7 +22,7 @@ URL: https://hn.llll-ll.com
 
 - ネストスレッド（40px/段のインデント）
 - トップレベルコメントまたは既存コメントへの返信
-- プレーンテキストのみ（Markdown 不可）
+- テキストフォーマット: URL自動リンク（`rel="nofollow noreferrer"`）、`*text*` でイタリック
 - パーマリンク: `/item/{comment_id}` でコメント単体 + 子スレッドを表示
 - parent リンク（親コメント or 親ストーリーへ）、on: リンク（親ストーリーへ）
 - タイムスタンプがパーマリンクリンクを兼ねる
@@ -82,6 +82,7 @@ score = (points - 1) / (hours_since_post + 2) ^ 1.8
 - [x] ガイドライン・FAQ・Show HN ルールページ
 - [x] ユーザーの submissions / comments 一覧ページ
 - [x] コメントパーマリンク（/item/{comment_id}）
+- [x] テキストフォーマット（URL自動リンク、*イタリック*）
 
 ## v2 以降
 
