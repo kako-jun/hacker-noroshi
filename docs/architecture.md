@@ -118,6 +118,8 @@ hacker-noroshi/
 | `/newest` | 新着順 |
 | `/ask` | Ask HN（type='ask' のみ） |
 | `/show` | Show HN（type='show' のみ） |
+| `/newcomments` | 全ストーリーの最新コメント一覧 |
+| `/best` | 高スコアのストーリー一覧 |
 | `/item/[id]` | 投稿詳細 or コメントパーマリンク + コメントスレッド + 編集 |
 | `/user/[id]` | ユーザープロフィール + 編集 |
 | `/user/[id]/submissions` | ユーザーの投稿一覧 |
@@ -145,6 +147,7 @@ hacker-noroshi/
 | `getUserById()` | ユーザー取得（ID） |
 | `getStoriesByUserId()` | ユーザーの投稿一覧 |
 | `getCommentsByUserId()` | ユーザーのコメント一覧（story_title 付き） |
+| `getRecentComments()` | 全ストーリーの最新コメント一覧（/newcomments 用） |
 | `hasVoted()` | 投票済みチェック |
 | `getVotedStoryIds()` | 投票済みストーリーID一括取得 |
 | `getVotedCommentIds()` | 投票済みコメントID一括取得 |

@@ -52,7 +52,7 @@ export async function getStories(
 	db: D1Database,
 	options: {
 		type?: string;
-		orderBy?: 'rank' | 'newest';
+		orderBy?: 'rank' | 'newest' | 'best';
 		page?: number;
 		limit?: number;
 	} = {}
@@ -66,6 +66,20 @@ export async function getStories(
 	if (type) {
 		whereClause = 'WHERE s.type = ?';
 		params.push(type);
+	}
+
+	if (orderBy === 'best') {
+		const sql = `
+			SELECT s.*, u.username, u.created_at as user_created_at
+			FROM stories s
+			JOIN users u ON s.user_id = u.id
+			${whereClause}
+			ORDER BY s.points DESC, s.created_at DESC
+			LIMIT ? OFFSET ?
+		`;
+		params.push(limit, offset);
+		const result = await db.prepare(sql).bind(...params).all<StoryRow>();
+		return result.results;
 	}
 
 	if (orderBy === 'newest') {
@@ -262,4 +276,24 @@ export async function getVotedCommentIds(
 		.bind(userId, ...commentIds)
 		.all<{ item_id: number }>();
 	return new Set(result.results.map((r) => r.item_id));
+}
+
+export async function getRecentComments(
+	db: D1Database,
+	page: number = 1,
+	limit: number = 30
+): Promise<(CommentRow & { story_title: string })[]> {
+	const offset = (page - 1) * limit;
+	const result = await db
+		.prepare(
+			`SELECT c.*, u.username, u.created_at as user_created_at, s.title as story_title
+			FROM comments c
+			JOIN users u ON c.user_id = u.id
+			JOIN stories s ON c.story_id = s.id
+			ORDER BY c.created_at DESC
+			LIMIT ? OFFSET ?`
+		)
+		.bind(limit, offset)
+		.all();
+	return result.results as any;
 }
