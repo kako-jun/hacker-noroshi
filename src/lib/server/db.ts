@@ -189,6 +189,28 @@ export async function getVotedStoryIds(
 	return new Set(result.results.map((r) => r.item_id));
 }
 
+export async function getCommentsByUserId(
+	db: D1Database,
+	userId: number,
+	page: number = 1,
+	limit: number = 30
+): Promise<(CommentRow & { story_title: string })[]> {
+	const offset = (page - 1) * limit;
+	const result = await db
+		.prepare(
+			`SELECT c.*, u.username, s.title as story_title
+			FROM comments c
+			JOIN users u ON c.user_id = u.id
+			JOIN stories s ON c.story_id = s.id
+			WHERE c.user_id = ?
+			ORDER BY c.created_at DESC
+			LIMIT ? OFFSET ?`
+		)
+		.bind(userId, limit, offset)
+		.all();
+	return result.results as any;
+}
+
 export async function getCommentById(db: D1Database, id: number): Promise<CommentRow | null> {
 	const result = await db
 		.prepare(
