@@ -118,6 +118,7 @@ hacker-noroshi/
 |---|---|
 | `/` | トップページ（ランキング順、30件/ページ） |
 | `/newest` | 新着順 |
+| `/front` | 日付別フロントページ（?day=YYYY-MM-DD、デフォルト昨日） |
 | `/ask` | Ask HN（type='ask' のみ） |
 | `/show` | Show HN（type='show' のみ） |
 | `/newcomments` | 全ストーリーの最新コメント一覧 |
@@ -141,6 +142,7 @@ hacker-noroshi/
 |---|---|
 | `getDB()` | D1 バインディング取得 |
 | `getStories()` | ストーリー一覧（ランキング or 新着、type フィルタ、ページネーション） |
+| `getFrontPageStories()` | 日付別フロントページ（日付範囲でフィルタ、HNランクスコアでソート） |
 | `getStoryById()` | ストーリー1件取得 |
 | `getCommentsByStoryId()` | コメント一覧（ストーリーID指定） |
 | `getCommentById()` | コメント1件取得（編集時の権限チェック・パーマリンク用） |
