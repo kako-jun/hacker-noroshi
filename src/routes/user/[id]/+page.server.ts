@@ -1,5 +1,5 @@
 import type { PageServerLoad, Actions } from './$types';
-import { getDB, getUserByUsername, getStoriesByUserId, getVotedStoryIds } from '$lib/server/db';
+import { getDB, getUserByUsername } from '$lib/server/db';
 import { error, fail } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ params, platform, locals }) => {
@@ -9,17 +9,6 @@ export const load: PageServerLoad = async ({ params, platform, locals }) => {
 	const user = await getUserByUsername(db, username);
 	if (!user) {
 		throw error(404, 'User not found');
-	}
-
-	const submissions = await getStoriesByUserId(db, user.id, 1, 30);
-
-	let votedIds: Set<number> = new Set();
-	if (locals.user) {
-		votedIds = await getVotedStoryIds(
-			db,
-			locals.user.id,
-			submissions.map((s) => s.id)
-		);
 	}
 
 	const isOwnProfile = locals.user?.username === user.username;
@@ -32,8 +21,6 @@ export const load: PageServerLoad = async ({ params, platform, locals }) => {
 			about: user.about,
 			created_at: user.created_at
 		},
-		submissions,
-		votedIds: Array.from(votedIds),
 		isOwnProfile
 	};
 };

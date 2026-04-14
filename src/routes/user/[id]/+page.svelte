@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { timeAgo, extractDomain } from '$lib/ranking';
 
 	let { data, form } = $props();
 
@@ -49,35 +48,8 @@
 		</tbody>
 	</table>
 
-	{#if data.submissions.length > 0}
-		<h3 style="font-size: 10pt; margin-top: 20px; margin-bottom: 5px; color: #828282;">submissions</h3>
-		<div class="story-list">
-			{#each data.submissions as story, i}
-				<div class="story-item">
-					<span class="story-rank">{i + 1}.</span>
-					<span class="story-vote">
-						<span class="upvote">&#9650;</span>
-					</span>
-					<div class="story-content">
-						<div class="story-title-line">
-							{#if story.url}
-								<a href={story.url} class="story-title">{story.title}</a>
-								<span class="story-domain">({extractDomain(story.url)})</span>
-							{:else}
-								<a href="/item/{story.id}" class="story-title">{story.title}</a>
-							{/if}
-						</div>
-						<div class="story-meta">
-							{story.points} point{story.points !== 1 ? 's' : ''} by
-							<a href="/user/{story.username}">{story.username}</a>
-							<a href="/item/{story.id}">{timeAgo(story.created_at)}</a> |
-							<a href="/item/{story.id}"
-								>{story.comment_count} comment{story.comment_count !== 1 ? 's' : ''}</a
-							>
-						</div>
-					</div>
-				</div>
-			{/each}
-		</div>
-	{/if}
+	<div style="margin-top: 10px; font-size: 10pt;">
+		<a href="/user/{data.profile.username}/submissions">submissions</a><br />
+		<a href="/user/{data.profile.username}/comments">comments</a>
+	</div>
 </div>
