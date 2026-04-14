@@ -16,6 +16,8 @@
 			<nav class="hn-header-nav">
 				<a href="/newest">new</a>
 				<span class="nav-separator">|</span>
+				<a href="/newcomments">comments</a>
+				<span class="nav-separator">|</span>
 				<a href="/ask">ask</a>
 				<span class="nav-separator">|</span>
 				<a href="/show">show</a>
