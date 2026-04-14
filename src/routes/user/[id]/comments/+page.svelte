@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { timeAgo } from '$lib/ranking';
+	import { timeAgo, isNewUser } from '$lib/ranking';
 	import { formatText } from '$lib/format';
 
 	let { data } = $props();
@@ -56,7 +56,7 @@
 						&#9650;
 					</button>
 				</span>
-				<a href="/user/{comment.username}">{comment.username}</a>
+				<a href="/user/{comment.username}" style={isNewUser(comment.user_created_at) ? 'color: #3c963c;' : ''}>{comment.username}</a>
 				<a href="/item/{comment.id}">{timeAgo(comment.created_at)}</a>
 				| <a href="/item/{comment.parent_id ?? comment.story_id}" style="color: #828282;">parent</a>
 				| <a href="/item/{comment.id}" style="color: #828282;">context</a>

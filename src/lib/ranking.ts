@@ -32,3 +32,8 @@ export function extractDomain(url: string | null): string {
 		return '';
 	}
 }
+
+export function isNewUser(userCreatedAt: string): boolean {
+	const TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000;
+	return Date.now() - new Date(userCreatedAt).getTime() < TWO_WEEKS_MS;
+}
