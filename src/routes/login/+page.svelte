@@ -9,16 +9,17 @@
 </svelte:head>
 
 <div class="hn-form">
-	{#if form?.error}
-		<div class="form-error">{form.error}</div>
+	<b>Login</b>
+	{#if form?.loginError}
+		<div class="form-error">{form.loginError}</div>
 	{/if}
 
-	<form method="POST" use:enhance>
+	<form method="POST" action="?/login" use:enhance>
 		<table>
 			<tbody>
 				<tr>
 					<td>username:</td>
-					<td><input type="text" name="username" value={form?.username ?? ''} autocomplete="username" /></td>
+					<td><input type="text" name="username" value={form?.loginUsername ?? ''} autocomplete="username" /></td>
 				</tr>
 				<tr>
 					<td>password:</td>
@@ -30,7 +31,34 @@
 		<button type="submit">login</button>
 	</form>
 
+	<br />
+	<hr style="border: 0; border-top: 1pt solid #e0e0e0;" />
+	<br />
+
+	<b>Create Account</b>
+	{#if form?.signupError}
+		<div class="form-error">{form.signupError}</div>
+	{/if}
+
+	<form method="POST" action="?/signup" use:enhance>
+		<table>
+			<tbody>
+				<tr>
+					<td>username:</td>
+					<td><input type="text" name="username" value={form?.signupUsername ?? ''} autocomplete="username" /></td>
+				</tr>
+				<tr>
+					<td>password:</td>
+					<td><input type="password" name="password" autocomplete="new-password" /></td>
+				</tr>
+			</tbody>
+		</table>
+		<br />
+		<button type="submit">create account</button>
+	</form>
+
 	<div class="form-note">
-		<a href="/signup" style="color: #828282;">Create Account</a>
+		Usernames can only contain letters, digits, underscores, and hyphens, and should be between 3 and 15 characters long.
+		Passwords should be at least 8 characters.
 	</div>
 </div>
