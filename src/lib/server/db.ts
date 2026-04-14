@@ -130,14 +130,16 @@ export async function getFrontPageStories(
 	const dayStart = `${day}T00:00:00.000Z`;
 	const dayEnd = `${day}T23:59:59.999Z`;
 
+	const fetchLimit = 500;
 	const sql = `
 		SELECT s.*, u.username, u.created_at as user_created_at
 		FROM stories s
 		JOIN users u ON s.user_id = u.id
 		WHERE s.created_at >= ? AND s.created_at <= ?
 		ORDER BY s.created_at DESC
+		LIMIT ?
 	`;
-	const result = await db.prepare(sql).bind(dayStart, dayEnd).all<StoryRow>();
+	const result = await db.prepare(sql).bind(dayStart, dayEnd, fetchLimit).all<StoryRow>();
 
 	const now = Date.now();
 	const ranked = result.results

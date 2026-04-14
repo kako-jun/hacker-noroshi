@@ -19,6 +19,7 @@ hacker-noroshi/
 │   │   ├── +layout.svelte    # 共通レイアウト（ヘッダー・フッター）
 │   │   ├── +page.svelte      # トップページ（ランキング）
 │   │   ├── newest/           # 新着順
+│   │   ├── front/            # 日付別フロントページ
 │   │   ├── ask/              # Ask HN
 │   │   ├── show/             # Show HN
 │   │   ├── newcomments/      # 全ストーリーの最新コメント一覧

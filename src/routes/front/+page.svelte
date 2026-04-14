@@ -69,6 +69,10 @@
 	</span>
 </div>
 
+{#if data.stories.length === 0}
+<div class="front-empty">No stories for this date.</div>
+{/if}
+
 <div class="story-list">
 	{#each data.stories as story, i}
 		<div class="story-item">
@@ -116,7 +120,6 @@
 		padding: 5pt 0;
 		font-size: 7pt;
 		color: #828282;
-		font-family: Verdana, Geneva, sans-serif;
 	}
 
 	.front-nav-label {
@@ -124,6 +127,12 @@
 	}
 
 	.front-nav-links a {
+		color: #828282;
+	}
+
+	.front-empty {
+		padding: 10pt 0;
+		font-size: 10pt;
 		color: #828282;
 	}
 </style>
