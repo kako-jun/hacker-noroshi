@@ -1,6 +1,6 @@
-import type { PageServerLoad } from './$types';
+import type { PageServerLoad, Actions } from './$types';
 import { getDB, getUserByUsername, getStoriesByUserId, getVotedStoryIds } from '$lib/server/db';
-import { error } from '@sveltejs/kit';
+import { error, fail } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ params, platform, locals }) => {
 	const db = getDB(platform);
@@ -22,6 +22,8 @@ export const load: PageServerLoad = async ({ params, platform, locals }) => {
 		);
 	}
 
+	const isOwnProfile = locals.user?.username === user.username;
+
 	return {
 		profile: {
 			id: user.id,
@@ -31,6 +33,30 @@ export const load: PageServerLoad = async ({ params, platform, locals }) => {
 			created_at: user.created_at
 		},
 		submissions,
-		votedIds: Array.from(votedIds)
+		votedIds: Array.from(votedIds),
+		isOwnProfile
 	};
+};
+
+export const actions: Actions = {
+	update: async ({ request, platform, locals, params }) => {
+		if (!locals.user) {
+			throw error(401, 'Not logged in');
+		}
+
+		if (locals.user.username !== params.id) {
+			throw error(403, 'Cannot edit another user\'s profile');
+		}
+
+		const db = getDB(platform);
+		const formData = await request.formData();
+		const about = (formData.get('about') as string) ?? '';
+
+		await db
+			.prepare('UPDATE users SET about = ? WHERE username = ?')
+			.bind(about, params.id)
+			.run();
+
+		return { success: true };
+	}
 };
