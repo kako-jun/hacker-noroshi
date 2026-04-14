@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { timeAgo, extractDomain } from '$lib/ranking';
+	import { formatText } from '$lib/format';
 	import { invalidateAll } from '$app/navigation';
 
 	let { data, form } = $props();
@@ -220,7 +221,7 @@
 			<div class="comment-text" style="padding-left: 14px;">
 				{#each comment.text.split('\n') as paragraph}
 					{#if paragraph.trim()}
-						<p>{paragraph}</p>
+						<p>{@html formatText(paragraph)}</p>
 					{/if}
 				{/each}
 			</div>
@@ -285,7 +286,7 @@
 						<div class="comment-text" style="padding-left: 14px;">
 							{#each child.text.split('\n') as paragraph}
 								{#if paragraph.trim()}
-									<p>{paragraph}</p>
+									<p>{@html formatText(paragraph)}</p>
 								{/if}
 							{/each}
 						</div>
@@ -401,7 +402,7 @@
 			<div class="item-text" style="padding-left: 18px;">
 				{#each data.story.text.split('\n') as paragraph}
 					{#if paragraph.trim()}
-						<p>{paragraph}</p>
+						<p>{@html formatText(paragraph)}</p>
 					{/if}
 				{/each}
 			</div>
@@ -465,7 +466,7 @@
 						<div class="comment-text" style="padding-left: 14px;">
 							{#each comment.text.split('\n') as paragraph}
 								{#if paragraph.trim()}
-									<p>{paragraph}</p>
+									<p>{@html formatText(paragraph)}</p>
 								{/if}
 							{/each}
 						</div>

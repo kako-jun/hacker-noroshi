@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { timeAgo } from '$lib/ranking';
+	import { formatText } from '$lib/format';
 
 	let { data } = $props();
 	let localVotedIds = $state<Set<number> | null>(null);
@@ -64,7 +65,7 @@
 			<div class="comment-text" style="padding-left: 14px;">
 				{#each comment.text.split('\n') as paragraph}
 					{#if paragraph.trim()}
-						<p>{paragraph}</p>
+						<p>{@html formatText(paragraph)}</p>
 					{/if}
 				{/each}
 			</div>
