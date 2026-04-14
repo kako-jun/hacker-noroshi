@@ -21,13 +21,15 @@ hacker-noroshi/
 │   │   ├── newest/           # 新着順
 │   │   ├── ask/              # Ask HN
 │   │   ├── show/             # Show HN
+│   │   ├── newcomments/      # 全ストーリーの最新コメント一覧
+│   │   ├── best/             # 高スコアのストーリー一覧
 │   │   ├── item/[id]/        # 投稿詳細 or コメントパーマリンク + コメント + 編集
 │   │   ├── user/[id]/        # プロフィール + 編集
 │   │   │   ├── submissions/  # ユーザーの投稿一覧
 │   │   │   └── comments/     # ユーザーのコメント一覧
 │   │   ├── submit/           # 投稿フォーム
-│   │   ├── login/            # ログイン
-│   │   ├── signup/           # サインアップ
+│   │   ├── login/            # ログイン + サインアップ（1ページ統合）
+│   │   ├── signup/           # /login へリダイレクト
 │   │   ├── logout/           # ログアウト
 │   │   ├── guidelines/       # ガイドライン
 │   │   ├── faq/              # FAQ
@@ -125,8 +127,8 @@ hacker-noroshi/
 | `/user/[id]/submissions` | ユーザーの投稿一覧 |
 | `/user/[id]/comments` | ユーザーのコメント一覧 |
 | `/submit` | 投稿フォーム（要ログイン） |
-| `/login` | ログイン |
-| `/signup` | サインアップ |
+| `/login` | ログイン + サインアップ（本家HN準拠で1ページ統合） |
+| `/signup` | /login へリダイレクト（既存リンク互換） |
 | `/logout` | ログアウト（リダイレクト） |
 | `/guidelines` | ガイドライン |
 | `/faq` | FAQ |
