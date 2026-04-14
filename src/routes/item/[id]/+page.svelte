@@ -9,6 +9,14 @@
 	let localVotedCommentIds = $state<Set<number> | null>(null);
 	let localCommentPoints = $state<Record<number, number>>({});
 	let replyTo = $state<number | null>(null);
+	let editingStory = $state(false);
+	let editingCommentId = $state<number | null>(null);
+
+	function canEdit(createdAt: string, userId: number): boolean {
+		if (!data.user || data.user.id !== userId) return false;
+		const elapsed = Date.now() - new Date(createdAt).getTime();
+		return elapsed < 2 * 60 * 60 * 1000;
+	}
 
 	let storyVoted = $derived(localStoryVoted ?? data.storyVoted);
 	let storyPoints = $derived(localStoryPoints ?? data.story.points);
@@ -144,9 +152,48 @@
 		{storyPoints} point{storyPoints !== 1 ? 's' : ''} by
 		<a href="/user/{data.story.username}">{data.story.username}</a>
 		{timeAgo(data.story.created_at)}
+		{#if canEdit(data.story.created_at, data.story.user_id)}
+			| <a
+				href="#edit"
+				onclick={(e) => {
+					e.preventDefault();
+					editingStory = true;
+				}}>edit</a>
+		{/if}
 	</div>
 
-	{#if data.story.text}
+	{#if editingStory}
+		<div class="comment-form" style="padding-left: 18px;">
+			<form method="POST" action="?/editStory" use:enhance={() => {
+				return async ({ update }) => {
+					editingStory = false;
+					await update();
+					await invalidateAll();
+				};
+			}}>
+				<table style="border-spacing: 0;">
+					<tbody>
+						<tr>
+							<td style="color: #828282; text-align: right; padding: 2px 5px; vertical-align: top;">title:</td>
+							<td style="padding: 2px 5px;"><input type="text" name="title" value={data.story.title} style="font-family: monospace; font-size: 9pt; width: 300px;" /></td>
+						</tr>
+						<tr>
+							<td style="color: #828282; text-align: right; padding: 2px 5px; vertical-align: top;">text:</td>
+							<td style="padding: 2px 5px;"><textarea name="text" rows="6" cols="60">{data.story.text ?? ''}</textarea></td>
+						</tr>
+					</tbody>
+				</table>
+				<button type="submit">update</button>
+				<a
+					href="#cancel"
+					onclick={(e) => {
+						e.preventDefault();
+						editingStory = false;
+					}}
+					style="margin-left: 8px; font-size: 7pt; color: #828282;">cancel</a>
+			</form>
+		</div>
+	{:else if data.story.text}
 		<div class="item-text" style="padding-left: 18px;">
 			{#each data.story.text.split('\n') as paragraph}
 				{#if paragraph.trim()}
@@ -188,13 +235,37 @@
 					<a href="/user/{comment.username}">{comment.username}</a>
 					{timeAgo(comment.created_at)}
 				</div>
-				<div class="comment-text" style="padding-left: 14px;">
-					{#each comment.text.split('\n') as paragraph}
-						{#if paragraph.trim()}
-							<p>{paragraph}</p>
-						{/if}
-					{/each}
-				</div>
+				{#if editingCommentId === comment.id}
+					<div class="comment-form" style="padding-left: 14px;">
+						<form method="POST" action="?/editComment" use:enhance={() => {
+							return async ({ update }) => {
+								editingCommentId = null;
+								await update();
+								await invalidateAll();
+							};
+						}}>
+							<input type="hidden" name="comment_id" value={comment.id} />
+							<textarea name="text" rows="4" cols="60">{comment.text}</textarea>
+							<br />
+							<button type="submit">update</button>
+							<a
+								href="#cancel"
+								onclick={(e) => {
+									e.preventDefault();
+									editingCommentId = null;
+								}}
+								style="margin-left: 8px; font-size: 7pt; color: #828282;">cancel</a>
+						</form>
+					</div>
+				{:else}
+					<div class="comment-text" style="padding-left: 14px;">
+						{#each comment.text.split('\n') as paragraph}
+							{#if paragraph.trim()}
+								<p>{paragraph}</p>
+							{/if}
+						{/each}
+					</div>
+				{/if}
 				{#if data.user}
 					<div class="comment-reply" style="padding-left: 14px;">
 						<a
@@ -204,6 +275,14 @@
 								toggleReply(comment.id);
 							}}>reply</a
 						>
+						{#if canEdit(comment.created_at, comment.user_id)}
+							| <a
+								href="#edit"
+								onclick={(e) => {
+									e.preventDefault();
+									editingCommentId = comment.id;
+								}}>edit</a>
+						{/if}
 					</div>
 					{#if replyTo === comment.id}
 						<div class="comment-form" style="padding-left: 14px;">

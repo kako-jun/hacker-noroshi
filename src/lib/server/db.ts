@@ -189,6 +189,19 @@ export async function getVotedStoryIds(
 	return new Set(result.results.map((r) => r.item_id));
 }
 
+export async function getCommentById(db: D1Database, id: number): Promise<CommentRow | null> {
+	const result = await db
+		.prepare(
+			`SELECT c.*, u.username
+			FROM comments c
+			JOIN users u ON c.user_id = u.id
+			WHERE c.id = ?`
+		)
+		.bind(id)
+		.first<CommentRow>();
+	return result;
+}
+
 export async function getVotedCommentIds(
 	db: D1Database,
 	userId: number,
