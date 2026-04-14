@@ -25,9 +25,9 @@ export const actions: Actions = {
 			return fail(400, { error: 'Username must be between 3 and 15 characters', username });
 		}
 
-		if (!/^[a-zA-Z0-9_]+$/.test(username)) {
+		if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
 			return fail(400, {
-				error: 'Username can only contain letters, numbers, and underscores',
+				error: 'Username can only contain letters, numbers, underscores, and hyphens',
 				username
 			});
 		}
