@@ -85,6 +85,7 @@ score = (points - 1) / (hours_since_post + 2) ^ 1.8
 - [x] コメントパーマリンク（/item/{comment_id}）
 - [x] テキストフォーマット（URL自動リンク、*イタリック*）
 - [x] 新規アカウントの緑色ユーザー名（作成14日以内）
+- [x] 追加ブラウズページ（/newcomments, /best）
 
 ## v2 以降
 
