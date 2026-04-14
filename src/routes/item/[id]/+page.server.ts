@@ -68,6 +68,14 @@ export const load: PageServerLoad = async ({ params, platform, locals }) => {
 	};
 };
 
+async function resolveStoryId(db: D1Database, itemId: number): Promise<number> {
+	const story = await getStoryById(db, itemId);
+	if (story) return story.id;
+	const comment = await getCommentById(db, itemId);
+	if (comment) return comment.story_id;
+	throw error(404, 'Not found');
+}
+
 export const actions: Actions = {
 	comment: async ({ request, platform, locals, params }) => {
 		if (!locals.user) {
@@ -84,19 +92,7 @@ export const actions: Actions = {
 			return fail(400, { error: 'Comment text is required' });
 		}
 
-		// Determine story_id: if this page is a comment permalink, use its story_id
-		let storyId: number;
-		const story = await getStoryById(db, itemId);
-		if (story) {
-			storyId = story.id;
-		} else {
-			const comment = await getCommentById(db, itemId);
-			if (!comment) {
-				throw error(404, 'Not found');
-			}
-			storyId = comment.story_id;
-		}
-
+		const storyId = await resolveStoryId(db, itemId);
 		const parentIdNum = parentId ? parseInt(parentId, 10) : null;
 
 		await db

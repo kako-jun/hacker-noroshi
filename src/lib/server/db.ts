@@ -229,8 +229,8 @@ export async function getChildComments(
 	commentId: number,
 	storyId: number
 ): Promise<CommentRow[]> {
-	// D1 lacks recursive CTE support, so fetch all comments for the story
-	// and filter to descendants of the target comment in JS
+	// TODO: D1が再帰CTEに対応したらWITH RECURSIVEで直接子孫を取得する
+	// 現状はストーリー全コメントを取得してJSでBFSフィルタ
 	const all = await getCommentsByStoryId(db, storyId);
 	const childIds = new Set<number>();
 	const queue = [commentId];

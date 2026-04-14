@@ -53,8 +53,7 @@
 	}
 
 	function buildCommentTree(
-		comments: typeof data.comments,
-		rootParentId?: number
+		comments: typeof data.comments
 	): CommentNode[] {
 		const map = new Map<number, CommentNode>();
 		const roots: CommentNode[] = [];
