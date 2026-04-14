@@ -18,6 +18,7 @@ export interface StoryRow {
 	type: string;
 	created_at: string;
 	username: string;
+	user_created_at: string;
 }
 
 export interface CommentRow {
@@ -29,6 +30,7 @@ export interface CommentRow {
 	points: number;
 	created_at: string;
 	username: string;
+	user_created_at: string;
 }
 
 export interface UserRow {
@@ -68,7 +70,7 @@ export async function getStories(
 
 	if (orderBy === 'newest') {
 		const sql = `
-			SELECT s.*, u.username
+			SELECT s.*, u.username, u.created_at as user_created_at
 			FROM stories s
 			JOIN users u ON s.user_id = u.id
 			${whereClause}
@@ -83,7 +85,7 @@ export async function getStories(
 	// Rank mode: fetch recent stories, sort by HN algorithm in JS
 	const fetchLimit = 500;
 	const sql = `
-		SELECT s.*, u.username
+		SELECT s.*, u.username, u.created_at as user_created_at
 		FROM stories s
 		JOIN users u ON s.user_id = u.id
 		${whereClause}
@@ -107,7 +109,7 @@ export async function getStories(
 export async function getStoryById(db: D1Database, id: number): Promise<StoryRow | null> {
 	const result = await db
 		.prepare(
-			`SELECT s.*, u.username
+			`SELECT s.*, u.username, u.created_at as user_created_at
 			FROM stories s
 			JOIN users u ON s.user_id = u.id
 			WHERE s.id = ?`
@@ -120,7 +122,7 @@ export async function getStoryById(db: D1Database, id: number): Promise<StoryRow
 export async function getCommentsByStoryId(db: D1Database, storyId: number): Promise<CommentRow[]> {
 	const result = await db
 		.prepare(
-			`SELECT c.*, u.username
+			`SELECT c.*, u.username, u.created_at as user_created_at
 			FROM comments c
 			JOIN users u ON c.user_id = u.id
 			WHERE c.story_id = ?
@@ -148,7 +150,7 @@ export async function getStoriesByUserId(
 	const offset = (page - 1) * limit;
 	const result = await db
 		.prepare(
-			`SELECT s.*, u.username
+			`SELECT s.*, u.username, u.created_at as user_created_at
 			FROM stories s
 			JOIN users u ON s.user_id = u.id
 			WHERE s.user_id = ?
@@ -198,7 +200,7 @@ export async function getCommentsByUserId(
 	const offset = (page - 1) * limit;
 	const result = await db
 		.prepare(
-			`SELECT c.*, u.username, s.title as story_title
+			`SELECT c.*, u.username, u.created_at as user_created_at, s.title as story_title
 			FROM comments c
 			JOIN users u ON c.user_id = u.id
 			JOIN stories s ON c.story_id = s.id
@@ -214,7 +216,7 @@ export async function getCommentsByUserId(
 export async function getCommentById(db: D1Database, id: number): Promise<CommentRow | null> {
 	const result = await db
 		.prepare(
-			`SELECT c.*, u.username
+			`SELECT c.*, u.username, u.created_at as user_created_at
 			FROM comments c
 			JOIN users u ON c.user_id = u.id
 			WHERE c.id = ?`
