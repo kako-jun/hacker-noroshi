@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { timeAgo, extractDomain } from '$lib/ranking';
+	import { timeAgo, extractDomain, isNewUser } from '$lib/ranking';
 	import { formatText } from '$lib/format';
 	import { invalidateAll } from '$app/navigation';
 
@@ -49,6 +49,7 @@
 		points: number;
 		created_at: string;
 		username: string;
+		user_created_at: string;
 		children: CommentNode[];
 		depth: number;
 	}
@@ -178,7 +179,7 @@
 					&#9650;
 				</button>
 			</span>
-			<a href="/user/{comment.username}">{comment.username}</a>
+			<a href="/user/{comment.username}" style={isNewUser(comment.user_created_at) ? 'color: #3c963c;' : ''}>{comment.username}</a>
 			<a href="/item/{comment.id}">{timeAgo(comment.created_at)}</a>
 			{#if comment.parent_id}
 				| <a href="/item/{comment.parent_id}" style="color: #828282;">parent</a>
@@ -257,7 +258,7 @@
 								&#9650;
 							</button>
 						</span>
-						<a href="/user/{child.username}">{child.username}</a>
+						<a href="/user/{child.username}" style={isNewUser(child.user_created_at) ? 'color: #3c963c;' : ''}>{child.username}</a>
 						<a href="/item/{child.id}">{timeAgo(child.created_at)}</a>
 					</div>
 					{#if editingCommentId === child.id}
@@ -355,7 +356,7 @@
 
 		<div class="item-meta" style="padding-left: 18px;">
 			{storyPoints} point{storyPoints !== 1 ? 's' : ''} by
-			<a href="/user/{data.story.username}">{data.story.username}</a>
+			<a href="/user/{data.story.username}" style={isNewUser(data.story.user_created_at) ? 'color: #3c963c;' : ''}>{data.story.username}</a>
 			{timeAgo(data.story.created_at)}
 			{#if canEdit(data.story.created_at, data.story.user_id)}
 				| <a
@@ -437,7 +438,7 @@
 								&#9650;
 							</button>
 						</span>
-						<a href="/user/{comment.username}">{comment.username}</a>
+						<a href="/user/{comment.username}" style={isNewUser(comment.user_created_at) ? 'color: #3c963c;' : ''}>{comment.username}</a>
 						<a href="/item/{comment.id}">{timeAgo(comment.created_at)}</a>
 					</div>
 					{#if editingCommentId === comment.id}
