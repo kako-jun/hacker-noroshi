@@ -38,7 +38,7 @@
 	</main>
 
 	<footer class="hn-footer">
-		<span>ガイドライン</span> | <span>FAQ</span> | <span>API</span> |
+		<a href="/guidelines">ガイドライン</a> | <a href="/faq">FAQ</a> | <span>API</span> |
 		<a href="https://github.com/kako-jun/hacker-noroshi">GitHub</a>
 	</footer>
 </div>
