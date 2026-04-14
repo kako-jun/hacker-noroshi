@@ -120,6 +120,37 @@ export async function getStories(
 	return ranked;
 }
 
+export async function getFrontPageStories(
+	db: D1Database,
+	day: string,
+	page: number = 1,
+	limit: number = 30
+): Promise<StoryRow[]> {
+	const offset = (page - 1) * limit;
+	const dayStart = `${day}T00:00:00.000Z`;
+	const dayEnd = `${day}T23:59:59.999Z`;
+
+	const sql = `
+		SELECT s.*, u.username, u.created_at as user_created_at
+		FROM stories s
+		JOIN users u ON s.user_id = u.id
+		WHERE s.created_at >= ? AND s.created_at <= ?
+		ORDER BY s.created_at DESC
+	`;
+	const result = await db.prepare(sql).bind(dayStart, dayEnd).all<StoryRow>();
+
+	const now = Date.now();
+	const ranked = result.results
+		.map((s) => {
+			const hoursAge = (now - new Date(s.created_at).getTime()) / (1000 * 60 * 60);
+			const score = (s.points - 1) / Math.pow(hoursAge + 2, 1.8);
+			return { ...s, _score: score };
+		})
+		.sort((a, b) => b._score - a._score)
+		.slice(offset, offset + limit);
+	return ranked;
+}
+
 export async function getStoryById(db: D1Database, id: number): Promise<StoryRow | null> {
 	const result = await db
 		.prepare(
