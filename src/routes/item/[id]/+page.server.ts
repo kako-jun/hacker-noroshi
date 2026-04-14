@@ -1,5 +1,5 @@
 import type { PageServerLoad, Actions } from './$types';
-import { getDB, getStoryById, getCommentsByStoryId, getCommentById, getVotedCommentIds, hasVoted } from '$lib/server/db';
+import { getDB, getStoryById, getCommentsByStoryId, getCommentById, getChildComments, getVotedCommentIds, hasVoted } from '$lib/server/db';
 import { error, fail, redirect } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ params, platform, locals }) => {
@@ -7,32 +7,63 @@ export const load: PageServerLoad = async ({ params, platform, locals }) => {
 	const id = parseInt(params.id, 10);
 
 	if (isNaN(id)) {
-		throw error(404, 'Story not found');
+		throw error(404, 'Not found');
 	}
 
+	// Try story first
 	const story = await getStoryById(db, id);
-	if (!story) {
-		throw error(404, 'Story not found');
+	if (story) {
+		const comments = await getCommentsByStoryId(db, id);
+
+		let storyVoted = false;
+		let votedCommentIds: Set<number> = new Set();
+
+		if (locals.user) {
+			storyVoted = await hasVoted(db, locals.user.id, id, 'story');
+			votedCommentIds = await getVotedCommentIds(
+				db,
+				locals.user.id,
+				comments.map((c) => c.id)
+			);
+		}
+
+		return {
+			mode: 'story' as const,
+			story,
+			comments,
+			storyVoted,
+			votedCommentIds: Array.from(votedCommentIds)
+		};
 	}
 
-	const comments = await getCommentsByStoryId(db, id);
+	// Not a story — try comment
+	const comment = await getCommentById(db, id);
+	if (!comment) {
+		throw error(404, 'Not found');
+	}
 
-	let storyVoted = false;
+	const parentStory = await getStoryById(db, comment.story_id);
+	if (!parentStory) {
+		throw error(404, 'Parent story not found');
+	}
+
+	const childComments = await getChildComments(db, comment.id, comment.story_id);
+
+	let commentVoted = false;
 	let votedCommentIds: Set<number> = new Set();
 
 	if (locals.user) {
-		storyVoted = await hasVoted(db, locals.user.id, id, 'story');
-		votedCommentIds = await getVotedCommentIds(
-			db,
-			locals.user.id,
-			comments.map((c) => c.id)
-		);
+		commentVoted = await hasVoted(db, locals.user.id, comment.id, 'comment');
+		const allCommentIds = [comment.id, ...childComments.map((c) => c.id)];
+		votedCommentIds = await getVotedCommentIds(db, locals.user.id, allCommentIds);
 	}
 
 	return {
-		story,
-		comments,
-		storyVoted,
+		mode: 'comment' as const,
+		targetComment: comment,
+		parentStory,
+		comments: childComments,
+		commentVoted,
 		votedCommentIds: Array.from(votedCommentIds)
 	};
 };
@@ -47,10 +78,23 @@ export const actions: Actions = {
 		const formData = await request.formData();
 		const text = (formData.get('text') as string)?.trim();
 		const parentId = formData.get('parent_id') as string | null;
-		const storyId = parseInt(params.id, 10);
+		const itemId = parseInt(params.id, 10);
 
 		if (!text) {
 			return fail(400, { error: 'Comment text is required' });
+		}
+
+		// Determine story_id: if this page is a comment permalink, use its story_id
+		let storyId: number;
+		const story = await getStoryById(db, itemId);
+		if (story) {
+			storyId = story.id;
+		} else {
+			const comment = await getCommentById(db, itemId);
+			if (!comment) {
+				throw error(404, 'Not found');
+			}
+			storyId = comment.story_id;
 		}
 
 		const parentIdNum = parentId ? parseInt(parentId, 10) : null;
