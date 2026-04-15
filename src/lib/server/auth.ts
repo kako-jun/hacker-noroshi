@@ -30,16 +30,36 @@ export async function createSession(db: D1Database, userId: number): Promise<str
 export async function getSession(
 	db: D1Database,
 	sessionId: string
-): Promise<{ id: number; username: string; karma: number } | null> {
+): Promise<{
+	id: number;
+	username: string;
+	karma: number;
+	delay: number;
+	noprocrast: number;
+	maxvisit: number;
+	minaway: number;
+	showdead: number;
+	last_visit: string | null;
+} | null> {
 	const result = await db
 		.prepare(
-			`SELECT u.id, u.username, u.karma
+			`SELECT u.id, u.username, u.karma, u.delay, u.noprocrast, u.maxvisit, u.minaway, u.showdead, u.last_visit
 			FROM sessions s
 			JOIN users u ON s.user_id = u.id
 			WHERE s.id = ? AND s.expires_at > datetime('now')`
 		)
 		.bind(sessionId)
-		.first<{ id: number; username: string; karma: number }>();
+		.first<{
+			id: number;
+			username: string;
+			karma: number;
+			delay: number;
+			noprocrast: number;
+			maxvisit: number;
+			minaway: number;
+			showdead: number;
+			last_visit: string | null;
+		}>();
 	return result;
 }
 

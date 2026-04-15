@@ -39,6 +39,13 @@ export interface UserRow {
 	password_hash: string;
 	karma: number;
 	about: string;
+	email: string;
+	delay: number;
+	noprocrast: number;
+	maxvisit: number;
+	minaway: number;
+	showdead: number;
+	last_visit: string | null;
 	created_at: string;
 }
 
@@ -166,18 +173,29 @@ export async function getStoryById(db: D1Database, id: number): Promise<StoryRow
 	return result;
 }
 
-export async function getCommentsByStoryId(db: D1Database, storyId: number): Promise<CommentRow[]> {
+export async function getCommentsByStoryId(
+	db: D1Database,
+	storyId: number,
+	currentUserId?: number
+): Promise<CommentRow[]> {
 	const result = await db
 		.prepare(
-			`SELECT c.*, u.username, u.created_at as user_created_at
+			`SELECT c.*, u.username, u.created_at as user_created_at, u.delay as author_delay
 			FROM comments c
 			JOIN users u ON c.user_id = u.id
 			WHERE c.story_id = ?
 			ORDER BY c.created_at ASC`
 		)
 		.bind(storyId)
-		.all<CommentRow>();
-	return result.results;
+		.all<CommentRow & { author_delay: number }>();
+
+	const now = Date.now();
+	return result.results.filter((c) => {
+		if (c.user_id === currentUserId) return true;
+		if (c.author_delay <= 0) return true;
+		const visibleAt = new Date(c.created_at).getTime() + c.author_delay * 60 * 1000;
+		return now >= visibleAt;
+	});
 }
 
 export async function getUserByUsername(db: D1Database, username: string): Promise<UserRow | null> {
@@ -243,12 +261,13 @@ export async function getCommentsByUserId(
 	db: D1Database,
 	userId: number,
 	page: number = 1,
-	limit: number = 30
+	limit: number = 30,
+	currentUserId?: number
 ): Promise<(CommentRow & { story_title: string })[]> {
 	const offset = (page - 1) * limit;
 	const result = await db
 		.prepare(
-			`SELECT c.*, u.username, u.created_at as user_created_at, s.title as story_title
+			`SELECT c.*, u.username, u.created_at as user_created_at, u.delay as author_delay, s.title as story_title
 			FROM comments c
 			JOIN users u ON c.user_id = u.id
 			JOIN stories s ON c.story_id = s.id
@@ -257,8 +276,19 @@ export async function getCommentsByUserId(
 			LIMIT ? OFFSET ?`
 		)
 		.bind(userId, limit, offset)
-		.all();
-	return result.results as any;
+		.all<CommentRow & { story_title: string; author_delay: number }>();
+
+	// If viewing own comments, show all; otherwise filter by delay
+	if (userId === currentUserId) {
+		return result.results;
+	}
+
+	const now = Date.now();
+	return result.results.filter((c) => {
+		if (c.author_delay <= 0) return true;
+		const visibleAt = new Date(c.created_at).getTime() + c.author_delay * 60 * 1000;
+		return now >= visibleAt;
+	});
 }
 
 export async function getCommentById(db: D1Database, id: number): Promise<CommentRow | null> {
@@ -277,11 +307,12 @@ export async function getCommentById(db: D1Database, id: number): Promise<Commen
 export async function getChildComments(
 	db: D1Database,
 	commentId: number,
-	storyId: number
+	storyId: number,
+	currentUserId?: number
 ): Promise<CommentRow[]> {
 	// TODO: D1が再帰CTEに対応したらWITH RECURSIVEで直接子孫を取得する
 	// 現状はストーリー全コメントを取得してJSでBFSフィルタ
-	const all = await getCommentsByStoryId(db, storyId);
+	const all = await getCommentsByStoryId(db, storyId, currentUserId);
 	const childIds = new Set<number>();
 	const queue = [commentId];
 	while (queue.length > 0) {
@@ -433,19 +464,30 @@ export async function getHiddenStoriesByUserId(
 export async function getRecentComments(
 	db: D1Database,
 	page: number = 1,
-	limit: number = 30
+	limit: number = 30,
+	currentUserId?: number
 ): Promise<(CommentRow & { story_title: string })[]> {
+	// Fetch extra rows to account for delay-filtered ones
+	const fetchLimit = limit * 3;
 	const offset = (page - 1) * limit;
 	const result = await db
 		.prepare(
-			`SELECT c.*, u.username, u.created_at as user_created_at, s.title as story_title
+			`SELECT c.*, u.username, u.created_at as user_created_at, u.delay as author_delay, s.title as story_title
 			FROM comments c
 			JOIN users u ON c.user_id = u.id
 			JOIN stories s ON c.story_id = s.id
 			ORDER BY c.created_at DESC
 			LIMIT ? OFFSET ?`
 		)
-		.bind(limit, offset)
-		.all();
-	return result.results as any;
+		.bind(fetchLimit, offset)
+		.all<CommentRow & { story_title: string; author_delay: number }>();
+
+	const now = Date.now();
+	const filtered = result.results.filter((c) => {
+		if (c.user_id === currentUserId) return true;
+		if (c.author_delay <= 0) return true;
+		const visibleAt = new Date(c.created_at).getTime() + c.author_delay * 60 * 1000;
+		return now >= visibleAt;
+	});
+	return filtered.slice(0, limit);
 }

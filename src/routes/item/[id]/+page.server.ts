@@ -13,7 +13,7 @@ export const load: PageServerLoad = async ({ params, platform, locals }) => {
 	// Try story first
 	const story = await getStoryById(db, id);
 	if (story) {
-		const comments = await getCommentsByStoryId(db, id);
+		const comments = await getCommentsByStoryId(db, id, locals.user?.id);
 
 		let storyVoted = false;
 		let storyFavorited = false;
@@ -51,7 +51,7 @@ export const load: PageServerLoad = async ({ params, platform, locals }) => {
 		throw error(404, 'Parent story not found');
 	}
 
-	const childComments = await getChildComments(db, comment.id, comment.story_id);
+	const childComments = await getChildComments(db, comment.id, comment.story_id, locals.user?.id);
 
 	let commentVoted = false;
 	let commentVoteStates: Map<number, 'up' | 'down'> = new Map();

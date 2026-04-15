@@ -66,9 +66,35 @@ score = (points - 1) / (hours_since_post + 2) ^ 1.8
 ユーザー名: 3-15文字、英数字+アンダースコア+ハイフン
 新規ユーザー表示: アカウント作成から14日以内のユーザー名を緑色（#3c963c）で表示
 
+### ユーザー設定
+
+プロフィールページ（`/user/[id]`）で本人のみ編集可能。テーブルレイアウトのインラインフォーム（本家HN準拠）。
+
+| 設定 | 型 | デフォルト | 説明 |
+|---|---|---|---|
+| about | TEXT | '' | 自己紹介 |
+| email | TEXT | '' | パスワードリセット用（任意、本人のみ表示） |
+| showdead | yes/no | no | dead 状態の投稿・コメントを表示（モデレーション実装後に有効） |
+| noprocrast | yes/no | no | アクセス制限を有効にする |
+| maxvisit | INTEGER | 20 | noprocrast: 連続アクセス可能時間（分） |
+| minaway | INTEGER | 180 | noprocrast: 必要な離脱時間（分） |
+| delay | INTEGER | 0 | 自分のコメントが他者に表示されるまでの遅延（0-10分） |
+
+#### noprocrast
+
+1. 有効時、最初のアクセスで `last_visit` を記録
+2. `last_visit` から `maxvisit` 分以内 → 通常アクセス
+3. `maxvisit` 分超過 → `/noprocrast` ページにリダイレクト
+4. `maxvisit + minaway` 分経過 → `last_visit` リセット、通常アクセス再開
+
+#### delay（コメント遅延）
+
+- コメント投稿者の `delay` 設定に基づき、`created_at + delay分` が現在時刻より未来のコメントは投稿者本人以外に非表示
+- サーバーサイドフィルタ（`getCommentsByStoryId`, `getRecentComments`, `getCommentsByUserId` で適用）
+
 ### 編集機能
 
-- プロフィール: ログイン中の本人が about フィールドを編集可能
+- プロフィール: ログイン中の本人が about + 設定フィールドを編集可能
 - 投稿: 投稿から2時間以内、本人のみ title と text を編集可能
 - コメント: 投稿から2時間以内、本人のみ text を編集可能
 - ストーリー編集時は type を再判定（Ask HN: / Show HN: プレフィックス）
@@ -106,12 +132,15 @@ score = (points - 1) / (hours_since_post + 2) ^ 1.8
 - [x] favorites 機能（favorite/un-fav トグル + /user/[id]/favorites 一覧）
 - [x] hide 機能（ストーリー非表示 + /user/[id]/hidden 一覧 + 一覧からの除外）
 - [x] downvote 機能（コメント専用、karma 500 閾値、フェード表示）
+- [x] ユーザー設定（email, showdead, noprocrast, delay）
+- [x] noprocrast アクセス制限（/noprocrast ブロックページ）
+- [x] コメント delay フィルタ（サーバーサイド）
 
 ## v2 以降
 
 - 検索
 - フラグ / モデレーション
-- メール通知
+- パスワードリセット（email 利用）
 - API 公開
 - 招待制 / カルマ制限
 - ダークモード
