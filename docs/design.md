@@ -20,7 +20,7 @@ Hardcoded CSS values. No variables, no tokens.
 | Gray      | `#828282` | Meta text, timestamps, visited links |
 | Light gray | `#9a9a9a` | Inactive upvote arrow              |
 | Red       | `#ff0000` | Error messages                     |
-| White     | `#ffffff` | Header text, logo bg               |
+| White     | `#ffffff` | Header text, logo border           |
 
 Links: `#000000` (unvisited), `#828282` (visited). Hover: underline only.
 
@@ -53,7 +53,7 @@ Base font size is `10pt` on html/body. Everything is in `pt`, not `rem` or `px`.
 - Background: `#ff6600`
 - Layout: flex, `align-items: center`, `gap: 4px`
 - Line-height: `12pt`
-- Logo: `18x18px`, `1px solid white` border
+- Logo: `18x18px` WebP image (`/icon-16.webp`), `1px solid white` border
 - Navigation: items separated by `|` with `3px` margins
 - All links: `#000000`, no underline
 
