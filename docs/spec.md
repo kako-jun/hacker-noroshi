@@ -95,6 +95,7 @@ score = (points - 1) / (hours_since_post + 2) ^ 1.8
 - [x] RSS フィード（/rss）追加
 - [x] /active ページ追加（アクティブな議論一覧）
 - [x] APIドキュメントページ追加（/api-docs、フッターからリンク）
+- [x] favorites 機能（favorite/un-fav トグル + /user/[id]/favorites 一覧）
 
 ## v2 以降
 
@@ -104,4 +105,4 @@ score = (points - 1) / (hours_since_post + 2) ^ 1.8
 - API 公開
 - 招待制 / カルマ制限
 - ダークモード
-- favorites 機能（DB テーブル追加 + お気に入りボタン + 一覧ページ）
+- ~~favorites 機能~~ → v1 で実装済み

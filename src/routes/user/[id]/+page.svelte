@@ -50,6 +50,7 @@
 
 	<div style="margin-top: 10px; font-size: 10pt;">
 		<a href="/user/{data.profile.username}/submissions">submissions</a><br />
-		<a href="/user/{data.profile.username}/comments">comments</a>
+		<a href="/user/{data.profile.username}/comments">comments</a><br />
+		<a href="/user/{data.profile.username}/favorites">favorites</a>
 	</div>
 </div>

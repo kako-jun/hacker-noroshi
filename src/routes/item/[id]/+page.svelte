@@ -14,6 +14,7 @@
 	let editingCommentId = $state<number | null>(null);
 	let localTargetCommentVoted = $state<boolean | null>(null);
 	let localTargetCommentPoints = $state<number | null>(null);
+	let localStoryFavorited = $state<boolean | null>(null);
 
 	function canEdit(createdAt: string, userId: number): boolean {
 		if (!data.user || data.user.id !== userId) return false;
@@ -23,6 +24,7 @@
 
 	let storyVoted = $derived(localStoryVoted ?? (data.mode === 'story' ? data.storyVoted : false));
 	let storyPoints = $derived(localStoryPoints ?? (data.mode === 'story' ? data.story.points : 0));
+	let storyFavorited = $derived(localStoryFavorited ?? (data.mode === 'story' ? data.storyFavorited : false));
 	let votedCommentIdsFromServer = $derived(new Set(data.votedCommentIds));
 
 	function getVotedCommentIds(): Set<number> {
@@ -156,6 +158,23 @@
 				next.delete(commentId);
 			}
 			localVotedCommentIds = next;
+		}
+	}
+
+	async function toggleFavorite() {
+		if (!data.user) {
+			window.location.href = '/login';
+			return;
+		}
+		if (data.mode !== 'story') return;
+		const res = await fetch('/api/favorite', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ storyId: data.story.id })
+		});
+		if (res.ok) {
+			const result: { favorited: boolean } = await res.json();
+			localStoryFavorited = result.favorited;
 		}
 	}
 
@@ -365,6 +384,14 @@
 						e.preventDefault();
 						editingStory = true;
 					}}>edit</a>
+			{/if}
+			{#if data.user}
+				| <a
+					href="#favorite"
+					onclick={(e) => {
+						e.preventDefault();
+						toggleFavorite();
+					}}>{storyFavorited ? 'un-fav' : 'favorite'}</a>
 			{/if}
 		</div>
 

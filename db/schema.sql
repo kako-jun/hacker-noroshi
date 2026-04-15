@@ -45,7 +45,15 @@ CREATE TABLE IF NOT EXISTS sessions (
   expires_at TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS favorites (
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  story_id INTEGER NOT NULL REFERENCES stories(id),
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+  PRIMARY KEY (user_id, story_id)
+);
+
 -- Indexes
+CREATE INDEX IF NOT EXISTS idx_favorites_user_id ON favorites(user_id);
 CREATE INDEX IF NOT EXISTS idx_stories_created_at ON stories(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_stories_type ON stories(type);
 CREATE INDEX IF NOT EXISTS idx_stories_user_id ON stories(user_id);
