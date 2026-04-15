@@ -3,18 +3,21 @@
 	import { formatText } from '$lib/format';
 
 	let { data } = $props();
-	let localVotedIds = $state<Set<number> | null>(null);
+	let localVoteStates = $state<Record<number, 'up' | 'down' | null> | null>(null);
 	let localPoints = $state<Record<number, number>>({});
 
-	function getVotedIds(): Set<number> {
-		return localVotedIds ?? new Set(data.votedIds);
+	function getVoteState(commentId: number): 'up' | 'down' | null {
+		if (localVoteStates && commentId in localVoteStates) {
+			return localVoteStates[commentId];
+		}
+		return (data.commentVoteStates as Record<number, 'up' | 'down'>)[commentId] ?? null;
 	}
 
 	function getPoints(comment: { id: number; points: number }): number {
 		return localPoints[comment.id] ?? comment.points;
 	}
 
-	async function vote(commentId: number) {
+	async function vote(commentId: number, direction: 'up' | 'down' = 'up') {
 		if (!data.user) {
 			window.location.href = '/login';
 			return;
@@ -22,18 +25,15 @@
 		const res = await fetch('/api/vote', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ itemId: commentId, itemType: 'comment' })
+			body: JSON.stringify({ itemId: commentId, itemType: 'comment', direction })
 		});
 		if (res.ok) {
-			const result: { voted: boolean; points: number } = await res.json();
+			const result: { voteState: 'up' | 'down' | null; points: number } = await res.json();
 			localPoints = { ...localPoints, [commentId]: result.points };
-			const next = new Set(getVotedIds());
-			if (result.voted) {
-				next.add(commentId);
-			} else {
-				next.delete(commentId);
-			}
-			localVotedIds = next;
+			localVoteStates = {
+				...(localVoteStates ?? {}),
+				[commentId]: result.voteState
+			};
 		}
 	}
 </script>
@@ -49,12 +49,22 @@
 				<span class="comment-vote">
 					<button
 						class="upvote"
-						class:voted={getVotedIds().has(comment.id)}
-						onclick={() => vote(comment.id)}
+						class:voted={getVoteState(comment.id) === 'up'}
+						onclick={() => vote(comment.id, 'up')}
 						aria-label="upvote comment"
 					>
 						&#9650;
 					</button>
+					{#if data.user && data.user.karma >= 500}
+						<button
+							class="downvote"
+							class:voted={getVoteState(comment.id) === 'down'}
+							onclick={() => vote(comment.id, 'down')}
+							aria-label="downvote comment"
+						>
+							&#9660;
+						</button>
+					{/if}
 				</span>
 				<a href="/user/{comment.username}" style={isNewUser(comment.user_created_at) ? 'color: #3c963c;' : ''}>{comment.username}</a>
 				<a href="/item/{comment.id}">{timeAgo(comment.created_at)}</a>
@@ -62,7 +72,7 @@
 				| <a href="/item/{comment.id}" style="color: #828282;">context</a>
 				| on: <a href="/item/{comment.story_id}">{comment.story_title}</a>
 			</div>
-			<div class="comment-text" style="padding-left: 14px;">
+			<div class="comment-text" class:faded={getPoints(comment) < 1} style="padding-left: 14px;">
 				{#each comment.text.split('\n') as paragraph}
 					{#if paragraph.trim()}
 						<p>{@html formatText(paragraph)}</p>

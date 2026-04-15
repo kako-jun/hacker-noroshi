@@ -46,10 +46,10 @@
 			body: JSON.stringify({ itemId: storyId, itemType: 'story' })
 		});
 		if (res.ok) {
-			const result: { voted: boolean; points: number } = await res.json();
+			const result: { voteState: 'up' | 'down' | null; points: number } = await res.json();
 			localPoints = { ...localPoints, [storyId]: result.points };
 			const next = new Set(getVotedIds());
-			if (result.voted) {
+			if (result.voteState === 'up') {
 				next.add(storyId);
 			} else {
 				next.delete(storyId);

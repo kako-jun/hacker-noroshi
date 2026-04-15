@@ -7,12 +7,12 @@
 	let { data, form } = $props();
 	let localStoryVoted = $state<boolean | null>(null);
 	let localStoryPoints = $state<number | null>(null);
-	let localVotedCommentIds = $state<Set<number> | null>(null);
+	let localCommentVoteStates = $state<Record<number, 'up' | 'down' | null> | null>(null);
 	let localCommentPoints = $state<Record<number, number>>({});
 	let replyTo = $state<number | null>(null);
 	let editingStory = $state(false);
 	let editingCommentId = $state<number | null>(null);
-	let localTargetCommentVoted = $state<boolean | null>(null);
+	let localTargetCommentVoteState = $state<'up' | 'down' | null | undefined>(undefined);
 	let localTargetCommentPoints = $state<number | null>(null);
 	let localStoryFavorited = $state<boolean | null>(null);
 
@@ -25,22 +25,37 @@
 	let storyVoted = $derived(localStoryVoted ?? (data.mode === 'story' ? data.storyVoted : false));
 	let storyPoints = $derived(localStoryPoints ?? (data.mode === 'story' ? data.story.points : 0));
 	let storyFavorited = $derived(localStoryFavorited ?? (data.mode === 'story' ? data.storyFavorited : false));
-	let votedCommentIdsFromServer = $derived(new Set(data.votedCommentIds));
+	let commentVoteStatesFromServer = $derived(data.commentVoteStates as Record<number, 'up' | 'down'>);
 
-	function getVotedCommentIds(): Set<number> {
-		return localVotedCommentIds ?? votedCommentIdsFromServer;
+	function getCommentVoteState(commentId: number): 'up' | 'down' | null {
+		if (localCommentVoteStates && commentId in localCommentVoteStates) {
+			return localCommentVoteStates[commentId];
+		}
+		return commentVoteStatesFromServer[commentId] ?? null;
 	}
 
 	function getCommentPoints(comment: { id: number; points: number }): number {
 		return localCommentPoints[comment.id] ?? comment.points;
 	}
 
-	let targetCommentVoted = $derived(
-		localTargetCommentVoted ?? (data.mode === 'comment' ? getVotedCommentIds().has(data.targetComment.id) : false)
+	let targetCommentVoteState = $derived(
+		localTargetCommentVoteState !== undefined
+			? localTargetCommentVoteState
+			: (data.mode === 'comment' ? (commentVoteStatesFromServer[data.targetComment.id] ?? null) : null)
 	);
 	let targetCommentPoints = $derived(
 		localTargetCommentPoints ?? (data.mode === 'comment' ? data.targetComment.points : 0)
 	);
+
+	function canDownvote(commentUserId: number, parentId: number | null): boolean {
+		if (!data.user) return false;
+		if (data.user.karma < 500) return false;
+		// Cannot downvote direct replies to own comments (checked server-side too, but hide button)
+		// We don't have parent author info client-side for all cases, so we show the button
+		// and let the server reject if needed. But for the target comment in comment mode,
+		// we can check.
+		return true;
+	}
 
 	interface CommentNode {
 		id: number;
@@ -106,13 +121,13 @@
 			body: JSON.stringify({ itemId: data.story.id, itemType: 'story' })
 		});
 		if (res.ok) {
-			const result: { voted: boolean; points: number } = await res.json();
+			const result: { voteState: 'up' | 'down' | null; points: number } = await res.json();
 			localStoryPoints = result.points;
-			localStoryVoted = result.voted;
+			localStoryVoted = result.voteState === 'up';
 		}
 	}
 
-	async function voteTargetComment() {
+	async function voteTargetComment(direction: 'up' | 'down' = 'up') {
 		if (!data.user) {
 			window.location.href = '/login';
 			return;
@@ -121,24 +136,21 @@
 		const res = await fetch('/api/vote', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ itemId: data.targetComment.id, itemType: 'comment' })
+			body: JSON.stringify({ itemId: data.targetComment.id, itemType: 'comment', direction })
 		});
 		if (res.ok) {
-			const result: { voted: boolean; points: number } = await res.json();
+			const result: { voteState: 'up' | 'down' | null; points: number } = await res.json();
 			localTargetCommentPoints = result.points;
-			localTargetCommentVoted = result.voted;
-			// Also update in the voted set
-			const next = new Set(getVotedCommentIds());
-			if (result.voted) {
-				next.add(data.targetComment.id);
-			} else {
-				next.delete(data.targetComment.id);
-			}
-			localVotedCommentIds = next;
+			localTargetCommentVoteState = result.voteState;
+			// Also update in the local states
+			localCommentVoteStates = {
+				...(localCommentVoteStates ?? {}),
+				[data.targetComment.id]: result.voteState
+			};
 		}
 	}
 
-	async function voteComment(commentId: number) {
+	async function voteComment(commentId: number, direction: 'up' | 'down' = 'up') {
 		if (!data.user) {
 			window.location.href = '/login';
 			return;
@@ -146,18 +158,15 @@
 		const res = await fetch('/api/vote', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ itemId: commentId, itemType: 'comment' })
+			body: JSON.stringify({ itemId: commentId, itemType: 'comment', direction })
 		});
 		if (res.ok) {
-			const result: { voted: boolean; points: number } = await res.json();
+			const result: { voteState: 'up' | 'down' | null; points: number } = await res.json();
 			localCommentPoints = { ...localCommentPoints, [commentId]: result.points };
-			const next = new Set(getVotedCommentIds());
-			if (result.voted) {
-				next.add(commentId);
-			} else {
-				next.delete(commentId);
-			}
-			localVotedCommentIds = next;
+			localCommentVoteStates = {
+				...(localCommentVoteStates ?? {}),
+				[commentId]: result.voteState
+			};
 		}
 	}
 
@@ -191,12 +200,22 @@
 			<span class="comment-vote">
 				<button
 					class="upvote"
-					class:voted={targetCommentVoted}
-					onclick={voteTargetComment}
+					class:voted={targetCommentVoteState === 'up'}
+					onclick={() => voteTargetComment('up')}
 					aria-label="upvote comment"
 				>
 					&#9650;
 				</button>
+				{#if data.user && data.user.karma >= 500}
+					<button
+						class="downvote"
+						class:voted={targetCommentVoteState === 'down'}
+						onclick={() => voteTargetComment('down')}
+						aria-label="downvote comment"
+					>
+						&#9660;
+					</button>
+				{/if}
 			</span>
 			<a href="/user/{comment.username}" style={isNewUser(comment.user_created_at) ? 'color: #3c963c;' : ''}>{comment.username}</a>
 			<a href="/item/{comment.id}">{timeAgo(comment.created_at)}</a>
@@ -238,7 +257,7 @@
 				</form>
 			</div>
 		{:else}
-			<div class="comment-text" style="padding-left: 14px;">
+			<div class="comment-text" class:faded={targetCommentPoints < 1} style="padding-left: 14px;">
 				{#each comment.text.split('\n') as paragraph}
 					{#if paragraph.trim()}
 						<p>{@html formatText(paragraph)}</p>
@@ -270,12 +289,22 @@
 						<span class="comment-vote">
 							<button
 								class="upvote"
-								class:voted={getVotedCommentIds().has(child.id)}
-								onclick={() => voteComment(child.id)}
+								class:voted={getCommentVoteState(child.id) === 'up'}
+								onclick={() => voteComment(child.id, 'up')}
 								aria-label="upvote comment"
 							>
 								&#9650;
 							</button>
+							{#if data.user && data.user.karma >= 500}
+								<button
+									class="downvote"
+									class:voted={getCommentVoteState(child.id) === 'down'}
+									onclick={() => voteComment(child.id, 'down')}
+									aria-label="downvote comment"
+								>
+									&#9660;
+								</button>
+							{/if}
 						</span>
 						<a href="/user/{child.username}" style={isNewUser(child.user_created_at) ? 'color: #3c963c;' : ''}>{child.username}</a>
 						<a href="/item/{child.id}">{timeAgo(child.created_at)}</a>
@@ -303,7 +332,7 @@
 							</form>
 						</div>
 					{:else}
-						<div class="comment-text" style="padding-left: 14px;">
+						<div class="comment-text" class:faded={getCommentPoints(child) < 1} style="padding-left: 14px;">
 							{#each child.text.split('\n') as paragraph}
 								{#if paragraph.trim()}
 									<p>{@html formatText(paragraph)}</p>
@@ -458,12 +487,22 @@
 						<span class="comment-vote">
 							<button
 								class="upvote"
-								class:voted={getVotedCommentIds().has(comment.id)}
-								onclick={() => voteComment(comment.id)}
+								class:voted={getCommentVoteState(comment.id) === 'up'}
+								onclick={() => voteComment(comment.id, 'up')}
 								aria-label="upvote comment"
 							>
 								&#9650;
 							</button>
+							{#if data.user && data.user.karma >= 500}
+								<button
+									class="downvote"
+									class:voted={getCommentVoteState(comment.id) === 'down'}
+									onclick={() => voteComment(comment.id, 'down')}
+									aria-label="downvote comment"
+								>
+									&#9660;
+								</button>
+							{/if}
 						</span>
 						<a href="/user/{comment.username}" style={isNewUser(comment.user_created_at) ? 'color: #3c963c;' : ''}>{comment.username}</a>
 						<a href="/item/{comment.id}">{timeAgo(comment.created_at)}</a>
@@ -491,7 +530,7 @@
 							</form>
 						</div>
 					{:else}
-						<div class="comment-text" style="padding-left: 14px;">
+						<div class="comment-text" class:faded={getCommentPoints(comment) < 1} style="padding-left: 14px;">
 							{#each comment.text.split('\n') as paragraph}
 								{#if paragraph.trim()}
 									<p>{@html formatText(paragraph)}</p>
