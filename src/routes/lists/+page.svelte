@@ -13,6 +13,10 @@
 			<td>best stories</td>
 		</tr>
 		<tr>
+			<td><a href="/active">active</a></td>
+			<td>most active current discussions</td>
+		</tr>
+		<tr>
 			<td><a href="/show">show</a></td>
 			<td>Show HN</td>
 		</tr>
