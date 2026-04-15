@@ -53,51 +53,51 @@ export const POST: RequestHandler = async ({ request, platform, locals }) => {
 		.first<{ uid: number }>();
 
 	if (currentVote === null) {
-		// No existing vote → add new vote
-		const pointsDelta = direction === 'up' ? 1 : -1;
+		// No existing vote → add new vote (points and karma move together)
+		const delta = direction === 'up' ? 1 : -1;
 		const stmts = [
 			db.prepare('INSERT INTO votes (user_id, item_id, item_type, vote_type) VALUES (?, ?, ?, ?)')
 				.bind(locals.user.id, itemId, itemType, direction),
 			db.prepare(`UPDATE ${table} SET points = points + ? WHERE id = ?`)
-				.bind(pointsDelta, itemId)
+				.bind(delta, itemId)
 		];
 		if (authorRow) {
 			stmts.push(
 				db.prepare('UPDATE users SET karma = karma + ? WHERE id = ?')
-					.bind(pointsDelta, authorRow.uid)
+					.bind(delta, authorRow.uid)
 			);
 		}
 		await db.batch(stmts);
 	} else if (currentVote === direction) {
-		// Same direction → remove vote (toggle off)
-		const pointsDelta = direction === 'up' ? -1 : 1;
+		// Same direction → remove vote (undo: points and karma move together)
+		const delta = direction === 'up' ? -1 : 1;
 		const stmts = [
 			db.prepare('DELETE FROM votes WHERE user_id = ? AND item_id = ? AND item_type = ?')
 				.bind(locals.user.id, itemId, itemType),
 			db.prepare(`UPDATE ${table} SET points = points + ? WHERE id = ?`)
-				.bind(pointsDelta, itemId)
+				.bind(delta, itemId)
 		];
 		if (authorRow) {
 			stmts.push(
 				db.prepare('UPDATE users SET karma = karma + ? WHERE id = ?')
-					.bind(pointsDelta, authorRow.uid)
+					.bind(delta, authorRow.uid)
 			);
 		}
 		await db.batch(stmts);
 	} else {
-		// Opposite direction → switch vote
-		const pointsDelta = direction === 'up' ? 2 : -2;
+		// Opposite direction → switch vote (±2: undo old + apply new, points and karma move together)
+		const delta = direction === 'up' ? 2 : -2;
 		const stmts = [
 			db.prepare(
 				'UPDATE votes SET vote_type = ?, created_at = strftime(\'%Y-%m-%dT%H:%M:%SZ\', \'now\') WHERE user_id = ? AND item_id = ? AND item_type = ?'
 			).bind(direction, locals.user.id, itemId, itemType),
 			db.prepare(`UPDATE ${table} SET points = points + ? WHERE id = ?`)
-				.bind(pointsDelta, itemId)
+				.bind(delta, itemId)
 		];
 		if (authorRow) {
 			stmts.push(
 				db.prepare('UPDATE users SET karma = karma + ? WHERE id = ?')
-					.bind(pointsDelta, authorRow.uid)
+					.bind(delta, authorRow.uid)
 			);
 		}
 		await db.batch(stmts);
