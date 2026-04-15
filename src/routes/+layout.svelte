@@ -44,6 +44,10 @@
 
 	<footer class="hn-footer">
 		<a href="/guidelines">Guidelines</a> | <a href="/faq">FAQ</a> | <a href="/lists">Lists</a> |
-		<a href="/api-docs">API</a> | <a href="https://github.com/kako-jun/hacker-noroshi">GitHub</a>
+		<a href="/api-docs">API</a> | <a href="https://github.com/kako-jun/hacker-noroshi">GitHub</a> |
+		<a href="/search">Search</a>
+		<form action="/search" method="get" class="hn-footer-search">
+			Search: <input type="text" name="q" />
+		</form>
 	</footer>
 </div>
