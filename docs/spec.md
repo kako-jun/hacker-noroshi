@@ -29,10 +29,18 @@ URL: https://hn.llll-ll.com
 
 ### 投票
 
-- upvote のみ（downvote なし、v1）
-- ストーリーとコメントの両方に投票可能
-- トグル式（再クリックで取り消し）
+- ストーリー: upvote のみ
+- コメント: upvote + downvote
+- トグル式（再クリックで取り消し、逆方向クリックで切替）
 - 重複投票は PK 制約で防止
+
+#### downvote（コメント専用）
+
+- karma 500 以上のユーザーのみ downvote 可能
+- ストーリーへの downvote は不可
+- 自分のコメントへの直接返信には downvote 不可
+- downvote されたコメント（points < 1）はテキストがフェード表示（薄い色）
+- downvote 済みの ▼ はオレンジ色で表示
 
 ### ランキングアルゴリズム
 
@@ -97,6 +105,7 @@ score = (points - 1) / (hours_since_post + 2) ^ 1.8
 - [x] APIドキュメントページ追加（/api-docs、フッターからリンク）
 - [x] favorites 機能（favorite/un-fav トグル + /user/[id]/favorites 一覧）
 - [x] hide 機能（ストーリー非表示 + /user/[id]/hidden 一覧 + 一覧からの除外）
+- [x] downvote 機能（コメント専用、karma 500 閾値、フェード表示）
 
 ## v2 以降
 
