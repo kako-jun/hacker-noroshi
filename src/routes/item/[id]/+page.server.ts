@@ -20,13 +20,11 @@ export const load: PageServerLoad = async ({ params, platform, locals }) => {
 		let votedCommentIds: Set<number> = new Set();
 
 		if (locals.user) {
-			storyVoted = await hasVoted(db, locals.user.id, id, 'story');
-			storyFavorited = await hasFavorited(db, locals.user.id, id);
-			votedCommentIds = await getVotedCommentIds(
-				db,
-				locals.user.id,
-				comments.map((c) => c.id)
-			);
+			[storyVoted, storyFavorited, votedCommentIds] = await Promise.all([
+				hasVoted(db, locals.user.id, id, 'story'),
+				hasFavorited(db, locals.user.id, id),
+				getVotedCommentIds(db, locals.user.id, comments.map((c) => c.id))
+			]);
 		}
 
 		return {

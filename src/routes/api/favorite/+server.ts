@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getDB, hasFavorited } from '$lib/server/db';
+import { getDB, hasFavorited, getStoryById } from '$lib/server/db';
 
 export const POST: RequestHandler = async ({ request, platform, locals }) => {
 	if (!locals.user) {
@@ -11,8 +11,13 @@ export const POST: RequestHandler = async ({ request, platform, locals }) => {
 	const body = (await request.json()) as { storyId: number };
 	const { storyId } = body;
 
-	if (!storyId) {
+	if (!storyId || typeof storyId !== 'number') {
 		return json({ error: 'Invalid request' }, { status: 400 });
+	}
+
+	const story = await getStoryById(db, storyId);
+	if (!story) {
+		return json({ error: 'Story not found' }, { status: 404 });
 	}
 
 	const alreadyFavorited = await hasFavorited(db, locals.user.id, storyId);
