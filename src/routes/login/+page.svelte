@@ -31,9 +31,7 @@
 		<button type="submit">login</button>
 	</form>
 
-	<br />
-	<hr style="border: 0; border-top: 1pt solid #e0e0e0;" />
-	<br />
+	<br /><br />
 
 	<b>Create Account</b>
 	{#if form?.signupError}
