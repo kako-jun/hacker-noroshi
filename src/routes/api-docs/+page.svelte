@@ -2,31 +2,18 @@
 	<title>API | ハッカーのろし</title>
 </svelte:head>
 
-<div class="hn-form">
+<div style="padding: 10px 0 10px 40px; font-size: 9pt; line-height: 14pt; color: #000000;">
 	<b>Hacker Noroshi API</b>
-	<br /><br />
 
 	<p>API is under development.</p>
 
 	<p>The following endpoints are planned:</p>
 
-	<table>
-		<tbody>
-			<tr>
-				<td>Stories</td>
-				<td>Top, New, Best, Ask, Show, Active stories</td>
-			</tr>
-			<tr>
-				<td>Items</td>
-				<td>Story and comment details by ID</td>
-			</tr>
-			<tr>
-				<td>Users</td>
-				<td>User profiles by username</td>
-			</tr>
-		</tbody>
-	</table>
+	<p>
+		<b>Stories</b> — Top, New, Best, Ask, Show, Active stories<br />
+		<b>Items</b> — Story and comment details by ID<br />
+		<b>Users</b> — User profiles by username
+	</p>
 
-	<br />
 	<p>Source code: <a href="https://github.com/kako-jun/hacker-noroshi">github.com/kako-jun/hacker-noroshi</a></p>
 </div>
