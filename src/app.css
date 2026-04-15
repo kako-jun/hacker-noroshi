@@ -348,7 +348,8 @@ a:hover {
 }
 
 .comment-head .downvote {
-	font-size: 8px;
+	display: inline;
+	font-size: 8pt;
 	color: #9a9a9a;
 	cursor: pointer;
 	background: none;
@@ -366,16 +367,16 @@ a:hover {
 	color: #ff6600;
 }
 
-.comment-text.faded {
-	color: #dddddd;
-}
-
 .comment-text {
 	font-size: 9pt;
 	color: #000000;
 	margin-top: 3px;
 	line-height: 14pt;
 	overflow-wrap: break-word;
+}
+
+.comment-text.faded {
+	color: #828282;
 }
 
 .comment-text p {

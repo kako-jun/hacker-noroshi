@@ -34,6 +34,9 @@
 				...(localVoteStates ?? {}),
 				[commentId]: result.voteState
 			};
+		} else if (res.status === 403) {
+			const result = await res.json();
+			alert(result.error || 'Permission denied');
 		}
 	}
 </script>

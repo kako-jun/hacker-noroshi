@@ -14,10 +14,10 @@ Hardcoded CSS values. No variables, no tokens.
 
 | Color     | Hex       | Usage                              |
 | --------- | --------- | ---------------------------------- |
-| Orange    | `#ff6600` | Header bg, voted indicator, hover  |
+| Orange    | `#ff6600` | Header bg, voted indicator (up/down), hover |
 | Cream     | `#f6f6ef` | Page background                    |
 | Black     | `#000000` | Primary text, titles               |
-| Gray      | `#828282` | Meta text, timestamps, visited links |
+| Gray      | `#828282` | Meta text, timestamps, visited links, faded comments (downvoted) |
 | Light gray | `#9a9a9a` | Inactive upvote arrow              |
 | Red       | `#ff0000` | Error messages                     |
 | White     | `#ffffff` | Header text, logo border           |
@@ -70,7 +70,10 @@ Base font size is `10pt` on html/body. Everything is in `pt`, not `rem` or `px`.
 
 - Nesting: `40px` left padding per depth level
 - Head: `7pt`, `#828282`
+- Upvote: `▲` (`&#9650;`), `8pt`, default `#9a9a9a`, hover/voted `#ff6600`
+- Downvote: `▼` (`&#9660;`), `8pt`, default `#9a9a9a`, hover/voted `#ff6600`（karma >= 500 のみ表示）
 - Text: `9pt`, `#000000`, line-height `14pt`
+- Faded text: `#828282`（points < 1 のコメント）
 - Reply link: `7pt`, `#828282`, underline
 
 ### Forms

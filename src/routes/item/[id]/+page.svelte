@@ -47,16 +47,6 @@
 		localTargetCommentPoints ?? (data.mode === 'comment' ? data.targetComment.points : 0)
 	);
 
-	function canDownvote(commentUserId: number, parentId: number | null): boolean {
-		if (!data.user) return false;
-		if (data.user.karma < 500) return false;
-		// Cannot downvote direct replies to own comments (checked server-side too, but hide button)
-		// We don't have parent author info client-side for all cases, so we show the button
-		// and let the server reject if needed. But for the target comment in comment mode,
-		// we can check.
-		return true;
-	}
-
 	interface CommentNode {
 		id: number;
 		text: string;
@@ -142,11 +132,13 @@
 			const result: { voteState: 'up' | 'down' | null; points: number } = await res.json();
 			localTargetCommentPoints = result.points;
 			localTargetCommentVoteState = result.voteState;
-			// Also update in the local states
 			localCommentVoteStates = {
 				...(localCommentVoteStates ?? {}),
 				[data.targetComment.id]: result.voteState
 			};
+		} else if (res.status === 403) {
+			const result = await res.json();
+			alert(result.error || 'Permission denied');
 		}
 	}
 
@@ -167,6 +159,9 @@
 				...(localCommentVoteStates ?? {}),
 				[commentId]: result.voteState
 			};
+		} else if (res.status === 403) {
+			const result = await res.json();
+			alert(result.error || 'Permission denied');
 		}
 	}
 
