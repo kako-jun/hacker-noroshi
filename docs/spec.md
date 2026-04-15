@@ -96,6 +96,7 @@ score = (points - 1) / (hours_since_post + 2) ^ 1.8
 - [x] /active ページ追加（アクティブな議論一覧）
 - [x] APIドキュメントページ追加（/api-docs、フッターからリンク）
 - [x] favorites 機能（favorite/un-fav トグル + /user/[id]/favorites 一覧）
+- [x] hide 機能（ストーリー非表示 + /user/[id]/hidden 一覧 + 一覧からの除外）
 
 ## v2 以降
 

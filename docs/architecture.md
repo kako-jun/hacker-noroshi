@@ -32,7 +32,8 @@ hacker-noroshi/
 │   │   ├── user/[id]/        # プロフィール + 編集
 │   │   │   ├── submissions/  # ユーザーの投稿一覧
 │   │   │   ├── comments/     # ユーザーのコメント一覧
-│   │   │   └── favorites/    # ユーザーのお気に入り一覧
+│   │   │   ├── favorites/    # ユーザーのお気に入り一覧
+│   │   │   └── hidden/       # 非表示ストーリー一覧（本人のみ）
 │   │   ├── submit/           # 投稿フォーム
 │   │   ├── login/            # ログイン + サインアップ（1ページ統合）
 │   │   ├── signup/           # /login へリダイレクト
@@ -42,7 +43,8 @@ hacker-noroshi/
 │   │   ├── showhn/           # Show HN ルール
 │   │   └── api/
 │   │       ├── vote/         # 投票 API
-│   │       └── favorite/     # お気に入り API
+│   │       ├── favorite/     # お気に入り API
+│   │       └── hide/         # 非表示 API
 │   ├── lib/
 │   │   ├── server/
 │   │   │   ├── db.ts         # D1 データアクセス関数
@@ -128,6 +130,14 @@ hacker-noroshi/
 | story_id | INTEGER FK | PK (複合) |
 | created_at | TEXT | ISO8601 |
 
+### hidden
+
+| カラム | 型 | 備考 |
+|---|---|---|
+| user_id | INTEGER FK | PK (複合) |
+| story_id | INTEGER FK | PK (複合) |
+| created_at | TEXT | ISO8601 |
+
 ## ルート一覧
 
 | パス | 説明 |
@@ -146,6 +156,7 @@ hacker-noroshi/
 | `/user/[id]/submissions` | ユーザーの投稿一覧 |
 | `/user/[id]/comments` | ユーザーのコメント一覧 |
 | `/user/[id]/favorites` | ユーザーのお気に入り一覧 |
+| `/user/[id]/hidden` | 非表示ストーリー一覧（本人のみ） |
 | `/submit` | 投稿フォーム（要ログイン） |
 | `/login` | ログイン + サインアップ（本家HN準拠で1ページ統合） |
 | `/signup` | /login へリダイレクト（既存リンク互換） |
@@ -157,6 +168,7 @@ hacker-noroshi/
 | `/rss` | RSS 2.0 フィード（トップページのストーリー30件） |
 | `/api/vote` | 投票 API エンドポイント |
 | `/api/favorite` | お気に入り API エンドポイント |
+| `/api/hide` | 非表示 API エンドポイント |
 
 ## DB アクセス関数 (src/lib/server/db.ts)
 
@@ -181,3 +193,6 @@ hacker-noroshi/
 | `hasFavorited()` | お気に入り済みチェック |
 | `getFavoriteStoryIds()` | お気に入り済みストーリーID一括取得 |
 | `getFavoriteStoriesByUserId()` | ユーザーのお気に入りストーリー一覧 |
+| `hasHidden()` | 非表示済みチェック |
+| `getHiddenStoryIds()` | ユーザーの全非表示ストーリーID取得 |
+| `getHiddenStoriesByUserId()` | ユーザーの非表示ストーリー一覧 |
