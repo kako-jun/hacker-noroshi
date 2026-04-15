@@ -25,7 +25,7 @@
 
 <style>
 	.lists-page {
-		padding: 10px 0 10px 40px;
+		padding: 8pt 0 8pt 30pt;
 		font-size: 10pt;
 	}
 
@@ -34,7 +34,7 @@
 	}
 
 	.lists-page td {
-		padding: 2px 5px;
+		padding: 2pt 4pt;
 	}
 
 	.lists-page td:first-child a {
