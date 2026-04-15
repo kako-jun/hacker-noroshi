@@ -52,5 +52,9 @@
 		<a href="/user/{data.profile.username}/submissions">submissions</a><br />
 		<a href="/user/{data.profile.username}/comments">comments</a><br />
 		<a href="/user/{data.profile.username}/favorites">favorites</a>
+		{#if data.isOwnProfile}
+			<br />
+			<a href="/user/{data.profile.username}/hidden">hidden</a>
+		{/if}
 	</div>
 </div>

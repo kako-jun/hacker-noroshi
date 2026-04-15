@@ -5,7 +5,7 @@
 	let votedIds = $derived(new Set(data.votedIds));
 	let localVotedIds = $state<Set<number> | null>(null);
 	let localPoints = $state<Record<number, number>>({});
-	let localHiddenIds = $state<Set<number>>(new Set());
+	let localUnhiddenIds = $state<Set<number>>(new Set());
 
 	function getVotedIds(): Set<number> {
 		return localVotedIds ?? votedIds;
@@ -15,11 +15,11 @@
 		return localPoints[story.id] ?? story.points;
 	}
 
-	function isHidden(id: number): boolean {
-		return localHiddenIds.has(id);
+	function isUnhidden(id: number): boolean {
+		return localUnhiddenIds.has(id);
 	}
 
-	async function hide(storyId: number) {
+	async function unhide(storyId: number) {
 		const res = await fetch('/api/hide', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
@@ -27,10 +27,10 @@
 		});
 		if (res.ok) {
 			const result: { hidden: boolean } = await res.json();
-			if (result.hidden) {
-				const next = new Set(localHiddenIds);
+			if (!result.hidden) {
+				const next = new Set(localUnhiddenIds);
 				next.add(storyId);
-				localHiddenIds = next;
+				localUnhiddenIds = next;
 			}
 		}
 	}
@@ -59,9 +59,13 @@
 	}
 </script>
 
-<div class="story-list">
-	{#each data.stories as story, i}
-		{#if !isHidden(story.id)}
+<svelte:head>
+	<title>{data.username}'s hidden | ハッカーのろし</title>
+</svelte:head>
+
+<div class="story-list" style="padding-left: 40px;">
+	{#each data.hidden as story, i}
+		{#if !isUnhidden(story.id)}
 		<div class="story-item">
 			<span class="story-rank">{(data.page - 1) * 30 + i + 1}.</span>
 			<span class="story-vote">
@@ -90,9 +94,7 @@
 					<a href="/item/{story.id}"
 						>{story.comment_count} comment{story.comment_count !== 1 ? 's' : ''}</a
 					>
-					{#if data.user}
-						| <a href="#hide" onclick={(e) => { e.preventDefault(); hide(story.id); }}>hide</a>
-					{/if}
+					| <a href="#unhide" onclick={(e) => { e.preventDefault(); unhide(story.id); }}>un-hide</a>
 				</div>
 			</div>
 		</div>
@@ -100,8 +102,8 @@
 	{/each}
 </div>
 
-{#if data.stories.length === 30}
+{#if data.hidden.length === 30}
 	<div class="more-link">
-		<a href="/best?p={data.page + 1}">More</a>
+		<a href="/user/{data.username}/hidden?p={data.page + 1}">More</a>
 	</div>
 {/if}

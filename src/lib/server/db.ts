@@ -380,6 +380,51 @@ export async function getFavoriteStoriesByUserId(
 	return result.results;
 }
 
+export async function hasHidden(
+	db: D1Database,
+	userId: number,
+	storyId: number
+): Promise<boolean> {
+	const result = await db
+		.prepare('SELECT 1 FROM hidden WHERE user_id = ? AND story_id = ?')
+		.bind(userId, storyId)
+		.first();
+	return result !== null;
+}
+
+export async function getHiddenStoryIds(
+	db: D1Database,
+	userId: number
+): Promise<Set<number>> {
+	const result = await db
+		.prepare('SELECT story_id FROM hidden WHERE user_id = ?')
+		.bind(userId)
+		.all<{ story_id: number }>();
+	return new Set(result.results.map((r) => r.story_id));
+}
+
+export async function getHiddenStoriesByUserId(
+	db: D1Database,
+	userId: number,
+	page: number = 1,
+	limit: number = 30
+): Promise<StoryRow[]> {
+	const offset = (page - 1) * limit;
+	const result = await db
+		.prepare(
+			`SELECT s.*, u.username, u.created_at as user_created_at
+			FROM hidden h
+			JOIN stories s ON h.story_id = s.id
+			JOIN users u ON s.user_id = u.id
+			WHERE h.user_id = ?
+			ORDER BY h.created_at DESC
+			LIMIT ? OFFSET ?`
+		)
+		.bind(userId, limit, offset)
+		.all<StoryRow>();
+	return result.results;
+}
+
 export async function getRecentComments(
 	db: D1Database,
 	page: number = 1,
