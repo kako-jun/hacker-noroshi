@@ -39,10 +39,11 @@ export async function getSession(
 	maxvisit: number;
 	minaway: number;
 	showdead: number;
+	last_visit: string | null;
 } | null> {
 	const result = await db
 		.prepare(
-			`SELECT u.id, u.username, u.karma, u.delay, u.noprocrast, u.maxvisit, u.minaway, u.showdead
+			`SELECT u.id, u.username, u.karma, u.delay, u.noprocrast, u.maxvisit, u.minaway, u.showdead, u.last_visit
 			FROM sessions s
 			JOIN users u ON s.user_id = u.id
 			WHERE s.id = ? AND s.expires_at > datetime('now')`
@@ -57,6 +58,7 @@ export async function getSession(
 			maxvisit: number;
 			minaway: number;
 			showdead: number;
+			last_visit: string | null;
 		}>();
 	return result;
 }

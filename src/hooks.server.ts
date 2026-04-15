@@ -15,22 +15,23 @@ export const handle: Handle = async ({ event, resolve }) => {
 				event.locals.user = user;
 
 				// noprocrast: アクセス制限チェック
-				if (user.noprocrast === 1 && event.url.pathname !== '/noprocrast') {
+				const noprocrastExempt = ['/noprocrast', '/logout', '/login', '/signup'];
+				const isUserSettingsPage = event.url.pathname === `/user/${user.username}`;
+				const isApiRoute = event.url.pathname.startsWith('/api/');
+				const isExempt = noprocrastExempt.includes(event.url.pathname) || isUserSettingsPage || isApiRoute;
+
+				if (user.noprocrast === 1 && !isExempt) {
 					const now = new Date();
 					const nowISO = now.toISOString().replace(/\.\d{3}Z$/, 'Z');
-					const userRow = await db
-						.prepare('SELECT last_visit FROM users WHERE id = ?')
-						.bind(user.id)
-						.first<{ last_visit: string | null }>();
 
-					if (!userRow?.last_visit) {
+					if (!user.last_visit) {
 						// 初回アクセス: last_visit をセット
 						await db
 							.prepare('UPDATE users SET last_visit = ? WHERE id = ?')
 							.bind(nowISO, user.id)
 							.run();
 					} else {
-						const lastVisit = new Date(userRow.last_visit);
+						const lastVisit = new Date(user.last_visit);
 						const elapsed = (now.getTime() - lastVisit.getTime()) / (1000 * 60);
 
 						if (elapsed <= user.maxvisit) {

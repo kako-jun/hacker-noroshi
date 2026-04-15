@@ -12,7 +12,7 @@ export const load: PageServerLoad = async ({ params, url, platform, locals }) =>
 		throw error(404, 'User not found');
 	}
 
-	const comments = await getCommentsByUserId(db, user.id, page, 30);
+	const comments = await getCommentsByUserId(db, user.id, page, 30, locals.user?.id);
 
 	let commentVoteStates: Map<number, 'up' | 'down'> = new Map();
 	if (locals.user) {

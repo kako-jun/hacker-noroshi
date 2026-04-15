@@ -12,6 +12,7 @@ declare global {
 				maxvisit: number;
 				minaway: number;
 				showdead: number;
+				last_visit: string | null;
 			} | null;
 		}
 		interface Platform {
