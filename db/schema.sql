@@ -52,7 +52,15 @@ CREATE TABLE IF NOT EXISTS favorites (
   PRIMARY KEY (user_id, story_id)
 );
 
+CREATE TABLE IF NOT EXISTS hidden (
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  story_id INTEGER NOT NULL REFERENCES stories(id),
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+  PRIMARY KEY (user_id, story_id)
+);
+
 -- Indexes
+CREATE INDEX IF NOT EXISTS idx_hidden_user_id ON hidden(user_id);
 CREATE INDEX IF NOT EXISTS idx_favorites_user_id ON favorites(user_id);
 CREATE INDEX IF NOT EXISTS idx_stories_created_at ON stories(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_stories_type ON stories(type);
