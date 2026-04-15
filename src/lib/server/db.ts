@@ -330,6 +330,56 @@ export async function getActiveStories(
 	return result.results;
 }
 
+export async function hasFavorited(
+	db: D1Database,
+	userId: number,
+	storyId: number
+): Promise<boolean> {
+	const result = await db
+		.prepare('SELECT 1 FROM favorites WHERE user_id = ? AND story_id = ?')
+		.bind(userId, storyId)
+		.first();
+	return result !== null;
+}
+
+export async function getFavoriteStoryIds(
+	db: D1Database,
+	userId: number,
+	storyIds: number[]
+): Promise<Set<number>> {
+	if (storyIds.length === 0) return new Set();
+	const placeholders = storyIds.map(() => '?').join(',');
+	const result = await db
+		.prepare(
+			`SELECT story_id FROM favorites WHERE user_id = ? AND story_id IN (${placeholders})`
+		)
+		.bind(userId, ...storyIds)
+		.all<{ story_id: number }>();
+	return new Set(result.results.map((r) => r.story_id));
+}
+
+export async function getFavoriteStoriesByUserId(
+	db: D1Database,
+	userId: number,
+	page: number = 1,
+	limit: number = 30
+): Promise<StoryRow[]> {
+	const offset = (page - 1) * limit;
+	const result = await db
+		.prepare(
+			`SELECT s.*, u.username, u.created_at as user_created_at
+			FROM favorites f
+			JOIN stories s ON f.story_id = s.id
+			JOIN users u ON s.user_id = u.id
+			WHERE f.user_id = ?
+			ORDER BY f.created_at DESC
+			LIMIT ? OFFSET ?`
+		)
+		.bind(userId, limit, offset)
+		.all<StoryRow>();
+	return result.results;
+}
+
 export async function getRecentComments(
 	db: D1Database,
 	page: number = 1,
