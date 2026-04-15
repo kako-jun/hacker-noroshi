@@ -461,6 +461,54 @@ export async function getHiddenStoriesByUserId(
 	return result.results;
 }
 
+function escapeLikePattern(input: string): string {
+	return input.replace(/[%_\\]/g, '\\$&');
+}
+
+export async function searchStories(
+	db: D1Database,
+	query: string,
+	page: number = 1,
+	limit: number = 30
+): Promise<StoryRow[]> {
+	const offset = (page - 1) * limit;
+	const pattern = `%${escapeLikePattern(query)}%`;
+	const sql = `
+		SELECT s.*, u.username, u.created_at as user_created_at
+		FROM stories s
+		JOIN users u ON s.user_id = u.id
+		WHERE s.title LIKE ? ESCAPE '\\' OR s.url LIKE ? ESCAPE '\\' OR s.text LIKE ? ESCAPE '\\'
+		ORDER BY s.created_at DESC
+		LIMIT ? OFFSET ?
+	`;
+	const result = await db.prepare(sql).bind(pattern, pattern, pattern, limit, offset).all<StoryRow>();
+	return result.results;
+}
+
+export async function searchComments(
+	db: D1Database,
+	query: string,
+	page: number = 1,
+	limit: number = 30
+): Promise<(CommentRow & { story_title: string })[]> {
+	const offset = (page - 1) * limit;
+	const pattern = `%${escapeLikePattern(query)}%`;
+	const sql = `
+		SELECT c.*, u.username, u.created_at as user_created_at, s.title as story_title
+		FROM comments c
+		JOIN users u ON c.user_id = u.id
+		JOIN stories s ON c.story_id = s.id
+		WHERE c.text LIKE ? ESCAPE '\\'
+		ORDER BY c.created_at DESC
+		LIMIT ? OFFSET ?
+	`;
+	const result = await db
+		.prepare(sql)
+		.bind(pattern, limit, offset)
+		.all<CommentRow & { story_title: string }>();
+	return result.results;
+}
+
 export async function getRecentComments(
 	db: D1Database,
 	page: number = 1,
