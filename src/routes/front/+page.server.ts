@@ -16,7 +16,7 @@ export const load: PageServerLoad = async ({ url, platform, locals }) => {
 		day = yesterday.toISOString().slice(0, 10);
 	}
 
-	let stories = await getFrontPageStories(db, day, page, 30);
+	let stories = await getFrontPageStories(db, day, page, 60);
 
 	let votedIds: Set<number> = new Set();
 	let hiddenIds: Set<number> = new Set();
@@ -25,14 +25,13 @@ export const load: PageServerLoad = async ({ url, platform, locals }) => {
 			getVotedStoryIds(db, locals.user.id, stories.map((s) => s.id)),
 			getHiddenStoryIds(db, locals.user.id)
 		]);
-		stories = stories.filter((s) => !hiddenIds.has(s.id));
+		stories = stories.filter((s) => !hiddenIds.has(s.id)).slice(0, 30);
 	}
 
 	return {
 		stories,
 		page,
 		day,
-		votedIds: Array.from(votedIds),
-		hiddenIds: Array.from(hiddenIds)
+		votedIds: Array.from(votedIds)
 	};
 };

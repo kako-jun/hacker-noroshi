@@ -3,7 +3,6 @@
 
 	let { data } = $props();
 	let votedIds = $derived(new Set(data.votedIds));
-	let hiddenIds = $derived(new Set(data.hiddenIds ?? []));
 	let localVotedIds = $state<Set<number> | null>(null);
 	let localPoints = $state<Record<number, number>>({});
 	let localHiddenIds = $state<Set<number>>(new Set());
@@ -17,7 +16,7 @@
 	}
 
 	function isHidden(id: number): boolean {
-		return localHiddenIds.has(id) || hiddenIds.has(id);
+		return localHiddenIds.has(id);
 	}
 
 	async function hide(storyId: number) {
