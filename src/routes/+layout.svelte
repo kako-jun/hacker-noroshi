@@ -6,6 +6,7 @@
 
 <svelte:head>
 	<title>ハッカーのろし</title>
+	<link rel="alternate" type="application/rss+xml" title="ハッカーのろし" href="/rss" />
 </svelte:head>
 
 <div class="hn-page">
