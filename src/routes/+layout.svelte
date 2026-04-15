@@ -12,7 +12,7 @@
 <div class="hn-page">
 	<header class="hn-header">
 		<div class="hn-header-left">
-			<a href="/" class="hn-header-logo">H</a>
+			<a href="/" class="hn-header-logo"><img src="/icon-32.webp" alt="ハッカーのろし" width="18" height="18" /></a>
 			<a href="/" class="hn-header-site-name">ハッカーのろし</a>
 			<nav class="hn-header-nav">
 				<a href="/newest">new</a>

@@ -1,0 +1,20 @@
+{
+  "name": "ハッカーのろし",
+  "short_name": "HN のろし",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6f6ef",
+  "theme_color": "#ff6600",
+  "icons": [
+    {
+      "src": "/icon-192.webp",
+      "sizes": "192x192",
+      "type": "image/webp"
+    },
+    {
+      "src": "/icon-512.webp",
+      "sizes": "512x512",
+      "type": "image/webp"
+    }
+  ]
+}

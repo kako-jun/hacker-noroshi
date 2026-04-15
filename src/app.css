@@ -59,12 +59,14 @@ a:hover {
 	width: 18px;
 	height: 18px;
 	border: 1px solid white;
-	background-color: #ff6600;
-	color: white;
-	font-weight: bold;
-	font-size: 11pt;
 	text-decoration: none;
 	margin-right: 4px;
+}
+
+.hn-header-logo img {
+	display: block;
+	width: 18px;
+	height: 18px;
 }
 
 .hn-header-logo:hover {
