@@ -39,6 +39,13 @@ export interface UserRow {
 	password_hash: string;
 	karma: number;
 	about: string;
+	email: string;
+	delay: number;
+	noprocrast: number;
+	maxvisit: number;
+	minaway: number;
+	showdead: number;
+	last_visit: string | null;
 	created_at: string;
 }
 

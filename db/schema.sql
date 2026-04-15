@@ -6,6 +6,13 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT NOT NULL,
   karma INTEGER NOT NULL DEFAULT 0,
   about TEXT DEFAULT '',
+  email TEXT DEFAULT '',
+  delay INTEGER NOT NULL DEFAULT 0,
+  noprocrast INTEGER NOT NULL DEFAULT 0,
+  maxvisit INTEGER NOT NULL DEFAULT 20,
+  minaway INTEGER NOT NULL DEFAULT 180,
+  showdead INTEGER NOT NULL DEFAULT 0,
+  last_visit TEXT,
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
 
