@@ -24,6 +24,7 @@ hacker-noroshi/
 │   │   ├── show/             # Show HN
 │   │   ├── newcomments/      # 全ストーリーの最新コメント一覧
 │   │   ├── best/             # 高スコアのストーリー一覧
+│   │   ├── active/           # アクティブな議論一覧
 │   │   ├── lists/            # ブラウズリンク集
 │   │   ├── rss/              # RSS 2.0 フィード
 │   │   ├── item/[id]/        # 投稿詳細 or コメントパーマリンク + コメント + 編集
@@ -126,7 +127,8 @@ hacker-noroshi/
 | `/show` | Show HN（type='show' のみ） |
 | `/newcomments` | 全ストーリーの最新コメント一覧 |
 | `/best` | 高スコアのストーリー一覧 |
-| `/lists` | ブラウズリンク集（front, newcomments, best, show, ask） |
+| `/active` | アクティブな議論一覧（最新コメント時刻順） |
+| `/lists` | ブラウズリンク集（front, newcomments, best, active, show, ask） |
 | `/item/[id]` | 投稿詳細 or コメントパーマリンク + コメントスレッド + 編集 |
 | `/user/[id]` | ユーザープロフィール + 編集 |
 | `/user/[id]/submissions` | ユーザーの投稿一覧 |
@@ -156,6 +158,7 @@ hacker-noroshi/
 | `getUserById()` | ユーザー取得（ID） |
 | `getStoriesByUserId()` | ユーザーの投稿一覧 |
 | `getCommentsByUserId()` | ユーザーのコメント一覧（story_title 付き） |
+| `getActiveStories()` | アクティブな議論（最新コメント時刻順にストーリーをソート） |
 | `getRecentComments()` | 全ストーリーの最新コメント一覧（/newcomments 用） |
 | `hasVoted()` | 投票済みチェック |
 | `getVotedStoryIds()` | 投票済みストーリーID一括取得 |
