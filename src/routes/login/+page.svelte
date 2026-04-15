@@ -13,13 +13,14 @@
 	{#if form?.loginError}
 		<div class="form-error">{form.loginError}</div>
 	{/if}
+	<br /><br />
 
 	<form method="POST" action="?/login" use:enhance>
 		<table>
 			<tbody>
 				<tr>
 					<td>username:</td>
-					<td><input type="text" name="username" value={form?.loginUsername ?? ''} autocomplete="username" /></td>
+					<td><input type="text" name="username" value={form?.loginUsername ?? ''} autocomplete="username" autocorrect="off" spellcheck="false" autocapitalize="off" autofocus /></td>
 				</tr>
 				<tr>
 					<td>password:</td>
@@ -37,13 +38,14 @@
 	{#if form?.signupError}
 		<div class="form-error">{form.signupError}</div>
 	{/if}
+	<br /><br />
 
 	<form method="POST" action="?/signup" use:enhance>
 		<table>
 			<tbody>
 				<tr>
 					<td>username:</td>
-					<td><input type="text" name="username" value={form?.signupUsername ?? ''} autocomplete="username" /></td>
+					<td><input type="text" name="username" value={form?.signupUsername ?? ''} autocomplete="username" autocorrect="off" spellcheck="false" autocapitalize="off" /></td>
 				</tr>
 				<tr>
 					<td>password:</td>
