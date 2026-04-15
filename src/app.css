@@ -347,12 +347,36 @@ a:hover {
 	color: #ff6600;
 }
 
+.comment-head .downvote {
+	display: inline;
+	font-size: 8pt;
+	color: #9a9a9a;
+	cursor: pointer;
+	background: none;
+	border: none;
+	padding: 0;
+	line-height: 1;
+	font-family: Verdana, Geneva, sans-serif;
+}
+
+.comment-head .downvote:hover {
+	color: #ff6600;
+}
+
+.comment-head .downvote.voted {
+	color: #ff6600;
+}
+
 .comment-text {
 	font-size: 9pt;
 	color: #000000;
 	margin-top: 3px;
 	line-height: 14pt;
 	overflow-wrap: break-word;
+}
+
+.comment-text.faded {
+	color: #828282;
 }
 
 .comment-text p {

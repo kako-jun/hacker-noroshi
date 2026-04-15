@@ -35,6 +35,7 @@ CREATE TABLE IF NOT EXISTS votes (
   user_id INTEGER NOT NULL REFERENCES users(id),
   item_id INTEGER NOT NULL,
   item_type TEXT NOT NULL CHECK (item_type IN ('story', 'comment')),
+  vote_type TEXT NOT NULL DEFAULT 'up' CHECK (vote_type IN ('up', 'down')),
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
   PRIMARY KEY (user_id, item_id, item_type)
 );

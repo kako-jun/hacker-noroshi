@@ -209,17 +209,18 @@ export async function getStoriesByUserId(
 	return result.results;
 }
 
-export async function hasVoted(
+export async function getVoteState(
 	db: D1Database,
 	userId: number,
 	itemId: number,
 	itemType: string
-): Promise<boolean> {
+): Promise<'up' | 'down' | null> {
 	const result = await db
-		.prepare('SELECT 1 FROM votes WHERE user_id = ? AND item_id = ? AND item_type = ?')
+		.prepare('SELECT vote_type FROM votes WHERE user_id = ? AND item_id = ? AND item_type = ?')
 		.bind(userId, itemId, itemType)
-		.first();
-	return result !== null;
+		.first<{ vote_type: string }>();
+	if (!result) return null;
+	return result.vote_type as 'up' | 'down';
 }
 
 export async function getVotedStoryIds(
@@ -231,7 +232,7 @@ export async function getVotedStoryIds(
 	const placeholders = storyIds.map(() => '?').join(',');
 	const result = await db
 		.prepare(
-			`SELECT item_id FROM votes WHERE user_id = ? AND item_type = 'story' AND item_id IN (${placeholders})`
+			`SELECT item_id FROM votes WHERE user_id = ? AND item_type = 'story' AND vote_type = 'up' AND item_id IN (${placeholders})`
 		)
 		.bind(userId, ...storyIds)
 		.all<{ item_id: number }>();
@@ -295,20 +296,24 @@ export async function getChildComments(
 	return all.filter((c) => childIds.has(c.id));
 }
 
-export async function getVotedCommentIds(
+export async function getCommentVoteStates(
 	db: D1Database,
 	userId: number,
 	commentIds: number[]
-): Promise<Set<number>> {
-	if (commentIds.length === 0) return new Set();
+): Promise<Map<number, 'up' | 'down'>> {
+	if (commentIds.length === 0) return new Map();
 	const placeholders = commentIds.map(() => '?').join(',');
 	const result = await db
 		.prepare(
-			`SELECT item_id FROM votes WHERE user_id = ? AND item_type = 'comment' AND item_id IN (${placeholders})`
+			`SELECT item_id, vote_type FROM votes WHERE user_id = ? AND item_type = 'comment' AND item_id IN (${placeholders})`
 		)
 		.bind(userId, ...commentIds)
-		.all<{ item_id: number }>();
-	return new Set(result.results.map((r) => r.item_id));
+		.all<{ item_id: number; vote_type: string }>();
+	const map = new Map<number, 'up' | 'down'>();
+	for (const r of result.results) {
+		map.set(r.item_id, r.vote_type as 'up' | 'down');
+	}
+	return map;
 }
 
 export async function getActiveStories(

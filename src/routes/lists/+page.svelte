@@ -1,5 +1,5 @@
 <div class="lists-page">
-	<table>
+	<table><tbody>
 		<tr>
 			<td><a href="/front">front</a></td>
 			<td>past stories</td>
@@ -24,7 +24,7 @@
 			<td><a href="/ask">ask</a></td>
 			<td>Ask HN</td>
 		</tr>
-	</table>
+	</tbody></table>
 </div>
 
 <style>

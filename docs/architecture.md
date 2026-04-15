@@ -111,6 +111,7 @@ hacker-noroshi/
 | user_id | INTEGER FK | |
 | item_id | INTEGER | story or comment の id |
 | item_type | TEXT | 'story' or 'comment' |
+| vote_type | TEXT | 'up' or 'down'（デフォルト 'up'） |
 | created_at | TEXT | ISO8601 |
 | PRIMARY KEY | (user_id, item_id, item_type) | 重複投票防止 |
 
@@ -187,9 +188,9 @@ hacker-noroshi/
 | `getCommentsByUserId()` | ユーザーのコメント一覧（story_title 付き） |
 | `getActiveStories()` | アクティブな議論（最新コメント時刻順にストーリーをソート） |
 | `getRecentComments()` | 全ストーリーの最新コメント一覧（/newcomments 用） |
-| `hasVoted()` | 投票済みチェック |
-| `getVotedStoryIds()` | 投票済みストーリーID一括取得 |
-| `getVotedCommentIds()` | 投票済みコメントID一括取得 |
+| `getVoteState()` | 投票状態取得（'up' / 'down' / null） |
+| `getVotedStoryIds()` | upvote済みストーリーID一括取得 |
+| `getCommentVoteStates()` | コメント投票状態一括取得（Map<id, 'up'/'down'>） |
 | `hasFavorited()` | お気に入り済みチェック |
 | `getFavoriteStoryIds()` | お気に入り済みストーリーID一括取得 |
 | `getFavoriteStoriesByUserId()` | ユーザーのお気に入りストーリー一覧 |
