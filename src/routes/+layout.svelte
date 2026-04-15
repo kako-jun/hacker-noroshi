@@ -44,6 +44,6 @@
 
 	<footer class="hn-footer">
 		<a href="/guidelines">Guidelines</a> | <a href="/faq">FAQ</a> | <a href="/lists">Lists</a> |
-		<span>API</span> | <a href="https://github.com/kako-jun/hacker-noroshi">GitHub</a>
+		<a href="/api-docs">API</a> | <a href="https://github.com/kako-jun/hacker-noroshi">GitHub</a>
 	</footer>
 </div>

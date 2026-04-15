@@ -94,6 +94,7 @@ score = (points - 1) / (hours_since_post + 2) ^ 1.8
 - [x] フッター構成を本家HNに合わせる + /lists ページ追加
 - [x] RSS フィード（/rss）追加
 - [x] /active ページ追加（アクティブな議論一覧）
+- [x] APIドキュメントページ追加（/api-docs、フッターからリンク）
 
 ## v2 以降
 
