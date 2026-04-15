@@ -35,6 +35,7 @@ hacker-noroshi/
 │   │   │   ├── favorites/    # ユーザーのお気に入り一覧
 │   │   │   └── hidden/       # 非表示ストーリー一覧（本人のみ）
 │   │   ├── noprocrast/       # noprocrast ブロックページ
+│   │   ├── search/           # 検索（ストーリー+コメント）
 │   │   ├── submit/           # 投稿フォーム
 │   │   ├── login/            # ログイン + サインアップ（1ページ統合）
 │   │   ├── signup/           # /login へリダイレクト
@@ -174,6 +175,7 @@ hacker-noroshi/
 | `/faq` | FAQ |
 | `/showhn` | Show HN ルール |
 | `/noprocrast` | noprocrast ブロックページ（残り時間表示） |
+| `/search` | 検索（?q=キーワード&type=all\|stories\|comments&p=ページ） |
 | `/api-docs` | APIドキュメント（準備中） |
 | `/rss` | RSS 2.0 フィード（トップページのストーリー30件） |
 | `/api/vote` | 投票 API エンドポイント |
@@ -206,3 +208,5 @@ hacker-noroshi/
 | `hasHidden()` | 非表示済みチェック |
 | `getHiddenStoryIds()` | ユーザーの全非表示ストーリーID取得 |
 | `getHiddenStoriesByUserId()` | ユーザーの非表示ストーリー一覧 |
+| `searchStories()` | ストーリー検索（LIKE、タイトル・URL・テキスト対象） |
+| `searchComments()` | コメント検索（LIKE、テキスト対象） |

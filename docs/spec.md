@@ -92,6 +92,14 @@ score = (points - 1) / (hours_since_post + 2) ^ 1.8
 - コメント投稿者の `delay` 設定に基づき、`created_at + delay分` が現在時刻より未来のコメントは投稿者本人以外に非表示
 - サーバーサイドフィルタ（`getCommentsByStoryId`, `getRecentComments`, `getCommentsByUserId` で適用）
 
+### 検索
+
+- `/search` ページで検索フォーム + 結果表示
+- 検索対象: ストーリー（タイトル・URL・テキスト）、コメント（テキスト）
+- タイプフィルタ: all（両方）/ stories / comments
+- LIKE 検索（`%` `_` `\` はエスケープ）、ページネーション
+- フッターに Search リンク + テキスト入力欄
+
 ### 編集機能
 
 - プロフィール: ログイン中の本人が about + 設定フィールドを編集可能
@@ -135,10 +143,9 @@ score = (points - 1) / (hours_since_post + 2) ^ 1.8
 - [x] ユーザー設定（email, showdead, noprocrast, delay）
 - [x] noprocrast アクセス制限（/noprocrast ブロックページ）
 - [x] コメント delay フィルタ（サーバーサイド）
+- [x] 検索機能（/search、ストーリー+コメントの LIKE 検索、フッター検索欄）
 
 ## v2 以降
-
-- 検索
 - フラグ / モデレーション
 - パスワードリセット（email 利用）
 - API 公開
