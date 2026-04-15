@@ -34,6 +34,7 @@ hacker-noroshi/
 │   │   │   ├── comments/     # ユーザーのコメント一覧
 │   │   │   ├── favorites/    # ユーザーのお気に入り一覧
 │   │   │   └── hidden/       # 非表示ストーリー一覧（本人のみ）
+│   │   ├── noprocrast/       # noprocrast ブロックページ
 │   │   ├── submit/           # 投稿フォーム
 │   │   ├── login/            # ログイン + サインアップ（1ページ統合）
 │   │   ├── signup/           # /login へリダイレクト
@@ -76,6 +77,13 @@ hacker-noroshi/
 | password_hash | TEXT | bcrypt |
 | karma | INTEGER | デフォルト 0 |
 | about | TEXT | 自己紹介（任意） |
+| email | TEXT | パスワードリセット用（任意） |
+| delay | INTEGER | コメント遅延（0-10分、デフォルト 0） |
+| noprocrast | INTEGER | アクセス制限（0=OFF, 1=ON） |
+| maxvisit | INTEGER | 連続アクセス可能時間（分、デフォルト 20） |
+| minaway | INTEGER | 必要な離脱時間（分、デフォルト 180） |
+| showdead | INTEGER | dead表示（0=非表示, 1=表示） |
+| last_visit | TEXT | noprocrast 用の最終アクセス時刻 |
 | created_at | TEXT | ISO8601 |
 
 ### stories
@@ -165,6 +173,7 @@ hacker-noroshi/
 | `/guidelines` | ガイドライン |
 | `/faq` | FAQ |
 | `/showhn` | Show HN ルール |
+| `/noprocrast` | noprocrast ブロックページ（残り時間表示） |
 | `/api-docs` | APIドキュメント（準備中） |
 | `/rss` | RSS 2.0 フィード（トップページのストーリー30件） |
 | `/api/vote` | 投票 API エンドポイント |
