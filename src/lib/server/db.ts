@@ -489,12 +489,14 @@ export async function searchComments(
 	db: D1Database,
 	query: string,
 	page: number = 1,
-	limit: number = 30
+	limit: number = 30,
+	currentUserId?: number
 ): Promise<(CommentRow & { story_title: string })[]> {
+	const fetchLimit = limit * 3;
 	const offset = (page - 1) * limit;
 	const pattern = `%${escapeLikePattern(query)}%`;
 	const sql = `
-		SELECT c.*, u.username, u.created_at as user_created_at, s.title as story_title
+		SELECT c.*, u.username, u.created_at as user_created_at, u.delay as author_delay, s.title as story_title
 		FROM comments c
 		JOIN users u ON c.user_id = u.id
 		JOIN stories s ON c.story_id = s.id
@@ -504,9 +506,17 @@ export async function searchComments(
 	`;
 	const result = await db
 		.prepare(sql)
-		.bind(pattern, limit, offset)
-		.all<CommentRow & { story_title: string }>();
-	return result.results;
+		.bind(pattern, fetchLimit, offset)
+		.all<CommentRow & { story_title: string; author_delay: number }>();
+
+	const now = Date.now();
+	const filtered = result.results.filter((c) => {
+		if (c.user_id === currentUserId) return true;
+		if (c.author_delay <= 0) return true;
+		const visibleAt = new Date(c.created_at).getTime() + c.author_delay * 60 * 1000;
+		return now >= visibleAt;
+	});
+	return filtered.slice(0, limit);
 }
 
 export async function getRecentComments(

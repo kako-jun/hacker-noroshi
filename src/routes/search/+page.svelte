@@ -106,7 +106,7 @@
 			<tbody>
 				<tr>
 					<td>Search:</td>
-					<td><input type="text" name="q" value={data.q} style="width: 300px;" /></td>
+					<td><input type="text" name="q" value={data.q} /></td>
 				</tr>
 				<tr>
 					<td></td>

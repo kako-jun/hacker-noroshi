@@ -11,7 +11,8 @@ import {
 export const load: PageServerLoad = async ({ url, platform, locals }) => {
 	const db = getDB(platform);
 	const q = url.searchParams.get('q')?.trim() || '';
-	const type = url.searchParams.get('type') || 'all';
+	const rawType = url.searchParams.get('type') || 'all';
+	const type = ['all', 'stories', 'comments'].includes(rawType) ? rawType : 'all';
 	const page = parseInt(url.searchParams.get('p') || '1', 10);
 
 	if (!q) {
@@ -25,7 +26,7 @@ export const load: PageServerLoad = async ({ url, platform, locals }) => {
 		stories = await searchStories(db, q, page, 30);
 	}
 	if (type === 'all' || type === 'comments') {
-		comments = await searchComments(db, q, page, 30);
+		comments = await searchComments(db, q, page, 30, locals.user?.id);
 	}
 
 	let votedIds: Set<number> = new Set();
