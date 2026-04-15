@@ -42,8 +42,7 @@
 	</main>
 
 	<footer class="hn-footer">
-		<a href="/newcomments">newcomments</a> | <a href="/best">best</a> |
-		<a href="/guidelines">ガイドライン</a> | <a href="/faq">FAQ</a> | <span>API</span> |
-		<a href="https://github.com/kako-jun/hacker-noroshi">GitHub</a>
+		<a href="/guidelines">Guidelines</a> | <a href="/faq">FAQ</a> | <a href="/lists">Lists</a> |
+		<span>API</span> | <a href="https://github.com/kako-jun/hacker-noroshi">GitHub</a>
 	</footer>
 </div>

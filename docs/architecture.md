@@ -24,6 +24,7 @@ hacker-noroshi/
 │   │   ├── show/             # Show HN
 │   │   ├── newcomments/      # 全ストーリーの最新コメント一覧
 │   │   ├── best/             # 高スコアのストーリー一覧
+│   │   ├── lists/            # ブラウズリンク集
 │   │   ├── item/[id]/        # 投稿詳細 or コメントパーマリンク + コメント + 編集
 │   │   ├── user/[id]/        # プロフィール + 編集
 │   │   │   ├── submissions/  # ユーザーの投稿一覧
@@ -124,6 +125,7 @@ hacker-noroshi/
 | `/show` | Show HN（type='show' のみ） |
 | `/newcomments` | 全ストーリーの最新コメント一覧 |
 | `/best` | 高スコアのストーリー一覧 |
+| `/lists` | ブラウズリンク集（front, newcomments, best, show, ask） |
 | `/item/[id]` | 投稿詳細 or コメントパーマリンク + コメントスレッド + 編集 |
 | `/user/[id]` | ユーザープロフィール + 編集 |
 | `/user/[id]/submissions` | ユーザーの投稿一覧 |
