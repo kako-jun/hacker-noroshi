@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { getDB, getUserByUsername, getCommentsByUserId, getVotedCommentIds } from '$lib/server/db';
+import { getDB, getUserByUsername, getCommentsByUserId, getCommentVoteStates } from '$lib/server/db';
 import { error } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ params, url, platform, locals }) => {
@@ -14,9 +14,9 @@ export const load: PageServerLoad = async ({ params, url, platform, locals }) =>
 
 	const comments = await getCommentsByUserId(db, user.id, page, 30);
 
-	let votedIds: Set<number> = new Set();
+	let commentVoteStates: Map<number, 'up' | 'down'> = new Map();
 	if (locals.user) {
-		votedIds = await getVotedCommentIds(
+		commentVoteStates = await getCommentVoteStates(
 			db,
 			locals.user.id,
 			comments.map((c: any) => c.id)
@@ -26,7 +26,7 @@ export const load: PageServerLoad = async ({ params, url, platform, locals }) =>
 	return {
 		username: user.username,
 		comments,
-		votedIds: Array.from(votedIds),
+		commentVoteStates: Object.fromEntries(commentVoteStates),
 		page
 	};
 };

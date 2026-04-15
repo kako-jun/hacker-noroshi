@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { getDB, getRecentComments, getVotedCommentIds } from '$lib/server/db';
+import { getDB, getRecentComments, getCommentVoteStates } from '$lib/server/db';
 
 export const load: PageServerLoad = async ({ url, platform, locals }) => {
 	const db = getDB(platform);
@@ -7,9 +7,9 @@ export const load: PageServerLoad = async ({ url, platform, locals }) => {
 
 	const comments = await getRecentComments(db, page, 30);
 
-	let votedIds: Set<number> = new Set();
+	let commentVoteStates: Map<number, 'up' | 'down'> = new Map();
 	if (locals.user) {
-		votedIds = await getVotedCommentIds(
+		commentVoteStates = await getCommentVoteStates(
 			db,
 			locals.user.id,
 			comments.map((c: any) => c.id)
@@ -18,7 +18,7 @@ export const load: PageServerLoad = async ({ url, platform, locals }) => {
 
 	return {
 		comments,
-		votedIds: Array.from(votedIds),
+		commentVoteStates: Object.fromEntries(commentVoteStates),
 		page
 	};
 };
