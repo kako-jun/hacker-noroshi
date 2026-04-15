@@ -246,6 +246,13 @@ a:hover {
 	color: #828282;
 }
 
+.hn-footer-search {
+	display: inline;
+	margin-top: 8px;
+	font-size: 8pt;
+	color: #828282;
+}
+
 /* Item detail page */
 .item-detail {
 	padding: 10px 0;
