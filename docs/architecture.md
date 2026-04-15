@@ -25,6 +25,7 @@ hacker-noroshi/
 │   │   ├── newcomments/      # 全ストーリーの最新コメント一覧
 │   │   ├── best/             # 高スコアのストーリー一覧
 │   │   ├── lists/            # ブラウズリンク集
+│   │   ├── rss/              # RSS 2.0 フィード
 │   │   ├── item/[id]/        # 投稿詳細 or コメントパーマリンク + コメント + 編集
 │   │   ├── user/[id]/        # プロフィール + 編集
 │   │   │   ├── submissions/  # ユーザーの投稿一覧
@@ -137,6 +138,7 @@ hacker-noroshi/
 | `/guidelines` | ガイドライン |
 | `/faq` | FAQ |
 | `/showhn` | Show HN ルール |
+| `/rss` | RSS 2.0 フィード（トップページのストーリー30件） |
 | `/api/vote` | 投票 API エンドポイント |
 
 ## DB アクセス関数 (src/lib/server/db.ts)
