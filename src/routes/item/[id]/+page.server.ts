@@ -97,7 +97,7 @@ export const actions: Actions = {
 		const itemId = parseInt(params.id, 10);
 
 		if (!text) {
-			return fail(400, { error: 'Comment text is required' });
+			return fail(400, { error: 'Comment text is required', errorFor: 'comment' });
 		}
 
 		// Rate limit: 2 minutes between comments
@@ -109,7 +109,7 @@ export const actions: Actions = {
 		if (lastComment) {
 			const elapsed = Date.now() - new Date(lastComment.created_at).getTime();
 			if (elapsed < 2 * 60 * 1000) {
-				return fail(429, { error: "You're posting too fast. Please slow down." });
+				return fail(429, { error: "You're posting too fast. Please slow down.", text, errorFor: 'comment' });
 			}
 		}
 
