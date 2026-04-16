@@ -53,7 +53,7 @@ Base font size is `10pt` on html/body. Everything is in `pt`, not `rem` or `px`.
 - Background: `#ff6600`
 - Layout: flex, `align-items: center`, `gap: 4px`
 - Line-height: `12pt`
-- Logo: `18x18px` WebP image (`/icon-32.webp`), `1px solid white` border
+- Logo: `18x18px` WebP image (`/icon-32.webp`) wrapped in `20x20px` container with `1px solid white` border
 - Navigation: items separated by `|` with `3px` margins
 - All links: `#000000`, no underline
 

@@ -60,10 +60,10 @@ hacker-noroshi/
 │   └── seed.sql              # テストデータ
 ├── docs/
 │   ├── spec.md               # 仕様書
-│   ├── design.md             # デザインシステム
 │   ├── architecture.md       # 本ファイル
 │   └── operations.md         # デプロイ・運用手順
 ├── CLAUDE.md                 # AI 向け指示
+├── DESIGN.md                 # デザインシステム（色・フォント・レイアウト規則）
 └── README.md                 # プロジェクト説明
 ```
 
