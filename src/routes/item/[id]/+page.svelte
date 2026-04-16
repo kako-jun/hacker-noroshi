@@ -273,7 +273,7 @@
 					};
 				}}>
 					<input type="hidden" name="parent_id" value={comment.id} />
-					<textarea name="text" rows="6" cols="60"></textarea>
+					<textarea name="text" rows="6" cols="60">{form?.errorFor === 'comment' ? form?.text ?? '' : ''}</textarea>
 					<br />
 					<button type="submit">reply</button>
 				</form>
@@ -476,7 +476,7 @@
 						await invalidateAll();
 					};
 				}}>
-					<textarea name="text" rows="6" cols="60"></textarea>
+					<textarea name="text" rows="6" cols="60">{form?.errorFor === 'comment' ? form?.text ?? '' : ''}</textarea>
 					<br />
 					<button type="submit">add comment</button>
 				</form>
