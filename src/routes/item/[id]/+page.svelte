@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { timeAgo, extractDomain, isNewUser } from '$lib/ranking';
+	import { timeAgo, extractDomain, isNewUser, isThreadOpen } from '$lib/ranking';
 	import { formatText } from '$lib/format';
 	import { invalidateAll } from '$app/navigation';
 
@@ -20,11 +20,6 @@
 		if (!data.user || data.user.id !== userId) return false;
 		const elapsed = Date.now() - new Date(createdAt).getTime();
 		return elapsed < 2 * 60 * 60 * 1000;
-	}
-
-	function isThreadOpen(createdAt: string): boolean {
-		const elapsed = Date.now() - new Date(createdAt).getTime();
-		return elapsed < 14 * 24 * 60 * 60 * 1000;
 	}
 
 	let storyVoted = $derived(localStoryVoted ?? (data.mode === 'story' ? data.storyVoted : false));
@@ -340,17 +335,19 @@
 							{/each}
 						</div>
 					{/if}
-					{#if data.user && isThreadOpen(data.parentStory.created_at)}
+					{#if data.user}
 						<div class="comment-reply" style="padding-left: 14px;">
-							<a
-								href="#reply"
-								onclick={(e) => {
-									e.preventDefault();
-									toggleReply(child.id);
-								}}>reply</a
-							>
+							{#if isThreadOpen(data.parentStory.created_at)}
+								<a
+									href="#reply"
+									onclick={(e) => {
+										e.preventDefault();
+										toggleReply(child.id);
+									}}>reply</a
+								>
+							{/if}
 							{#if canEdit(child.created_at, child.user_id)}
-								| <a
+								{#if isThreadOpen(data.parentStory.created_at)}|{/if} <a
 									href="#edit"
 									onclick={(e) => {
 										e.preventDefault();
@@ -358,7 +355,7 @@
 									}}>edit</a>
 							{/if}
 						</div>
-						{#if replyTo === child.id}
+						{#if isThreadOpen(data.parentStory.created_at) && replyTo === child.id}
 							<div class="comment-form" style="padding-left: 14px;">
 								<form method="POST" action="?/comment" use:enhance={() => {
 									return async ({ update }) => {
@@ -538,17 +535,19 @@
 							{/each}
 						</div>
 					{/if}
-					{#if data.user && isThreadOpen(data.story.created_at)}
+					{#if data.user}
 						<div class="comment-reply" style="padding-left: 14px;">
-							<a
-								href="#reply"
-								onclick={(e) => {
-									e.preventDefault();
-									toggleReply(comment.id);
-								}}>reply</a
-							>
+							{#if isThreadOpen(data.story.created_at)}
+								<a
+									href="#reply"
+									onclick={(e) => {
+										e.preventDefault();
+										toggleReply(comment.id);
+									}}>reply</a
+								>
+							{/if}
 							{#if canEdit(comment.created_at, comment.user_id)}
-								| <a
+								{#if isThreadOpen(data.story.created_at)}|{/if} <a
 									href="#edit"
 									onclick={(e) => {
 										e.preventDefault();
@@ -556,7 +555,7 @@
 									}}>edit</a>
 							{/if}
 						</div>
-						{#if replyTo === comment.id}
+						{#if isThreadOpen(data.story.created_at) && replyTo === comment.id}
 							<div class="comment-form" style="padding-left: 14px;">
 								<form method="POST" action="?/comment" use:enhance={() => {
 									return async ({ update }) => {
