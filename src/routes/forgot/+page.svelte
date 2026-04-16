@@ -24,6 +24,7 @@
 
 		<form method="POST" action="?/resetPassword" use:enhance>
 			<input type="hidden" name="username" value={form.username} />
+			<input type="hidden" name="email" value={form.email} />
 			<table>
 				<tbody>
 					<tr>

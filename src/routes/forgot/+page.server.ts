@@ -22,38 +22,31 @@ export const actions: Actions = {
 		}
 
 		const user = await getUserByUsername(db, username);
-		if (!user) {
+		if (!user || !user.email || user.email.toLowerCase() !== email.toLowerCase()) {
 			return fail(400, { error: 'Bad login.', username });
 		}
 
-		if (!user.email) {
-			return fail(400, { error: 'No email address is set for this account.', username });
-		}
-
-		if (user.email !== email) {
-			return fail(400, { error: 'Bad login.', username });
-		}
-
-		return { verified: true, username };
+		return { verified: true, username, email };
 	},
 
 	resetPassword: async ({ request, platform }) => {
 		const db = getDB(platform);
 		const formData = await request.formData();
 		const username = (formData.get('username') as string)?.trim();
+		const email = (formData.get('email') as string)?.trim();
 		const password = formData.get('password') as string;
 
-		if (!username || !password) {
-			return fail(400, { resetError: 'Username and password are required.', verified: true, username });
+		if (!username || !email || !password) {
+			return fail(400, { resetError: 'All fields are required.', verified: true, username, email });
 		}
 
 		if (password.length < 8) {
-			return fail(400, { resetError: 'Password must be at least 8 characters.', verified: true, username });
+			return fail(400, { resetError: 'Password must be at least 8 characters.', verified: true, username, email });
 		}
 
 		const user = await getUserByUsername(db, username);
-		if (!user) {
-			return fail(400, { resetError: 'User not found.', verified: true, username });
+		if (!user || !user.email || user.email.toLowerCase() !== email.toLowerCase()) {
+			return fail(400, { resetError: 'Verification failed.', verified: true, username, email });
 		}
 
 		const passwordHash = await hashPassword(password);
