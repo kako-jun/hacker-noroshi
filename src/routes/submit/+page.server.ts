@@ -50,6 +50,24 @@ export const actions: Actions = {
 			}
 		}
 
+		// Rate limit: 10 minutes between story submissions
+		const lastStory = await db
+			.prepare('SELECT created_at FROM stories WHERE user_id = ? ORDER BY created_at DESC LIMIT 1')
+			.bind(locals.user.id)
+			.first<{ created_at: string }>();
+
+		if (lastStory) {
+			const elapsed = Date.now() - new Date(lastStory.created_at).getTime();
+			if (elapsed < 10 * 60 * 1000) {
+				return fail(429, {
+					error: "You're submitting too fast. Please slow down.",
+					title,
+					url,
+					text
+				});
+			}
+		}
+
 		let type = 'story';
 		if (title.toLowerCase().startsWith('ask hn:') || title.startsWith('Ask HN:')) {
 			type = 'ask';

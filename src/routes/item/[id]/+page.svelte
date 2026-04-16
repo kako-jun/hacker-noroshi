@@ -261,6 +261,9 @@
 			</div>
 		{/if}
 
+		{#if form?.error && form?.errorFor === 'comment'}
+			<div style="padding-left: 14px; color: #ff0000; font-size: 9pt; margin-bottom: 4px;">{form.error}</div>
+		{/if}
 		{#if data.user && isThreadOpen(data.parentStory.created_at)}
 			<div class="comment-form" style="padding-left: 14px;">
 				<form method="POST" action="?/comment" use:enhance={() => {
@@ -270,7 +273,7 @@
 					};
 				}}>
 					<input type="hidden" name="parent_id" value={comment.id} />
-					<textarea name="text" rows="6" cols="60"></textarea>
+					<textarea name="text" rows="6" cols="60">{form?.errorFor === 'comment' ? form?.text ?? '' : ''}</textarea>
 					<br />
 					<button type="submit">reply</button>
 				</form>
@@ -462,6 +465,9 @@
 			</div>
 		{/if}
 
+		{#if form?.error && form?.errorFor === 'comment'}
+			<div style="padding-left: 18px; color: #ff0000; font-size: 9pt; margin-bottom: 4px;">{form.error}</div>
+		{/if}
 		{#if data.user && isThreadOpen(data.story.created_at)}
 			<div class="comment-form" style="padding-left: 18px;">
 				<form method="POST" action="?/comment" use:enhance={() => {
@@ -470,7 +476,7 @@
 						await invalidateAll();
 					};
 				}}>
-					<textarea name="text" rows="6" cols="60"></textarea>
+					<textarea name="text" rows="6" cols="60">{form?.errorFor === 'comment' ? form?.text ?? '' : ''}</textarea>
 					<br />
 					<button type="submit">add comment</button>
 				</form>
