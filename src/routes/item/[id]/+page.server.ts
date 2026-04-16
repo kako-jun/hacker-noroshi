@@ -100,13 +100,25 @@ export const actions: Actions = {
 			return fail(400, { error: 'Comment text is required' });
 		}
 
+		// Rate limit: 2 minutes between comments
+		const lastComment = await db
+			.prepare('SELECT created_at FROM comments WHERE user_id = ? ORDER BY created_at DESC LIMIT 1')
+			.bind(locals.user.id)
+			.first<{ created_at: string }>();
+
+		if (lastComment) {
+			const elapsed = Date.now() - new Date(lastComment.created_at).getTime();
+			if (elapsed < 2 * 60 * 1000) {
+				return fail(429, { error: "You're posting too fast. Please slow down." });
+			}
+		}
+
 		const story = await resolveStory(db, itemId);
 
 		const elapsed = Date.now() - new Date(story.created_at).getTime();
 		if (elapsed >= TWO_WEEKS_MS) {
 			return fail(403, { error: 'Thread is closed' });
 		}
-
 		const parentIdNum = parentId ? parseInt(parentId, 10) : null;
 
 		await db
