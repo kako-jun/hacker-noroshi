@@ -32,6 +32,9 @@
 		<button type="submit">login</button>
 	</form>
 
+	<br />
+	<a href="/forgot">Forgot your password?</a>
+
 	<br /><br />
 
 	<b>Create Account</b>
