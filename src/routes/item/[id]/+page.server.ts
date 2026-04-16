@@ -1,5 +1,6 @@
 import type { PageServerLoad, Actions } from './$types';
 import { getDB, getStoryById, getCommentsByStoryId, getCommentById, getChildComments, getCommentVoteStates, getVoteState, hasFavorited } from '$lib/server/db';
+import { TWO_WEEKS_MS } from '$lib/ranking';
 import { error, fail, redirect } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ params, platform, locals }) => {
@@ -72,11 +73,14 @@ export const load: PageServerLoad = async ({ params, platform, locals }) => {
 	};
 };
 
-async function resolveStoryId(db: D1Database, itemId: number): Promise<number> {
+async function resolveStory(db: D1Database, itemId: number): Promise<{ id: number; created_at: string }> {
 	const story = await getStoryById(db, itemId);
-	if (story) return story.id;
+	if (story) return story;
 	const comment = await getCommentById(db, itemId);
-	if (comment) return comment.story_id;
+	if (comment) {
+		const parentStory = await getStoryById(db, comment.story_id);
+		if (parentStory) return parentStory;
+	}
 	throw error(404, 'Not found');
 }
 
@@ -96,19 +100,25 @@ export const actions: Actions = {
 			return fail(400, { error: 'Comment text is required' });
 		}
 
-		const storyId = await resolveStoryId(db, itemId);
+		const story = await resolveStory(db, itemId);
+
+		const elapsed = Date.now() - new Date(story.created_at).getTime();
+		if (elapsed >= TWO_WEEKS_MS) {
+			return fail(403, { error: 'Thread is closed' });
+		}
+
 		const parentIdNum = parentId ? parseInt(parentId, 10) : null;
 
 		await db
 			.prepare(
 				'INSERT INTO comments (text, user_id, story_id, parent_id) VALUES (?, ?, ?, ?)'
 			)
-			.bind(text, locals.user.id, storyId, parentIdNum)
+			.bind(text, locals.user.id, story.id, parentIdNum)
 			.run();
 
 		await db
 			.prepare('UPDATE stories SET comment_count = comment_count + 1 WHERE id = ?')
-			.bind(storyId)
+			.bind(story.id)
 			.run();
 
 		return { success: true };

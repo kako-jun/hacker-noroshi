@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { timeAgo, extractDomain, isNewUser } from '$lib/ranking';
+	import { timeAgo, extractDomain, isNewUser, isThreadOpen } from '$lib/ranking';
 	import { formatText } from '$lib/format';
 	import { invalidateAll } from '$app/navigation';
 
@@ -261,7 +261,7 @@
 			</div>
 		{/if}
 
-		{#if data.user}
+		{#if data.user && isThreadOpen(data.parentStory.created_at)}
 			<div class="comment-form" style="padding-left: 14px;">
 				<form method="POST" action="?/comment" use:enhance={() => {
 					return async ({ update }) => {
@@ -337,15 +337,17 @@
 					{/if}
 					{#if data.user}
 						<div class="comment-reply" style="padding-left: 14px;">
-							<a
-								href="#reply"
-								onclick={(e) => {
-									e.preventDefault();
-									toggleReply(child.id);
-								}}>reply</a
-							>
+							{#if isThreadOpen(data.parentStory.created_at)}
+								<a
+									href="#reply"
+									onclick={(e) => {
+										e.preventDefault();
+										toggleReply(child.id);
+									}}>reply</a
+								>
+							{/if}
 							{#if canEdit(child.created_at, child.user_id)}
-								| <a
+								{#if isThreadOpen(data.parentStory.created_at)}|{/if} <a
 									href="#edit"
 									onclick={(e) => {
 										e.preventDefault();
@@ -353,7 +355,7 @@
 									}}>edit</a>
 							{/if}
 						</div>
-						{#if replyTo === child.id}
+						{#if isThreadOpen(data.parentStory.created_at) && replyTo === child.id}
 							<div class="comment-form" style="padding-left: 14px;">
 								<form method="POST" action="?/comment" use:enhance={() => {
 									return async ({ update }) => {
@@ -460,7 +462,7 @@
 			</div>
 		{/if}
 
-		{#if data.user}
+		{#if data.user && isThreadOpen(data.story.created_at)}
 			<div class="comment-form" style="padding-left: 18px;">
 				<form method="POST" action="?/comment" use:enhance={() => {
 					return async ({ update }) => {
@@ -535,15 +537,17 @@
 					{/if}
 					{#if data.user}
 						<div class="comment-reply" style="padding-left: 14px;">
-							<a
-								href="#reply"
-								onclick={(e) => {
-									e.preventDefault();
-									toggleReply(comment.id);
-								}}>reply</a
-							>
+							{#if isThreadOpen(data.story.created_at)}
+								<a
+									href="#reply"
+									onclick={(e) => {
+										e.preventDefault();
+										toggleReply(comment.id);
+									}}>reply</a
+								>
+							{/if}
 							{#if canEdit(comment.created_at, comment.user_id)}
-								| <a
+								{#if isThreadOpen(data.story.created_at)}|{/if} <a
 									href="#edit"
 									onclick={(e) => {
 										e.preventDefault();
@@ -551,7 +555,7 @@
 									}}>edit</a>
 							{/if}
 						</div>
-						{#if replyTo === comment.id}
+						{#if isThreadOpen(data.story.created_at) && replyTo === comment.id}
 							<div class="comment-form" style="padding-left: 14px;">
 								<form method="POST" action="?/comment" use:enhance={() => {
 									return async ({ update }) => {

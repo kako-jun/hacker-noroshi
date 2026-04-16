@@ -33,7 +33,12 @@ export function extractDomain(url: string | null): string {
 	}
 }
 
+export const TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000;
+
 export function isNewUser(userCreatedAt: string): boolean {
-	const TWO_WEEKS_MS = 14 * 24 * 60 * 60 * 1000;
 	return Date.now() - new Date(userCreatedAt).getTime() < TWO_WEEKS_MS;
+}
+
+export function isThreadOpen(createdAt: string): boolean {
+	return Date.now() - new Date(createdAt).getTime() < TWO_WEEKS_MS;
 }
