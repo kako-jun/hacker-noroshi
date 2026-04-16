@@ -22,6 +22,11 @@
 		return elapsed < 2 * 60 * 60 * 1000;
 	}
 
+	function isThreadOpen(createdAt: string): boolean {
+		const elapsed = Date.now() - new Date(createdAt).getTime();
+		return elapsed < 14 * 24 * 60 * 60 * 1000;
+	}
+
 	let storyVoted = $derived(localStoryVoted ?? (data.mode === 'story' ? data.storyVoted : false));
 	let storyPoints = $derived(localStoryPoints ?? (data.mode === 'story' ? data.story.points : 0));
 	let storyFavorited = $derived(localStoryFavorited ?? (data.mode === 'story' ? data.storyFavorited : false));
@@ -261,7 +266,7 @@
 			</div>
 		{/if}
 
-		{#if data.user}
+		{#if data.user && isThreadOpen(data.parentStory.created_at)}
 			<div class="comment-form" style="padding-left: 14px;">
 				<form method="POST" action="?/comment" use:enhance={() => {
 					return async ({ update }) => {
@@ -335,7 +340,7 @@
 							{/each}
 						</div>
 					{/if}
-					{#if data.user}
+					{#if data.user && isThreadOpen(data.parentStory.created_at)}
 						<div class="comment-reply" style="padding-left: 14px;">
 							<a
 								href="#reply"
@@ -460,7 +465,7 @@
 			</div>
 		{/if}
 
-		{#if data.user}
+		{#if data.user && isThreadOpen(data.story.created_at)}
 			<div class="comment-form" style="padding-left: 18px;">
 				<form method="POST" action="?/comment" use:enhance={() => {
 					return async ({ update }) => {
@@ -533,7 +538,7 @@
 							{/each}
 						</div>
 					{/if}
-					{#if data.user}
+					{#if data.user && isThreadOpen(data.story.created_at)}
 						<div class="comment-reply" style="padding-left: 14px;">
 							<a
 								href="#reply"

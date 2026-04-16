@@ -97,6 +97,15 @@ export const actions: Actions = {
 		}
 
 		const storyId = await resolveStoryId(db, itemId);
+
+		const story = await getStoryById(db, storyId);
+		if (story) {
+			const elapsed = Date.now() - new Date(story.created_at).getTime();
+			if (elapsed >= 14 * 24 * 60 * 60 * 1000) {
+				return fail(403, { error: 'Thread is closed' });
+			}
+		}
+
 		const parentIdNum = parentId ? parseInt(parentId, 10) : null;
 
 		await db
