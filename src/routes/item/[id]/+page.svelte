@@ -17,6 +17,7 @@
 	let localTargetCommentPoints = $state<number | null>(null);
 	let localStoryFavorited = $state<boolean | null>(null);
 	let localStoryFlagged = $state<boolean | null>(null);
+	let localStoryHidden = $state<boolean | null>(null);
 	let localTargetCommentFlagged = $state<boolean | null>(null);
 	let localStoryDead = $state<number | null>(null);
 	let localTargetCommentDead = $state<number | null>(null);
@@ -130,6 +131,7 @@
 	let storyPoints = $derived(localStoryPoints ?? (data.mode === 'story' ? data.story.points : 0));
 	let storyFavorited = $derived(localStoryFavorited ?? (data.mode === 'story' ? data.storyFavorited : false));
 	let storyFlagged = $derived(localStoryFlagged ?? (data.mode === 'story' ? data.storyFlagged : false));
+	let storyHidden = $derived(localStoryHidden ?? (data.mode === 'story' ? (data.storyHidden ?? false) : false));
 	let storyDead = $derived(localStoryDead ?? (data.mode === 'story' ? data.story.dead : 0));
 	let targetCommentFlagged = $derived(localTargetCommentFlagged ?? (data.mode === 'comment' ? data.commentFlagged : false));
 	let targetCommentDead = $derived(localTargetCommentDead ?? (data.mode === 'comment' ? data.targetComment.dead : 0));
@@ -287,6 +289,23 @@
 		if (res.ok) {
 			const result: { favorited: boolean } = await res.json();
 			localStoryFavorited = result.favorited;
+		}
+	}
+
+	async function toggleHideStory() {
+		if (!data.user) {
+			window.location.href = '/login';
+			return;
+		}
+		if (data.mode !== 'story') return;
+		const res = await fetch('/api/hide', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ storyId: data.story.id })
+		});
+		if (res.ok) {
+			const result: { hidden: boolean } = await res.json();
+			localStoryHidden = result.hidden;
 		}
 	}
 
@@ -538,6 +557,17 @@
 				| <form method="POST" action="?/deleteStory" class="inline-form" use:enhance={confirmDelete('Delete this story? Text will be replaced with [deleted].')}>
 					<button type="submit" class="link-button">delete</button>
 				</form>
+			{/if}
+			{#if data.user}
+				| <a
+					href="#hide"
+					onclick={(e) => {
+						e.preventDefault();
+						toggleHideStory();
+					}}>{storyHidden ? 'un-hide' : 'hide'}</a>
+			{/if}
+			{#if data.story.url}
+				| <a href="/from?site={extractDomain(data.story.url)}">past</a>
 			{/if}
 			{#if data.user}
 				| <a

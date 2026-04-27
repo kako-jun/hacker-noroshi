@@ -495,6 +495,30 @@ function escapeLikePattern(input: string): string {
 	return input.replace(/[%_\\]/g, '\\$&');
 }
 
+export async function getStoriesByDomain(
+	db: D1Database,
+	domain: string,
+	page: number = 1,
+	limit: number = 30,
+	showdead: boolean = false
+): Promise<StoryRow[]> {
+	const offset = (page - 1) * limit;
+	const pattern = `%://${escapeLikePattern(domain)}/%`;
+	const wwwPattern = `%://www.${escapeLikePattern(domain)}/%`;
+	const deadFilter = showdead ? '' : 'AND s.dead = 0';
+	const sql = `
+		SELECT s.*, u.username, u.created_at as user_created_at, ${STORY_FLAG_COUNT_SQL}
+		FROM stories s
+		JOIN users u ON s.user_id = u.id
+		WHERE s.url IS NOT NULL
+		  AND (s.url LIKE ? ESCAPE '\\' OR s.url LIKE ? ESCAPE '\\') ${deadFilter}
+		ORDER BY s.created_at DESC
+		LIMIT ? OFFSET ?
+	`;
+	const result = await db.prepare(sql).bind(pattern, wwwPattern, limit, offset).all<StoryRow>();
+	return result.results;
+}
+
 export async function searchStories(
 	db: D1Database,
 	query: string,
