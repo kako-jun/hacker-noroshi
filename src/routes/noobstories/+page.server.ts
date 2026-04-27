@@ -6,6 +6,7 @@ export const load: PageServerLoad = async ({ url, platform, locals }) => {
 	const db = getDB(platform);
 	const page = parseInt(url.searchParams.get('p') || '1', 10);
 	const showdead = locals.user?.showdead === 1;
+	// 60件取得して hidden 除外後にも 30件埋まる確率を上げる
 	let stories = await getStoriesByNewUsers(db, TWO_WEEKS_MS, page, 60, showdead);
 
 	let votedIds: Set<number> = new Set();
@@ -17,12 +18,16 @@ export const load: PageServerLoad = async ({ url, platform, locals }) => {
 			getHiddenStoryIds(db, locals.user.id),
 			getFlaggedItemIds(db, locals.user.id, stories.map((s) => s.id), 'story')
 		]);
-		stories = stories.filter((s) => !hiddenIds.has(s.id)).slice(0, 30);
+		stories = stories.filter((s) => !hiddenIds.has(s.id));
 	}
+
+	const hasMore = stories.length > 30;
+	stories = stories.slice(0, 30);
 
 	return {
 		stories,
 		page,
+		hasMore,
 		votedIds: Array.from(votedIds),
 		flaggedIds: Array.from(flaggedIds)
 	};

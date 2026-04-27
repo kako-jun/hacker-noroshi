@@ -148,7 +148,7 @@
 	{/each}
 </div>
 
-{#if data.stories.length === 30}
+{#if data.hasMore}
 	<div class="more-link">
 		<a href="/noobstories?p={data.page + 1}">More</a>
 	</div>

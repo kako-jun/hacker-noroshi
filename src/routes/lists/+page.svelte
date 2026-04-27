@@ -17,14 +17,6 @@
 			<td>新着の Ask HN 投稿（時系列順）</td>
 		</tr>
 		<tr>
-			<td><a href="/show">show</a></td>
-			<td>注目の Show HN 投稿</td>
-		</tr>
-		<tr>
-			<td><a href="/ask">ask</a></td>
-			<td>注目の Ask HN（テキスト）投稿</td>
-		</tr>
-		<tr>
 			<td><a href="/best">best</a></td>
 			<td>直近で最も支持された投稿</td>
 		</tr>
@@ -47,6 +39,14 @@
 		<tr>
 			<td><a href="/leaders">leaders</a></td>
 			<td>karma の高いユーザー一覧</td>
+		</tr>
+		<tr>
+			<td><a href="/show">show</a></td>
+			<td>注目の Show HN 投稿</td>
+		</tr>
+		<tr>
+			<td><a href="/ask">ask</a></td>
+			<td>注目の Ask HN（テキスト）投稿</td>
 		</tr>
 		<tr>
 			<td><a href="/newcomments">newcomments</a></td>

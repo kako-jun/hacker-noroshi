@@ -86,7 +86,7 @@
 	{/each}
 </div>
 
-{#if data.comments.length === 30}
+{#if data.hasMore}
 	<div class="more-link">
 		<a href="/noobcomments?p={data.page + 1}">More</a>
 	</div>

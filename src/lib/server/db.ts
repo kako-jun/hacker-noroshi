@@ -611,20 +611,24 @@ export async function getRecentComments(
 	return filtered.slice(0, limit);
 }
 
+export type LeaderRow = Pick<UserRow, 'id' | 'username' | 'karma' | 'created_at'>;
+
 export async function getTopUsersByKarma(
 	db: D1Database,
 	page: number = 1,
 	limit: number = 30
-): Promise<UserRow[]> {
+): Promise<LeaderRow[]> {
 	const offset = (page - 1) * limit;
+	// 列限定: password_hash など機微フィールドを取らない（将来のフィールド追加事故も回避）
+	// 同 karma は古参優先（本家HN準拠）
 	const result = await db
 		.prepare(
-			`SELECT * FROM users
+			`SELECT id, username, karma, created_at FROM users
 			ORDER BY karma DESC, created_at ASC
 			LIMIT ? OFFSET ?`
 		)
 		.bind(limit, offset)
-		.all<UserRow>();
+		.all<LeaderRow>();
 	return result.results;
 }
 
@@ -677,6 +681,8 @@ export async function getBestComments(
 	return filtered.slice(0, limit);
 }
 
+// 新規ユーザー判定は呼び出し側が thresholdMs を指定する。/noobstories では TWO_WEEKS_MS（14日）を渡す。
+// `isNewUser()` のグリーン表示と一貫させるため、しきい値は両者で揃えること。
 export async function getStoriesByNewUsers(
 	db: D1Database,
 	thresholdMs: number,
@@ -699,6 +705,8 @@ export async function getStoriesByNewUsers(
 	return result.results;
 }
 
+// 新規ユーザー判定は呼び出し側が thresholdMs を指定する。/noobcomments では TWO_WEEKS_MS（14日）を渡す。
+// `isNewUser()` のグリーン表示と一貫させるため、しきい値は両者で揃えること。
 export async function getCommentsByNewUsers(
 	db: D1Database,
 	thresholdMs: number,

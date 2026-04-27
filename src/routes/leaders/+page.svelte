@@ -24,7 +24,7 @@
 	</table>
 </div>
 
-{#if data.users.length === 30}
+{#if data.hasMore}
 	<div class="more-link">
 		<a href="/leaders?p={data.page + 1}">More</a>
 	</div>
