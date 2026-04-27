@@ -64,12 +64,18 @@ a:hover {
 	.hn-form input[type='password'],
 	.hn-form input[type='url'] {
 		width: 100%;
-		max-width: 300px;
+		max-width: 220px;
 	}
 
 	.hn-form textarea {
 		width: 100%;
 		max-width: 500px;
+	}
+
+	/* Tables inside forms must not exceed the form content box.
+	   Without this, the input column widens the table past 100%. */
+	.hn-form table {
+		max-width: 100%;
 	}
 
 	.comment-form textarea {
@@ -82,11 +88,20 @@ a:hover {
 		max-width: 200px;
 	}
 
-	/* Reduce 40px form indent on narrow viewports — at 375px that ate
+	/* Remove 40px form indent on narrow viewports — at 375px that ate
 	   ~11% of usable width. HN uses near-zero left padding on mobile. */
 	.hn-form,
 	.more-link {
-		padding-left: 10px;
+		padding-left: 0;
+	}
+
+	/* Long words/URLs in user-generated text must wrap on mobile.
+	   Without this, a single long token can push the page out. */
+	.item-detail .item-text,
+	.story-title-line,
+	.user-profile {
+		overflow-wrap: anywhere;
+		word-break: break-word;
 	}
 }
 
