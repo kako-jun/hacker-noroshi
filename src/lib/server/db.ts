@@ -503,8 +503,8 @@ export async function getStoriesByDomain(
 	showdead: boolean = false
 ): Promise<StoryRow[]> {
 	const offset = (page - 1) * limit;
-	const pattern = `%://${escapeLikePattern(domain)}/%`;
-	const wwwPattern = `%://www.${escapeLikePattern(domain)}/%`;
+	const pattern = `%://${escapeLikePattern(domain)}%`;
+	const wwwPattern = `%://www.${escapeLikePattern(domain)}%`;
 	const deadFilter = showdead ? '' : 'AND s.dead = 0';
 	const sql = `
 		SELECT s.*, u.username, u.created_at as user_created_at, ${STORY_FLAG_COUNT_SQL}

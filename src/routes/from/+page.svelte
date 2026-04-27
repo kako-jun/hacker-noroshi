@@ -98,13 +98,9 @@
 	}
 </script>
 
-{#if data.site}
-	<div class="from-header">Submissions from {data.site}:</div>
-{:else}
-	<div class="from-empty">No domain specified.</div>
-{/if}
+<div class="from-header">Submissions from {data.site}:</div>
 
-{#if data.site && data.stories.length === 0}
+{#if data.stories.length === 0}
 	<div class="from-empty">No submissions from {data.site}</div>
 {/if}
 
@@ -154,7 +150,7 @@
 	{/each}
 </div>
 
-{#if data.stories.length === 30}
+{#if data.hasMore}
 	<div class="more-link">
 		<a href="/from?site={data.site}&p={data.page + 1}">More</a>
 	</div>
