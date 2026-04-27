@@ -10,6 +10,7 @@
 | `DESIGN.md` | デザインシステム（色・フォント・レイアウト規則） |
 | `docs/architecture.md` | 技術構成・ルート・DB スキーマ・関数一覧 |
 | `docs/operations.md` | デプロイ・DB 操作・運用手順 |
+| `docs/testing.md` | テスト構成（Vitest unit + Playwright E2E）と実行方法 |
 
 ## 基本ルール
 
