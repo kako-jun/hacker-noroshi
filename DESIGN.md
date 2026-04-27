@@ -8,6 +8,18 @@ Faithful Hacker News clone. The design is intentionally minimal — a direct rep
 
 Inspirations: Hacker News (news.ycombinator.com), early 2000s web forums, plain HTML.
 
+### Core Principle: Visual Fidelity, Modern Implementation
+
+**Match HN visually pixel-by-pixel, but implement with modern CSS** (flex, grid, semantic HTML). Do not reproduce HN's 2007-era table-based layout (`<table id="hnmain">`, nested `<tr.comtr><td.ind>` for comments, etc.). The user-visible result must be indistinguishable; the DOM does not need to be.
+
+Concretely:
+- Comment nesting: `padding-left: depth * 40px` on `<div>`, not nested `<table>`.
+- Page container: flex/block layout, not `<table id="hnmain">`.
+- Forms: HTML `<table>` is acceptable here because forms are small and the table layout actually maps to "label / input" pairs cleanly. This is not legacy — it's the right tool.
+- CSS class names: own naming is fine. We do not need to mirror HN's `athing`/`commtext`/`sitebit` etc.
+
+When Issue / CLAUDE.md says "match HN exactly," it refers to the **rendered result**, not the markup.
+
 ## 2. Color Palette & Roles
 
 Hardcoded CSS values. No variables, no tokens.
