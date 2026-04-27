@@ -56,6 +56,38 @@ a:hover {
 	.hn-header-nav {
 		flex-wrap: wrap;
 	}
+
+	/* Forms: shrink fixed-width inputs/textareas on narrow viewports
+	   so the page doesn't horizontally overflow. HN itself uses default
+	   browser-sized inputs which naturally fit within mobile widths. */
+	.hn-form input[type='text'],
+	.hn-form input[type='password'],
+	.hn-form input[type='url'] {
+		width: 100%;
+		max-width: 300px;
+	}
+
+	.hn-form textarea {
+		width: 100%;
+		max-width: 500px;
+	}
+
+	.comment-form textarea {
+		width: 100%;
+		min-width: 0;
+	}
+
+	.hn-footer-search input {
+		width: 100%;
+		max-width: 200px;
+	}
+
+	/* Reduce 40px form indent on narrow viewports — at 375px that ate
+	   ~11% of usable width. HN uses near-zero left padding on mobile. */
+	.hn-form,
+	.more-link {
+		padding-left: 10px;
+	}
 }
 
 /* Header */
