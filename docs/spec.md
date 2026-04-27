@@ -118,6 +118,15 @@ score = (points - 1) / (hours_since_post + 2) ^ 1.8
 - コメント: 投稿から2時間以内、本人のみ text を編集可能
 - ストーリー編集時は type を再判定（Ask HN: / Show HN: プレフィックス）
 
+### 削除機能
+
+- 投稿・コメントから 2 時間以内、本人のみ削除可能（編集ウィンドウと同条件）
+- 物理削除ではなく **論理削除**: テキストを `[deleted]` に置換するのみ
+  - 投稿: `title`、`url`、`text` を `[deleted]` に置換（url は NULL）
+  - コメント: `text` を `[deleted]` に置換
+- `[deleted]` は `dead`（モデレーション）とは別概念。`showdead` 設定の影響を受けず、常に `[deleted]` のまま表示される
+- フロントエンドでは確認ダイアログ（`confirm()`）を挟む
+
 ### 静的ページ
 
 - `/guidelines` — 投稿・コメントのガイドライン
@@ -135,6 +144,7 @@ score = (points - 1) / (hours_since_post + 2) ^ 1.8
 - [x] ページネーション
 - [x] プロフィール編集
 - [x] 投稿・コメント編集（2時間以内）
+- [x] 投稿・コメント削除（2時間以内、`[deleted]` 置換）
 - [x] ガイドライン・FAQ・Show HN ルールページ
 - [x] ユーザーの submissions / comments 一覧ページ
 - [x] コメントパーマリンク（/item/{comment_id}）

@@ -22,6 +22,17 @@
 		return elapsed < 2 * 60 * 60 * 1000;
 	}
 
+	const confirmDelete = (message: string) => ({ cancel }: { cancel: () => void }) => {
+		if (!confirm(message)) {
+			cancel();
+			return;
+		}
+		return async ({ update }: { update: () => Promise<void> }) => {
+			await update();
+			await invalidateAll();
+		};
+	};
+
 	let storyVoted = $derived(localStoryVoted ?? (data.mode === 'story' ? data.storyVoted : false));
 	let storyPoints = $derived(localStoryPoints ?? (data.mode === 'story' ? data.story.points : 0));
 	let storyFavorited = $derived(localStoryFavorited ?? (data.mode === 'story' ? data.storyFavorited : false));
@@ -356,6 +367,10 @@
 										e.preventDefault();
 										editingCommentId = child.id;
 									}}>edit</a>
+								| <form method="POST" action="?/deleteComment" class="inline-form" use:enhance={confirmDelete('Delete this comment? Text will be replaced with [deleted].')}>
+									<input type="hidden" name="comment_id" value={child.id} />
+									<button type="submit" class="link-button">delete</button>
+								</form>
 							{/if}
 						</div>
 						{#if isThreadOpen(data.parentStory.created_at) && replyTo === child.id}
@@ -413,6 +428,9 @@
 						e.preventDefault();
 						editingStory = true;
 					}}>edit</a>
+				| <form method="POST" action="?/deleteStory" class="inline-form" use:enhance={confirmDelete('Delete this story? Text will be replaced with [deleted].')}>
+					<button type="submit" class="link-button">delete</button>
+				</form>
 			{/if}
 			{#if data.user}
 				| <a
@@ -559,6 +577,10 @@
 										e.preventDefault();
 										editingCommentId = comment.id;
 									}}>edit</a>
+								| <form method="POST" action="?/deleteComment" class="inline-form" use:enhance={confirmDelete('Delete this comment? Text will be replaced with [deleted].')}>
+									<input type="hidden" name="comment_id" value={comment.id} />
+									<button type="submit" class="link-button">delete</button>
+								</form>
 							{/if}
 						</div>
 						{#if isThreadOpen(data.story.created_at) && replyTo === comment.id}
