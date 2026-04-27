@@ -553,6 +553,7 @@
 			{#if canFlagItem(data.story.user_id) && storyDead === 1}
 				| <a href="#vouch" onclick={(e) => { e.preventDefault(); vouchStory(); }}>vouch</a>
 			{/if}
+			| <a href="#comments">{data.comments.length} comment{data.comments.length !== 1 ? "s" : ""}</a>
 		</div>
 
 		{#if editingStory}
@@ -614,7 +615,7 @@
 			</div>
 		{/if}
 
-		<div class="comments-section" style="padding-left: 0;">
+		<div class="comments-section" id="comments" style="padding-left: 0;">
 			{#each commentTree as comment}
 				<div class="comment-item" style="padding-left: {comment.depth * 40}px;">
 					<div class="comment-head">
