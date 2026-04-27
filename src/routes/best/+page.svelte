@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { FLAG_KARMA_THRESHOLD } from '$lib/constants';
 	import { timeAgo, extractDomain, isNewUser } from '$lib/ranking';
 
 	let { data } = $props();
@@ -31,7 +32,7 @@
 	}
 
 	function canFlag(story: { user_id: number }): boolean {
-		return !!data.user && data.user.karma >= 30 && story.user_id !== data.user.id;
+		return !!data.user && data.user.karma >= FLAG_KARMA_THRESHOLD && story.user_id !== data.user.id;
 	}
 
 	async function flag(storyId: number) {

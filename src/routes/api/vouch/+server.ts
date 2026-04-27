@@ -1,27 +1,30 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { getDB, getStoryById, getCommentById } from '$lib/server/db';
-
-const KARMA_THRESHOLD = 30;
+import { VOUCH_KARMA_THRESHOLD } from '$lib/constants';
 
 export const POST: RequestHandler = async ({ request, platform, locals }) => {
 	if (!locals.user) {
 		return json({ error: 'Not authenticated' }, { status: 401 });
 	}
 
-	if (locals.user.karma < KARMA_THRESHOLD) {
+	if (locals.user.karma < VOUCH_KARMA_THRESHOLD) {
 		return json({ error: 'Insufficient karma to vouch' }, { status: 403 });
 	}
 
 	const db = getDB(platform);
-	const body = (await request.json()) as { itemId: number; itemType: string };
-	const { itemId, itemType } = body;
+	const body = (await request.json()) as { itemId: unknown; itemType: unknown };
+	const itemId = Number(body.itemId);
+	const itemType = body.itemType;
 
-	if (!itemId || !itemType || !['story', 'comment'].includes(itemType)) {
-		return json({ error: 'Invalid request' }, { status: 400 });
+	if (!Number.isInteger(itemId) || itemId <= 0) {
+		return json({ error: 'Invalid itemId' }, { status: 400 });
+	}
+	if (itemType !== 'story' && itemType !== 'comment') {
+		return json({ error: 'Invalid itemType' }, { status: 400 });
 	}
 
-	const typed = itemType as 'story' | 'comment';
+	const typed = itemType;
 	const table = typed === 'story' ? 'stories' : 'comments';
 
 	const item =

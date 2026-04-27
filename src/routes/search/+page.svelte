@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { FLAG_KARMA_THRESHOLD } from '$lib/constants';
 	import { timeAgo, extractDomain, isNewUser } from '$lib/ranking';
 	import { formatText } from '$lib/format';
 
@@ -30,7 +31,7 @@
 	}
 
 	function canFlag(item: { user_id: number }): boolean {
-		return !!data.user && data.user.karma >= 30 && item.user_id !== data.user.id;
+		return !!data.user && data.user.karma >= FLAG_KARMA_THRESHOLD && item.user_id !== data.user.id;
 	}
 
 	async function flagItem(itemId: number, itemType: 'story' | 'comment') {

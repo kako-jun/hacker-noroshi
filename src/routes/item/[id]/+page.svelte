@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { FLAG_KARMA_THRESHOLD } from '$lib/constants';
 	import { timeAgo, extractDomain, isNewUser, isThreadOpen } from '$lib/ranking';
 	import { formatText } from '$lib/format';
 	import { invalidateAll } from '$app/navigation';
@@ -21,7 +22,7 @@
 	let localTargetCommentDead = $state<number | null>(null);
 
 	function canFlagItem(authorId: number): boolean {
-		return !!data.user && data.user.karma >= 30 && authorId !== data.user.id;
+		return !!data.user && data.user.karma >= FLAG_KARMA_THRESHOLD && authorId !== data.user.id;
 	}
 
 	async function flagStory() {
