@@ -49,7 +49,7 @@ a:hover {
 	display: flex;
 	align-items: center;
 	gap: 4px;
-	line-height: 12pt;
+	line-height: 12px;
 }
 
 .hn-header-logo {
@@ -96,7 +96,8 @@ a:hover {
 
 .hn-header-left .hn-header-site-name {
 	font-weight: bold;
-	margin-right: 10px;
+	margin-left: 1px;
+	margin-right: 5px;
 }
 
 .hn-header-nav {
