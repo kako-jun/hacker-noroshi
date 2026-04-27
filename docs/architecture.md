@@ -175,7 +175,14 @@ hacker-noroshi/
 | `/newcomments` | 全ストーリーの最新コメント一覧 |
 | `/best` | 高スコアのストーリー一覧 |
 | `/active` | アクティブな議論一覧（最新コメント時刻順） |
-| `/lists` | ブラウズリンク集（本家HN順: front, show, ask, best, active, newcomments） |
+| `/shownew` | 新着順 Show HN（時系列） |
+| `/asknew` | 新着順 Ask HN（時系列） |
+| `/bestcomments` | 直近30日の高得点コメント上位30件 |
+| `/highlights` | 全期間の高得点コメント上位30件 |
+| `/noobstories` | 新規ユーザー（過去14日以内）の投稿 |
+| `/noobcomments` | 新規ユーザー（過去14日以内）のコメント |
+| `/leaders` | karma 上位30ユーザーのリーダーボード |
+| `/lists` | ブラウズリンク集（本家HN順、実装済み13項目を掲載） |
 | `/item/[id]` | 投稿詳細 or コメントパーマリンク + コメントスレッド + 編集 |
 | `/user/[id]` | ユーザープロフィール + 編集 |
 | `/user/[id]/submissions` | ユーザーの投稿一覧 |
@@ -217,6 +224,10 @@ hacker-noroshi/
 | `getCommentsByUserId()` | ユーザーのコメント一覧（story_title 付き） |
 | `getActiveStories()` | アクティブな議論（最新コメント時刻順にストーリーをソート） |
 | `getRecentComments()` | 全ストーリーの最新コメント一覧（/newcomments 用） |
+| `getTopUsersByKarma()` | karma 順ユーザー一覧（/leaders 用） |
+| `getBestComments()` | 高得点コメント一覧（sinceMs で期間制限可、/bestcomments と /highlights 用） |
+| `getStoriesByNewUsers()` | 新規ユーザーの投稿一覧（/noobstories 用） |
+| `getCommentsByNewUsers()` | 新規ユーザーのコメント一覧（/noobcomments 用） |
 | `getVoteState()` | 投票状態取得（'up' / 'down' / null） |
 | `getVotedStoryIds()` | upvote済みストーリーID一括取得 |
 | `getCommentVoteStates()` | コメント投票状態一括取得（Map<id, 'up'/'down'>） |
