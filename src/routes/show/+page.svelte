@@ -97,6 +97,10 @@
 	}
 </script>
 
+<div class="show-intro" style="padding: 10px 0; font-size: 9pt; color: #828282;">
+	投稿前に <a href="/showhn">Show HN ルール</a> をお読みください。
+</div>
+
 <div class="story-list">
 	{#each data.stories as story, i}
 		{#if !isHidden(story.id)}
