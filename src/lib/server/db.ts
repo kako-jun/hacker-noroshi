@@ -611,6 +611,130 @@ export async function getRecentComments(
 	return filtered.slice(0, limit);
 }
 
+export async function getTopUsersByKarma(
+	db: D1Database,
+	page: number = 1,
+	limit: number = 30
+): Promise<UserRow[]> {
+	const offset = (page - 1) * limit;
+	const result = await db
+		.prepare(
+			`SELECT * FROM users
+			ORDER BY karma DESC, created_at ASC
+			LIMIT ? OFFSET ?`
+		)
+		.bind(limit, offset)
+		.all<UserRow>();
+	return result.results;
+}
+
+export async function getBestComments(
+	db: D1Database,
+	options: {
+		sinceMs?: number; // null/undefined: 全期間
+		page?: number;
+		limit?: number;
+		currentUserId?: number;
+		showdead?: boolean;
+	} = {}
+): Promise<(CommentRow & { story_title: string })[]> {
+	const { sinceMs, page = 1, limit = 30, currentUserId, showdead = false } = options;
+	const fetchLimit = limit * 3;
+	const offset = (page - 1) * limit;
+	const conds: string[] = [];
+	const params: (string | number)[] = [];
+
+	if (!showdead) conds.push('c.dead = 0');
+	if (sinceMs !== undefined) {
+		const sinceIso = new Date(Date.now() - sinceMs).toISOString().replace(/\.\d{3}Z$/, 'Z');
+		conds.push('c.created_at >= ?');
+		params.push(sinceIso);
+	}
+	const whereClause = conds.length > 0 ? `WHERE ${conds.join(' AND ')}` : '';
+
+	const sql = `
+		SELECT c.*, u.username, u.created_at as user_created_at, u.delay as author_delay, s.title as story_title, ${COMMENT_FLAG_COUNT_SQL}
+		FROM comments c
+		JOIN users u ON c.user_id = u.id
+		JOIN stories s ON c.story_id = s.id
+		${whereClause}
+		ORDER BY c.points DESC, c.created_at DESC
+		LIMIT ? OFFSET ?
+	`;
+	params.push(fetchLimit, offset);
+	const result = await db
+		.prepare(sql)
+		.bind(...params)
+		.all<CommentRow & { story_title: string; author_delay: number }>();
+
+	const now = Date.now();
+	const filtered = result.results.filter((c) => {
+		if (c.user_id === currentUserId) return true;
+		if (c.author_delay <= 0) return true;
+		const visibleAt = new Date(c.created_at).getTime() + c.author_delay * 60 * 1000;
+		return now >= visibleAt;
+	});
+	return filtered.slice(0, limit);
+}
+
+export async function getStoriesByNewUsers(
+	db: D1Database,
+	thresholdMs: number,
+	page: number = 1,
+	limit: number = 30,
+	showdead: boolean = false
+): Promise<StoryRow[]> {
+	const offset = (page - 1) * limit;
+	const sinceIso = new Date(Date.now() - thresholdMs).toISOString().replace(/\.\d{3}Z$/, 'Z');
+	const deadFilter = showdead ? '' : 'AND s.dead = 0';
+	const sql = `
+		SELECT s.*, u.username, u.created_at as user_created_at, ${STORY_FLAG_COUNT_SQL}
+		FROM stories s
+		JOIN users u ON s.user_id = u.id
+		WHERE u.created_at >= ? ${deadFilter}
+		ORDER BY s.created_at DESC
+		LIMIT ? OFFSET ?
+	`;
+	const result = await db.prepare(sql).bind(sinceIso, limit, offset).all<StoryRow>();
+	return result.results;
+}
+
+export async function getCommentsByNewUsers(
+	db: D1Database,
+	thresholdMs: number,
+	page: number = 1,
+	limit: number = 30,
+	currentUserId?: number,
+	showdead: boolean = false
+): Promise<(CommentRow & { story_title: string })[]> {
+	const fetchLimit = limit * 3;
+	const offset = (page - 1) * limit;
+	const sinceIso = new Date(Date.now() - thresholdMs).toISOString().replace(/\.\d{3}Z$/, 'Z');
+	const deadFilter = showdead ? '' : 'AND c.dead = 0';
+	const sql = `
+		SELECT c.*, u.username, u.created_at as user_created_at, u.delay as author_delay, s.title as story_title, ${COMMENT_FLAG_COUNT_SQL}
+		FROM comments c
+		JOIN users u ON c.user_id = u.id
+		JOIN stories s ON c.story_id = s.id
+		WHERE u.created_at >= ? ${deadFilter}
+		ORDER BY c.created_at DESC
+		LIMIT ? OFFSET ?
+	`;
+	const result = await db
+		.prepare(sql)
+		.bind(sinceIso, fetchLimit, offset)
+		.all<CommentRow & { story_title: string; author_delay: number }>();
+
+	const now = Date.now();
+	const filtered = result.results.filter((c) => {
+		if (c.user_id === currentUserId) return true;
+		if (c.author_delay <= 0) return true;
+		const visibleAt = new Date(c.created_at).getTime() + c.author_delay * 60 * 1000;
+		return now >= visibleAt;
+	});
+	return filtered.slice(0, limit);
+}
+
 export async function hasFlagged(
 	db: D1Database,
 	userId: number,
