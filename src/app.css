@@ -256,7 +256,7 @@ a:hover {
 
 .hn-footer-search input {
 	font-family: monospace;
-	font-size: 9pt;
+	font-size: 10pt;
 	width: 200px;
 }
 
@@ -308,7 +308,7 @@ a:hover {
 
 .comment-form textarea {
 	font-family: monospace;
-	font-size: 9pt;
+	font-size: 10pt;
 	width: 60%;
 	min-width: 300px;
 	display: block;
@@ -481,13 +481,13 @@ a:hover {
 .hn-form input[type='password'],
 .hn-form input[type='url'] {
 	font-family: monospace;
-	font-size: 9pt;
+	font-size: 10pt;
 	width: 300px;
 }
 
 .hn-form textarea {
 	font-family: monospace;
-	font-size: 9pt;
+	font-size: 10pt;
 	width: 500px;
 }
 

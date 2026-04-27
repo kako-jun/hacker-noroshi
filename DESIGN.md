@@ -49,10 +49,10 @@ Links: `#000000` (unvisited), `#828282` (visited). Hover: underline only.
 
 | Element       | Size  | Weight | Notes              |
 | ------------- | ----- | ------ | ------------------ |
-| Logo/site name | 11pt | bold   |                    |
+| Logo/site name | 10pt | bold   | HN `.pagetop b.hnname` に一致 |
 | Body default  | 10pt  | normal |                    |
 | Item text     | 9pt   | normal | Line-height 14pt   |
-| Form inputs   | 9pt   | normal | Monospace           |
+| Form inputs   | 10pt  | normal | Monospace（HN `input` に一致） |
 | Buttons/small | 8pt   | normal |                    |
 | Metadata      | 7pt   | normal | Timestamps, meta   |
 
@@ -183,7 +183,7 @@ Error:          #ff0000
 ### When generating UI for this project
 
 - This is a Hacker News clone. Match HN's design exactly
-- Verdana font, pt-based sizes (10pt body, 7-11pt range)
+- Verdana font, pt-based sizes (10pt body, 7-10pt range)
 - `#ff6600` orange is the ONLY accent color
 - `#828282` gray for everything secondary
 - No CSS framework concepts — raw CSS, table layouts for forms
