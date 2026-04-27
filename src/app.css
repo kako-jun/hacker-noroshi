@@ -418,8 +418,9 @@ a:hover {
 	text-decoration: underline;
 }
 
-.link-button:hover {
-	color: inherit;
+/* インライン配置用 form（edit/delete を同じ行に並べる） */
+.inline-form {
+	display: inline;
 }
 
 /* User page */

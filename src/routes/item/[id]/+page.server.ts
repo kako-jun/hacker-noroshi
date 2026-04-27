@@ -236,7 +236,12 @@ export const actions: Actions = {
 
 		const elapsed = Date.now() - new Date(story.created_at).getTime();
 		if (elapsed >= 2 * 60 * 60 * 1000) {
-			return fail(400, { error: 'Delete window has expired (2 hours)' });
+			return fail(400, { error: 'Cannot delete after 2 hours' });
+		}
+
+		// 既に削除済みなら DB 書き込みをスキップ（冪等）
+		if (story.title === '[deleted]') {
+			return { success: true };
 		}
 
 		await db
@@ -267,7 +272,12 @@ export const actions: Actions = {
 
 		const elapsed = Date.now() - new Date(comment.created_at).getTime();
 		if (elapsed >= 2 * 60 * 60 * 1000) {
-			return fail(400, { error: 'Delete window has expired (2 hours)' });
+			return fail(400, { error: 'Cannot delete after 2 hours' });
+		}
+
+		// 既に削除済みなら DB 書き込みをスキップ（冪等）
+		if (comment.text === '[deleted]') {
+			return { success: true };
 		}
 
 		await db
