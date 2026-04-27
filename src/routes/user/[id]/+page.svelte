@@ -24,7 +24,7 @@
 					</tr>
 					<tr>
 						<td style="vertical-align: top; text-align: right; padding-right: 4px;">created:</td>
-						<td>{formatDate(data.profile.created_at)}</td>
+						<td><a href="/front?day={formatDate(data.profile.created_at)}">{formatDate(data.profile.created_at)}</a></td>
 					</tr>
 					<tr>
 						<td style="vertical-align: top; text-align: right; padding-right: 4px;">karma:</td>
@@ -96,7 +96,7 @@
 				</tr>
 				<tr>
 					<td style="vertical-align: top; text-align: right; padding-right: 4px;">created:</td>
-					<td>{formatDate(data.profile.created_at)}</td>
+					<td><a href="/front?day={formatDate(data.profile.created_at)}">{formatDate(data.profile.created_at)}</a></td>
 				</tr>
 				<tr>
 					<td style="vertical-align: top; text-align: right; padding-right: 4px;">karma:</td>
