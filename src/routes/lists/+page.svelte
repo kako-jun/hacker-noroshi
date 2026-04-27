@@ -57,7 +57,7 @@
 
 <style>
 	.lists-page {
-		padding: 8pt 0 8pt 30pt;
+		padding: 8pt 0 8pt 10pt;
 		font-size: 10pt;
 	}
 
