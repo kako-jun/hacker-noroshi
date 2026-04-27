@@ -165,7 +165,9 @@ Single breakpoint:
 | > 750px  | `85%` width |
 | ≤ 750px  | `100%` width |
 
-No other responsive adaptations. Form inputs keep fixed widths.
+At ≤ 750px, the orange header allows `flex-wrap: wrap` so the navigation drops onto a second line below the site name (matching HN's natural inline-wrap behaviour). The site name itself uses `white-space: nowrap` to prevent mid-word breaks of 「ハッカーのろし」.
+
+At ≤ 750px, fixed-width form inputs (`300px` text, `500px` textarea) and the form's `40px` left padding shrink to fit the viewport (`width: 100%; max-width: <original>` and `padding-left: 10px`) so the page doesn't horizontally overflow on phones. Original desktop widths are preserved for ≥ 750px.
 
 ## 9. Agent Prompt Guide
 

@@ -40,6 +40,69 @@ a:hover {
 	.hn-page {
 		width: 100%;
 	}
+
+	/* Allow header contents to wrap onto a second line on narrow viewports.
+	   On HN, the nav (new | past | comments | ...) wraps below the site name
+	   when there isn't room. We mirror that behaviour. */
+	.hn-header {
+		flex-wrap: wrap;
+	}
+
+	.hn-header-left {
+		flex-wrap: wrap;
+		flex: 1 1 auto;
+	}
+
+	.hn-header-nav {
+		flex-wrap: wrap;
+	}
+
+	/* Forms: shrink fixed-width inputs/textareas on narrow viewports
+	   so the page doesn't horizontally overflow. HN itself uses default
+	   browser-sized inputs which naturally fit within mobile widths. */
+	.hn-form input[type='text'],
+	.hn-form input[type='password'],
+	.hn-form input[type='url'] {
+		width: 100%;
+		max-width: 220px;
+	}
+
+	.hn-form textarea {
+		width: 100%;
+		max-width: 500px;
+	}
+
+	/* Tables inside forms must not exceed the form content box.
+	   Without this, the input column widens the table past 100%. */
+	.hn-form table {
+		max-width: 100%;
+	}
+
+	.comment-form textarea {
+		width: 100%;
+		min-width: 0;
+	}
+
+	.hn-footer-search input {
+		width: 100%;
+		max-width: 200px;
+	}
+
+	/* Remove 40px form indent on narrow viewports — at 375px that ate
+	   ~11% of usable width. HN uses near-zero left padding on mobile. */
+	.hn-form,
+	.more-link {
+		padding-left: 0;
+	}
+
+	/* Long words/URLs in user-generated text must wrap on mobile.
+	   Without this, a single long token can push the page out. */
+	.item-detail .item-text,
+	.story-title-line,
+	.user-profile {
+		overflow-wrap: anywhere;
+		word-break: break-word;
+	}
 }
 
 /* Header */
@@ -98,6 +161,7 @@ a:hover {
 	font-weight: bold;
 	margin-left: 1px;
 	margin-right: 5px;
+	white-space: nowrap;
 }
 
 .hn-header-nav {
