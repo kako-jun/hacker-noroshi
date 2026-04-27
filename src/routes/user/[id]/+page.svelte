@@ -112,13 +112,13 @@
 		</table>
 	{/if}
 
-	<div style="margin-top: 10px; font-size: 10pt;">
-		<a href="/user/{data.profile.username}/submissions">submissions</a><br />
-		<a href="/user/{data.profile.username}/comments">comments</a><br />
-		<a href="/user/{data.profile.username}/favorites">favorites</a>
+	<div style="margin-top: 10px; padding-left: 50px; font-size: 10pt;">
+		<a href="/user/{data.profile.username}/submissions" style="text-decoration: underline; color: #828282;">submissions</a><br />
+		<a href="/user/{data.profile.username}/comments" style="text-decoration: underline; color: #828282;">comments</a><br />
+		<a href="/user/{data.profile.username}/favorites" style="text-decoration: underline; color: #828282;">favorites</a>
 		{#if data.isOwnProfile}
 			<br />
-			<a href="/user/{data.profile.username}/hidden">hidden</a>
+			<a href="/user/{data.profile.username}/hidden" style="text-decoration: underline; color: #828282;">hidden</a>
 		{/if}
 	</div>
 </div>
