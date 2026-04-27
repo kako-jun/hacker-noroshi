@@ -44,7 +44,7 @@
 
 <p id="asknew"><b>投稿が Ask HN や Show HN に表示されないのはなぜですか？</b></p>
 
-<p>すべての Ask HN は <a href="/newest">newest</a> に、すべての Show HN は <a href="/newest">newest</a> と <a href="/shownew">shownew</a> に表示されます。ただし、<a href="/ask">ask</a> や <a href="/show">show</a> に表示されるには小さなポイント閾値があります。</p>
+<p>すべての Ask HN と Show HN は <a href="/newest">newest</a> に表示されます。ただし、<a href="/ask">ask</a> や <a href="/show">show</a> に表示されるには小さなポイント閾値があります。</p>
 
 <p id="hierarchical7"><b>緑色のユーザー名の意味は？</b></p>
 
@@ -76,7 +76,7 @@
 
 <p id="hide"><b>hide リンクは何をしますか？</b></p>
 
-<p>その投稿を自分の表示から取り除きます。他のユーザーには引き続き表示されます。非表示にした投稿は <a href="/user">プロフィール</a> の hidden から確認・解除できます。</p>
+<p>その投稿を自分の表示から取り除きます。他のユーザーには引き続き表示されます。プロフィールの hidden から確認・解除できます。</p>
 
 <p id="hierarchical9"><b>リポストは可能ですか？</b></p>
 
@@ -116,7 +116,7 @@
 
 <p id="forgot"><b>パスワードをリセットするには？</b></p>
 
-<p>プロフィールにメールアドレスを登録している場合は、<a href="/forgot">こちら</a>からリセットできます。登録していない場合は管理者へ問い合わせてください。</p>
+<p>プロフィールにメールアドレスを登録している場合は、<a href="/forgot">こちら</a>からリセットできます。登録していない場合はリセットできません。</p>
 
 <p id="hierarchical12"><b>ハッカーのろしと Hacker News の関係は？</b></p>
 
