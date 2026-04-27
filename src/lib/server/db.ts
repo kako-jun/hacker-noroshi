@@ -16,9 +16,11 @@ export interface StoryRow {
 	points: number;
 	comment_count: number;
 	type: string;
+	dead: number;
 	created_at: string;
 	username: string;
 	user_created_at: string;
+	flag_count?: number;
 }
 
 export interface CommentRow {
@@ -28,9 +30,11 @@ export interface CommentRow {
 	story_id: number;
 	parent_id: number | null;
 	points: number;
+	dead: number;
 	created_at: string;
 	username: string;
 	user_created_at: string;
+	flag_count?: number;
 }
 
 export interface UserRow {
@@ -55,6 +59,9 @@ export interface SessionRow {
 	expires_at: string;
 }
 
+const STORY_FLAG_COUNT_SQL = `(SELECT COUNT(*) FROM flags WHERE flags.item_id = s.id AND flags.item_type = 'story') AS flag_count`;
+const COMMENT_FLAG_COUNT_SQL = `(SELECT COUNT(*) FROM flags WHERE flags.item_id = c.id AND flags.item_type = 'comment') AS flag_count`;
+
 export async function getStories(
 	db: D1Database,
 	options: {
@@ -62,22 +69,27 @@ export async function getStories(
 		orderBy?: 'rank' | 'newest' | 'best';
 		page?: number;
 		limit?: number;
+		showdead?: boolean;
 	} = {}
 ): Promise<StoryRow[]> {
-	const { type, orderBy = 'rank', page = 1, limit = 30 } = options;
+	const { type, orderBy = 'rank', page = 1, limit = 30, showdead = false } = options;
 	const offset = (page - 1) * limit;
 
-	let whereClause = '';
+	const conds: string[] = [];
 	const params: (string | number)[] = [];
 
 	if (type) {
-		whereClause = 'WHERE s.type = ?';
+		conds.push('s.type = ?');
 		params.push(type);
 	}
+	if (!showdead) {
+		conds.push('s.dead = 0');
+	}
+	const whereClause = conds.length > 0 ? `WHERE ${conds.join(' AND ')}` : '';
 
 	if (orderBy === 'best') {
 		const sql = `
-			SELECT s.*, u.username, u.created_at as user_created_at
+			SELECT s.*, u.username, u.created_at as user_created_at, ${STORY_FLAG_COUNT_SQL}
 			FROM stories s
 			JOIN users u ON s.user_id = u.id
 			${whereClause}
@@ -91,7 +103,7 @@ export async function getStories(
 
 	if (orderBy === 'newest') {
 		const sql = `
-			SELECT s.*, u.username, u.created_at as user_created_at
+			SELECT s.*, u.username, u.created_at as user_created_at, ${STORY_FLAG_COUNT_SQL}
 			FROM stories s
 			JOIN users u ON s.user_id = u.id
 			${whereClause}
@@ -106,7 +118,7 @@ export async function getStories(
 	// Rank mode: fetch recent stories, sort by HN algorithm in JS
 	const fetchLimit = 500;
 	const sql = `
-		SELECT s.*, u.username, u.created_at as user_created_at
+		SELECT s.*, u.username, u.created_at as user_created_at, ${STORY_FLAG_COUNT_SQL}
 		FROM stories s
 		JOIN users u ON s.user_id = u.id
 		${whereClause}
@@ -131,18 +143,20 @@ export async function getFrontPageStories(
 	db: D1Database,
 	day: string,
 	page: number = 1,
-	limit: number = 30
+	limit: number = 30,
+	showdead: boolean = false
 ): Promise<StoryRow[]> {
 	const offset = (page - 1) * limit;
 	const dayStart = `${day}T00:00:00.000Z`;
 	const dayEnd = `${day}T23:59:59.999Z`;
 
 	const fetchLimit = 500;
+	const deadFilter = showdead ? '' : 'AND s.dead = 0';
 	const sql = `
-		SELECT s.*, u.username, u.created_at as user_created_at
+		SELECT s.*, u.username, u.created_at as user_created_at, ${STORY_FLAG_COUNT_SQL}
 		FROM stories s
 		JOIN users u ON s.user_id = u.id
-		WHERE s.created_at >= ? AND s.created_at <= ?
+		WHERE s.created_at >= ? AND s.created_at <= ? ${deadFilter}
 		ORDER BY s.created_at DESC
 		LIMIT ?
 	`;
@@ -163,7 +177,7 @@ export async function getFrontPageStories(
 export async function getStoryById(db: D1Database, id: number): Promise<StoryRow | null> {
 	const result = await db
 		.prepare(
-			`SELECT s.*, u.username, u.created_at as user_created_at
+			`SELECT s.*, u.username, u.created_at as user_created_at, ${STORY_FLAG_COUNT_SQL}
 			FROM stories s
 			JOIN users u ON s.user_id = u.id
 			WHERE s.id = ?`
@@ -176,14 +190,16 @@ export async function getStoryById(db: D1Database, id: number): Promise<StoryRow
 export async function getCommentsByStoryId(
 	db: D1Database,
 	storyId: number,
-	currentUserId?: number
+	currentUserId?: number,
+	showdead: boolean = false
 ): Promise<CommentRow[]> {
+	const deadFilter = showdead ? '' : 'AND c.dead = 0';
 	const result = await db
 		.prepare(
-			`SELECT c.*, u.username, u.created_at as user_created_at, u.delay as author_delay
+			`SELECT c.*, u.username, u.created_at as user_created_at, u.delay as author_delay, ${COMMENT_FLAG_COUNT_SQL}
 			FROM comments c
 			JOIN users u ON c.user_id = u.id
-			WHERE c.story_id = ?
+			WHERE c.story_id = ? ${deadFilter}
 			ORDER BY c.created_at ASC`
 		)
 		.bind(storyId)
@@ -210,15 +226,17 @@ export async function getStoriesByUserId(
 	db: D1Database,
 	userId: number,
 	page: number = 1,
-	limit: number = 30
+	limit: number = 30,
+	showdead: boolean = false
 ): Promise<StoryRow[]> {
 	const offset = (page - 1) * limit;
+	const deadFilter = showdead ? '' : 'AND s.dead = 0';
 	const result = await db
 		.prepare(
-			`SELECT s.*, u.username, u.created_at as user_created_at
+			`SELECT s.*, u.username, u.created_at as user_created_at, ${STORY_FLAG_COUNT_SQL}
 			FROM stories s
 			JOIN users u ON s.user_id = u.id
-			WHERE s.user_id = ?
+			WHERE s.user_id = ? ${deadFilter}
 			ORDER BY s.created_at DESC
 			LIMIT ? OFFSET ?`
 		)
@@ -262,16 +280,18 @@ export async function getCommentsByUserId(
 	userId: number,
 	page: number = 1,
 	limit: number = 30,
-	currentUserId?: number
+	currentUserId?: number,
+	showdead: boolean = false
 ): Promise<(CommentRow & { story_title: string })[]> {
 	const offset = (page - 1) * limit;
+	const deadFilter = showdead ? '' : 'AND c.dead = 0';
 	const result = await db
 		.prepare(
-			`SELECT c.*, u.username, u.created_at as user_created_at, u.delay as author_delay, s.title as story_title
+			`SELECT c.*, u.username, u.created_at as user_created_at, u.delay as author_delay, s.title as story_title, ${COMMENT_FLAG_COUNT_SQL}
 			FROM comments c
 			JOIN users u ON c.user_id = u.id
 			JOIN stories s ON c.story_id = s.id
-			WHERE c.user_id = ?
+			WHERE c.user_id = ? ${deadFilter}
 			ORDER BY c.created_at DESC
 			LIMIT ? OFFSET ?`
 		)
@@ -294,7 +314,7 @@ export async function getCommentsByUserId(
 export async function getCommentById(db: D1Database, id: number): Promise<CommentRow | null> {
 	const result = await db
 		.prepare(
-			`SELECT c.*, u.username, u.created_at as user_created_at
+			`SELECT c.*, u.username, u.created_at as user_created_at, ${COMMENT_FLAG_COUNT_SQL}
 			FROM comments c
 			JOIN users u ON c.user_id = u.id
 			WHERE c.id = ?`
@@ -308,11 +328,12 @@ export async function getChildComments(
 	db: D1Database,
 	commentId: number,
 	storyId: number,
-	currentUserId?: number
+	currentUserId?: number,
+	showdead: boolean = false
 ): Promise<CommentRow[]> {
 	// TODO: D1が再帰CTEに対応したらWITH RECURSIVEで直接子孫を取得する
 	// 現状はストーリー全コメントを取得してJSでBFSフィルタ
-	const all = await getCommentsByStoryId(db, storyId, currentUserId);
+	const all = await getCommentsByStoryId(db, storyId, currentUserId, showdead);
 	const childIds = new Set<number>();
 	const queue = [commentId];
 	while (queue.length > 0) {
@@ -350,14 +371,17 @@ export async function getCommentVoteStates(
 export async function getActiveStories(
 	db: D1Database,
 	page: number = 1,
-	limit: number = 30
+	limit: number = 30,
+	showdead: boolean = false
 ): Promise<StoryRow[]> {
 	const offset = (page - 1) * limit;
+	const deadFilter = showdead ? '' : 'WHERE s.dead = 0 AND c.dead = 0';
 	const sql = `
-		SELECT s.*, u.username, u.created_at as user_created_at
+		SELECT s.*, u.username, u.created_at as user_created_at, ${STORY_FLAG_COUNT_SQL}
 		FROM stories s
 		JOIN users u ON s.user_id = u.id
 		JOIN comments c ON c.story_id = s.id
+		${deadFilter}
 		GROUP BY s.id
 		ORDER BY MAX(c.created_at) DESC
 		LIMIT ? OFFSET ?
@@ -398,16 +422,18 @@ export async function getFavoriteStoriesByUserId(
 	db: D1Database,
 	userId: number,
 	page: number = 1,
-	limit: number = 30
+	limit: number = 30,
+	showdead: boolean = false
 ): Promise<StoryRow[]> {
 	const offset = (page - 1) * limit;
+	const deadFilter = showdead ? '' : 'AND s.dead = 0';
 	const result = await db
 		.prepare(
-			`SELECT s.*, u.username, u.created_at as user_created_at
+			`SELECT s.*, u.username, u.created_at as user_created_at, ${STORY_FLAG_COUNT_SQL}
 			FROM favorites f
 			JOIN stories s ON f.story_id = s.id
 			JOIN users u ON s.user_id = u.id
-			WHERE f.user_id = ?
+			WHERE f.user_id = ? ${deadFilter}
 			ORDER BY f.created_at DESC
 			LIMIT ? OFFSET ?`
 		)
@@ -443,16 +469,18 @@ export async function getHiddenStoriesByUserId(
 	db: D1Database,
 	userId: number,
 	page: number = 1,
-	limit: number = 30
+	limit: number = 30,
+	showdead: boolean = false
 ): Promise<StoryRow[]> {
 	const offset = (page - 1) * limit;
+	const deadFilter = showdead ? '' : 'AND s.dead = 0';
 	const result = await db
 		.prepare(
-			`SELECT s.*, u.username, u.created_at as user_created_at
+			`SELECT s.*, u.username, u.created_at as user_created_at, ${STORY_FLAG_COUNT_SQL}
 			FROM hidden h
 			JOIN stories s ON h.story_id = s.id
 			JOIN users u ON s.user_id = u.id
-			WHERE h.user_id = ?
+			WHERE h.user_id = ? ${deadFilter}
 			ORDER BY h.created_at DESC
 			LIMIT ? OFFSET ?`
 		)
@@ -469,15 +497,17 @@ export async function searchStories(
 	db: D1Database,
 	query: string,
 	page: number = 1,
-	limit: number = 30
+	limit: number = 30,
+	showdead: boolean = false
 ): Promise<StoryRow[]> {
 	const offset = (page - 1) * limit;
 	const pattern = `%${escapeLikePattern(query)}%`;
+	const deadFilter = showdead ? '' : 'AND s.dead = 0';
 	const sql = `
-		SELECT s.*, u.username, u.created_at as user_created_at
+		SELECT s.*, u.username, u.created_at as user_created_at, ${STORY_FLAG_COUNT_SQL}
 		FROM stories s
 		JOIN users u ON s.user_id = u.id
-		WHERE s.title LIKE ? ESCAPE '\\' OR s.url LIKE ? ESCAPE '\\' OR s.text LIKE ? ESCAPE '\\'
+		WHERE (s.title LIKE ? ESCAPE '\\' OR s.url LIKE ? ESCAPE '\\' OR s.text LIKE ? ESCAPE '\\') ${deadFilter}
 		ORDER BY s.created_at DESC
 		LIMIT ? OFFSET ?
 	`;
@@ -490,17 +520,19 @@ export async function searchComments(
 	query: string,
 	page: number = 1,
 	limit: number = 30,
-	currentUserId?: number
+	currentUserId?: number,
+	showdead: boolean = false
 ): Promise<(CommentRow & { story_title: string })[]> {
 	const fetchLimit = limit * 3;
 	const offset = (page - 1) * limit;
 	const pattern = `%${escapeLikePattern(query)}%`;
+	const deadFilter = showdead ? '' : 'AND c.dead = 0';
 	const sql = `
-		SELECT c.*, u.username, u.created_at as user_created_at, u.delay as author_delay, s.title as story_title
+		SELECT c.*, u.username, u.created_at as user_created_at, u.delay as author_delay, s.title as story_title, ${COMMENT_FLAG_COUNT_SQL}
 		FROM comments c
 		JOIN users u ON c.user_id = u.id
 		JOIN stories s ON c.story_id = s.id
-		WHERE c.text LIKE ? ESCAPE '\\'
+		WHERE c.text LIKE ? ESCAPE '\\' ${deadFilter}
 		ORDER BY c.created_at DESC
 		LIMIT ? OFFSET ?
 	`;
@@ -523,17 +555,20 @@ export async function getRecentComments(
 	db: D1Database,
 	page: number = 1,
 	limit: number = 30,
-	currentUserId?: number
+	currentUserId?: number,
+	showdead: boolean = false
 ): Promise<(CommentRow & { story_title: string })[]> {
 	// Fetch extra rows to account for delay-filtered ones
 	const fetchLimit = limit * 3;
 	const offset = (page - 1) * limit;
+	const deadFilter = showdead ? '' : 'WHERE c.dead = 0';
 	const result = await db
 		.prepare(
-			`SELECT c.*, u.username, u.created_at as user_created_at, u.delay as author_delay, s.title as story_title
+			`SELECT c.*, u.username, u.created_at as user_created_at, u.delay as author_delay, s.title as story_title, ${COMMENT_FLAG_COUNT_SQL}
 			FROM comments c
 			JOIN users u ON c.user_id = u.id
 			JOIN stories s ON c.story_id = s.id
+			${deadFilter}
 			ORDER BY c.created_at DESC
 			LIMIT ? OFFSET ?`
 		)
@@ -548,4 +583,46 @@ export async function getRecentComments(
 		return now >= visibleAt;
 	});
 	return filtered.slice(0, limit);
+}
+
+export async function hasFlagged(
+	db: D1Database,
+	userId: number,
+	itemId: number,
+	itemType: 'story' | 'comment'
+): Promise<boolean> {
+	const result = await db
+		.prepare('SELECT 1 FROM flags WHERE user_id = ? AND item_id = ? AND item_type = ?')
+		.bind(userId, itemId, itemType)
+		.first();
+	return result !== null;
+}
+
+export async function getFlaggedItemIds(
+	db: D1Database,
+	userId: number,
+	itemIds: number[],
+	itemType: 'story' | 'comment'
+): Promise<Set<number>> {
+	if (itemIds.length === 0) return new Set();
+	const placeholders = itemIds.map(() => '?').join(',');
+	const result = await db
+		.prepare(
+			`SELECT item_id FROM flags WHERE user_id = ? AND item_type = ? AND item_id IN (${placeholders})`
+		)
+		.bind(userId, itemType, ...itemIds)
+		.all<{ item_id: number }>();
+	return new Set(result.results.map((r) => r.item_id));
+}
+
+export async function getFlagCount(
+	db: D1Database,
+	itemId: number,
+	itemType: 'story' | 'comment'
+): Promise<number> {
+	const result = await db
+		.prepare('SELECT COUNT(*) AS n FROM flags WHERE item_id = ? AND item_type = ?')
+		.bind(itemId, itemType)
+		.first<{ n: number }>();
+	return result?.n ?? 0;
 }
