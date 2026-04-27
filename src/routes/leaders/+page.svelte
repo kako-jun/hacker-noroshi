@@ -10,6 +10,13 @@
 
 <div class="leaders-page">
 	<table>
+		<thead>
+			<tr>
+				<td></td>
+				<td></td>
+				<td class="karma-header">total</td>
+			</tr>
+		</thead>
 		<tbody>
 			{#each data.users as user, i}
 				<tr>
@@ -32,8 +39,14 @@
 
 <style>
 	.leaders-page {
-		padding: 8pt 0 8pt 30pt;
+		padding: 8pt 0 8pt 10pt;
 		font-size: 10pt;
+	}
+
+	.leaders-page td.karma-header {
+		color: #828282;
+		text-align: right;
+		padding-bottom: 4pt;
 	}
 
 	.leaders-page table {
