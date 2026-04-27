@@ -191,6 +191,7 @@ hacker-noroshi/
 | `/showhn` | Show HN ルール |
 | `/noprocrast` | noprocrast ブロックページ（残り時間表示） |
 | `/search` | 検索（?q=キーワード&type=all\|stories\|comments&p=ページ） |
+| `/from` | ドメイン別投稿一覧（?site=example.com、/item の past リンクから遷移） |
 | `/api-docs` | APIドキュメント（準備中） |
 | `/rss` | RSS 2.0 フィード（トップページのストーリー30件） |
 | `/api/vote` | 投票 API エンドポイント |

@@ -1,5 +1,5 @@
 import type { PageServerLoad, Actions } from './$types';
-import { getDB, getStoryById, getCommentsByStoryId, getCommentById, getChildComments, getCommentVoteStates, getVoteState, hasFavorited, hasFlagged, getFlaggedItemIds } from '$lib/server/db';
+import { getDB, getStoryById, getCommentsByStoryId, getCommentById, getChildComments, getCommentVoteStates, getVoteState, hasFavorited, hasFlagged, hasHidden, getFlaggedItemIds } from '$lib/server/db';
 import { TWO_WEEKS_MS } from '$lib/ranking';
 import { error, fail, redirect } from '@sveltejs/kit';
 
@@ -21,22 +21,25 @@ export const load: PageServerLoad = async ({ params, platform, locals }) => {
 		let storyVoted = false;
 		let storyFavorited = false;
 		let storyFlagged = false;
+		let storyHidden = false;
 		let commentVoteStates: Map<number, 'up' | 'down'> = new Map();
 		let flaggedCommentIds: Set<number> = new Set();
 
 		if (locals.user) {
-			const [storyVoteState, fav, cvs, flag, fcids] = await Promise.all([
+			const [storyVoteState, fav, cvs, flag, fcids, hidden] = await Promise.all([
 				getVoteState(db, locals.user.id, id, 'story'),
 				hasFavorited(db, locals.user.id, id),
 				getCommentVoteStates(db, locals.user.id, comments.map((c) => c.id)),
 				hasFlagged(db, locals.user.id, id, 'story'),
-				getFlaggedItemIds(db, locals.user.id, comments.map((c) => c.id), 'comment')
+				getFlaggedItemIds(db, locals.user.id, comments.map((c) => c.id), 'comment'),
+				hasHidden(db, locals.user.id, id)
 			]);
 			storyVoted = storyVoteState === 'up';
 			storyFavorited = fav;
 			storyFlagged = flag;
 			commentVoteStates = cvs;
 			flaggedCommentIds = fcids;
+			storyHidden = hidden;
 		}
 
 		return {
@@ -46,6 +49,7 @@ export const load: PageServerLoad = async ({ params, platform, locals }) => {
 			storyVoted,
 			storyFavorited,
 			storyFlagged,
+			storyHidden,
 			commentVoteStates: Object.fromEntries(commentVoteStates),
 			flaggedCommentIds: Array.from(flaggedCommentIds)
 		};
