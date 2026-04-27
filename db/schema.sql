@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS stories (
   points INTEGER NOT NULL DEFAULT 1,
   comment_count INTEGER NOT NULL DEFAULT 0,
   type TEXT NOT NULL DEFAULT 'story' CHECK (type IN ('story', 'ask', 'show')),
+  dead INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
 
@@ -35,6 +36,7 @@ CREATE TABLE IF NOT EXISTS comments (
   story_id INTEGER NOT NULL REFERENCES stories(id),
   parent_id INTEGER REFERENCES comments(id),
   points INTEGER NOT NULL DEFAULT 1,
+  dead INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
 
@@ -67,6 +69,14 @@ CREATE TABLE IF NOT EXISTS hidden (
   PRIMARY KEY (user_id, story_id)
 );
 
+CREATE TABLE IF NOT EXISTS flags (
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  item_id INTEGER NOT NULL,
+  item_type TEXT NOT NULL CHECK (item_type IN ('story', 'comment')),
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+  PRIMARY KEY (user_id, item_id, item_type)
+);
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_hidden_user_id ON hidden(user_id);
 CREATE INDEX IF NOT EXISTS idx_favorites_user_id ON favorites(user_id);
@@ -78,3 +88,4 @@ CREATE INDEX IF NOT EXISTS idx_comments_parent_id ON comments(parent_id);
 CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
+CREATE INDEX IF NOT EXISTS idx_flags_item ON flags(item_id, item_type);
