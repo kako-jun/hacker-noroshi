@@ -3,12 +3,50 @@
 
 	let { data } = $props();
 	let votedIds = $derived(new Set(data.votedIds));
+	let flaggedIds = $derived(new Set(data.flaggedIds ?? []));
 	let localVotedIds = $state<Set<number> | null>(null);
 	let localPoints = $state<Record<number, number>>({});
 	let localUnhiddenIds = $state<Set<number>>(new Set());
+	let localFlaggedIds = $state<Set<number> | null>(null);
+	let localFlagCounts = $state<Record<number, number>>({});
 
 	function getVotedIds(): Set<number> {
 		return localVotedIds ?? votedIds;
+	}
+
+	function getFlaggedIds(): Set<number> {
+		return localFlaggedIds ?? flaggedIds;
+	}
+
+	function getFlagCount(story: { id: number; flag_count?: number }): number {
+		return localFlagCounts[story.id] ?? story.flag_count ?? 0;
+	}
+
+	function canFlag(story: { user_id: number }): boolean {
+		return !!data.user && data.user.karma >= 30 && story.user_id !== data.user.id;
+	}
+
+	async function flag(storyId: number) {
+		if (!data.user) {
+			window.location.href = '/login';
+			return;
+		}
+		const res = await fetch('/api/flag', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ itemId: storyId, itemType: 'story' })
+		});
+		if (res.ok) {
+			const result: { flagged: boolean; flagCount: number } = await res.json();
+			const next = new Set(getFlaggedIds());
+			if (result.flagged) next.add(storyId);
+			else next.delete(storyId);
+			localFlaggedIds = next;
+			localFlagCounts = { ...localFlagCounts, [storyId]: result.flagCount };
+		} else if (res.status === 403) {
+			const result = (await res.json()) as { error?: string };
+			alert(result.error || 'Permission denied');
+		}
 	}
 
 	function getPoints(story: { id: number; points: number }): number {
@@ -78,7 +116,7 @@
 					&#9650;
 				</button>
 			</span>
-			<div class="story-content">
+			<div class="story-content" class:faded={story.dead === 1}>
 				<div class="story-title-line">
 					{#if story.url}
 						<a href={story.url} class="story-title">{story.title}</a>
@@ -86,6 +124,8 @@
 					{:else}
 						<a href="/item/{story.id}" class="story-title">{story.title}</a>
 					{/if}
+					{#if getFlagCount(story) > 0} <span class="story-tag">[flagged]</span>{/if}
+					{#if story.dead === 1} <span class="story-tag">[dead]</span>{/if}
 				</div>
 				<div class="story-meta">
 					{getPoints(story)} point{getPoints(story) !== 1 ? 's' : ''} by
@@ -95,6 +135,9 @@
 						>{story.comment_count} comment{story.comment_count !== 1 ? 's' : ''}</a
 					>
 					| <a href="#unhide" onclick={(e) => { e.preventDefault(); unhide(story.id); }}>un-hide</a>
+					{#if canFlag(story)}
+						| <a href="#flag" onclick={(e) => { e.preventDefault(); flag(story.id); }}>{getFlaggedIds().has(story.id) ? 'un-flag' : 'flag'}</a>
+					{/if}
 				</div>
 			</div>
 		</div>
