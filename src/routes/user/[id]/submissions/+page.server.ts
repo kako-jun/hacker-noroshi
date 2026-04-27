@@ -1,5 +1,5 @@
 import type { PageServerLoad } from './$types';
-import { getDB, getUserByUsername, getStoriesByUserId, getVotedStoryIds } from '$lib/server/db';
+import { getDB, getUserByUsername, getStoriesByUserId, getVotedStoryIds, getFlaggedItemIds } from '$lib/server/db';
 import { error } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ params, url, platform, locals }) => {
@@ -12,21 +12,23 @@ export const load: PageServerLoad = async ({ params, url, platform, locals }) =>
 		throw error(404, 'User not found');
 	}
 
-	const submissions = await getStoriesByUserId(db, user.id, page, 30);
+	const showdead = locals.user?.showdead === 1;
+	const submissions = await getStoriesByUserId(db, user.id, page, 30, showdead);
 
 	let votedIds: Set<number> = new Set();
+	let flaggedIds: Set<number> = new Set();
 	if (locals.user) {
-		votedIds = await getVotedStoryIds(
-			db,
-			locals.user.id,
-			submissions.map((s) => s.id)
-		);
+		[votedIds, flaggedIds] = await Promise.all([
+			getVotedStoryIds(db, locals.user.id, submissions.map((s) => s.id)),
+			getFlaggedItemIds(db, locals.user.id, submissions.map((s) => s.id), 'story')
+		]);
 	}
 
 	return {
 		username: user.username,
 		submissions,
 		votedIds: Array.from(votedIds),
+		flaggedIds: Array.from(flaggedIds),
 		page
 	};
 };
