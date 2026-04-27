@@ -81,7 +81,7 @@ Base font size is `10pt` on html/body. Everything is in `pt`, not `rem` or `px`.
 ### Comments
 
 - Nesting: `40px` left padding per depth level
-- Head: `7pt`, `#828282`
+- Head: `8pt`, `#828282` (HN `.comhead` に一致)
 - Upvote: `▲` (`&#9650;`), `8pt`, default `#9a9a9a`, hover/voted `#ff6600`
 - Downvote: `▼` (`&#9660;`), `8pt`, default `#9a9a9a`, hover/voted `#ff6600`（karma >= 500 のみ表示）
 - Text: `9pt`, `#000000`, line-height `14pt`

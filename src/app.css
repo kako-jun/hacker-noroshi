@@ -296,7 +296,8 @@ a:hover {
 }
 
 .item-detail .item-text p {
-	margin-bottom: 8px;
+	margin-top: 8px;
+	margin-bottom: 0;
 }
 
 /* Comment form */
@@ -330,7 +331,7 @@ a:hover {
 }
 
 .comment-head {
-	font-size: 7pt;
+	font-size: 8pt;
 	color: #828282;
 }
 
@@ -406,7 +407,8 @@ a:hover {
 }
 
 .comment-text p {
-	margin-bottom: 4px;
+	margin-top: 8px;
+	margin-bottom: 0;
 }
 
 .comment-reply {
