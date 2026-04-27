@@ -131,7 +131,8 @@ export async function getStories(
 	const ranked = result.results
 		.map((s) => {
 			const hoursAge = (now - new Date(s.created_at).getTime()) / (1000 * 60 * 60);
-			const score = (s.points - 1) / Math.pow(hoursAge + 2, 1.8);
+			const flagPenalty = Math.pow((s.flag_count ?? 0) + 1, 1.5);
+			const score = ((s.points - 1) / Math.pow(hoursAge + 2, 1.8)) / flagPenalty;
 			return { ...s, _score: score };
 		})
 		.sort((a, b) => b._score - a._score)
@@ -166,7 +167,8 @@ export async function getFrontPageStories(
 	const ranked = result.results
 		.map((s) => {
 			const hoursAge = (now - new Date(s.created_at).getTime()) / (1000 * 60 * 60);
-			const score = (s.points - 1) / Math.pow(hoursAge + 2, 1.8);
+			const flagPenalty = Math.pow((s.flag_count ?? 0) + 1, 1.5);
+			const score = ((s.points - 1) / Math.pow(hoursAge + 2, 1.8)) / flagPenalty;
 			return { ...s, _score: score };
 		})
 		.sort((a, b) => b._score - a._score)
