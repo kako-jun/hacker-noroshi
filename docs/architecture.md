@@ -46,7 +46,9 @@ hacker-noroshi/
 │   │   └── api/
 │   │       ├── vote/         # 投票 API
 │   │       ├── favorite/     # お気に入り API
-│   │       └── hide/         # 非表示 API
+│   │       ├── hide/         # 非表示 API
+│   │       ├── flag/         # フラグ API（karma>=30、5件で dead）
+│   │       └── vouch/        # Vouch API（dead 復活、flags 削除）
 │   ├── lib/
 │   │   ├── server/
 │   │   │   ├── db.ts         # D1 データアクセス関数
@@ -99,6 +101,7 @@ hacker-noroshi/
 | points | INTEGER | デフォルト 1 |
 | comment_count | INTEGER | デフォルト 0 |
 | type | TEXT | 'story', 'ask', 'show' |
+| dead | INTEGER | モデレーションフラグ（0=通常, 1=dead） |
 | created_at | TEXT | ISO8601 |
 
 ### comments
@@ -111,6 +114,7 @@ hacker-noroshi/
 | story_id | INTEGER FK | 所属する投稿 |
 | parent_id | INTEGER FK | 親コメント（NULL ならトップレベル） |
 | points | INTEGER | デフォルト 1 |
+| dead | INTEGER | モデレーションフラグ（0=通常, 1=dead） |
 | created_at | TEXT | ISO8601 |
 
 ### votes
@@ -148,6 +152,17 @@ hacker-noroshi/
 | story_id | INTEGER FK | PK (複合) |
 | created_at | TEXT | ISO8601 |
 
+### flags
+
+| カラム | 型 | 備考 |
+|---|---|---|
+| user_id | INTEGER FK | PK (複合) |
+| item_id | INTEGER | story or comment の id（PK 複合） |
+| item_type | TEXT | 'story' or 'comment'（PK 複合） |
+| created_at | TEXT | ISO8601 |
+| PRIMARY KEY | (user_id, item_id, item_type) | 重複フラグ防止 |
+| INDEX | idx_flags_item ON (item_id, item_type) | flag 数集計用 |
+
 ## ルート一覧
 
 | パス | 説明 |
@@ -181,6 +196,8 @@ hacker-noroshi/
 | `/api/vote` | 投票 API エンドポイント |
 | `/api/favorite` | お気に入り API エンドポイント |
 | `/api/hide` | 非表示 API エンドポイント |
+| `/api/flag` | フラグ API エンドポイント（karma>=30、トグル、5件で dead 自動化） |
+| `/api/vouch` | Vouch API エンドポイント（dead アイテムを復活、関連 flags を全削除） |
 
 ## DB アクセス関数 (src/lib/server/db.ts)
 
@@ -210,3 +227,25 @@ hacker-noroshi/
 | `getHiddenStoriesByUserId()` | ユーザーの非表示ストーリー一覧 |
 | `searchStories()` | ストーリー検索（LIKE、タイトル・URL・テキスト対象） |
 | `searchComments()` | コメント検索（LIKE、テキスト対象） |
+| `hasFlagged()` | 自分が flag 済みか判定 |
+| `getFlaggedItemIds()` | 自分が flag 済みのアイテムID一括取得（story/comment 別） |
+| `getFlagCount()` | アイテムのフラグ数を取得 |
+
+## ランキングスコア計算式
+
+```
+score = ((points - 1) / (hours_since_post + 2)^1.8) / (flag_count + 1)^1.5
+```
+
+- `points - 1`: 投稿者の自動 upvote を除外
+- `(hours_since_post + 2)^1.8`: HN 標準の時間減衰
+- `(flag_count + 1)^1.5`: フラグ数によるペナルティ（フラグ 1 件で約 36% に低下）
+
+## listing 共通フィルタ
+
+全 listing 関数は `showdead: boolean` 引数を受け取る:
+
+- `showdead = false`（デフォルト）: `WHERE dead = 0` で dead アイテムを除外
+- `showdead = true`: dead アイテムも返す。フロントエンドで `class:faded` により薄表示
+
+各 +page.server.ts の load 関数で `locals.user?.showdead === 1` を渡す。

@@ -1,5 +1,5 @@
 import type { PageServerLoad, Actions } from './$types';
-import { getDB, getStoryById, getCommentsByStoryId, getCommentById, getChildComments, getCommentVoteStates, getVoteState, hasFavorited } from '$lib/server/db';
+import { getDB, getStoryById, getCommentsByStoryId, getCommentById, getChildComments, getCommentVoteStates, getVoteState, hasFavorited, hasFlagged, getFlaggedItemIds } from '$lib/server/db';
 import { TWO_WEEKS_MS } from '$lib/ranking';
 import { error, fail, redirect } from '@sveltejs/kit';
 
@@ -11,24 +11,32 @@ export const load: PageServerLoad = async ({ params, platform, locals }) => {
 		throw error(404, 'Not found');
 	}
 
+	const showdead = locals.user?.showdead === 1;
+
 	// Try story first
 	const story = await getStoryById(db, id);
 	if (story) {
-		const comments = await getCommentsByStoryId(db, id, locals.user?.id);
+		const comments = await getCommentsByStoryId(db, id, locals.user?.id, showdead);
 
 		let storyVoted = false;
 		let storyFavorited = false;
+		let storyFlagged = false;
 		let commentVoteStates: Map<number, 'up' | 'down'> = new Map();
+		let flaggedCommentIds: Set<number> = new Set();
 
 		if (locals.user) {
-			const [storyVoteState, fav, cvs] = await Promise.all([
+			const [storyVoteState, fav, cvs, flag, fcids] = await Promise.all([
 				getVoteState(db, locals.user.id, id, 'story'),
 				hasFavorited(db, locals.user.id, id),
-				getCommentVoteStates(db, locals.user.id, comments.map((c) => c.id))
+				getCommentVoteStates(db, locals.user.id, comments.map((c) => c.id)),
+				hasFlagged(db, locals.user.id, id, 'story'),
+				getFlaggedItemIds(db, locals.user.id, comments.map((c) => c.id), 'comment')
 			]);
 			storyVoted = storyVoteState === 'up';
 			storyFavorited = fav;
+			storyFlagged = flag;
 			commentVoteStates = cvs;
+			flaggedCommentIds = fcids;
 		}
 
 		return {
@@ -37,7 +45,9 @@ export const load: PageServerLoad = async ({ params, platform, locals }) => {
 			comments,
 			storyVoted,
 			storyFavorited,
-			commentVoteStates: Object.fromEntries(commentVoteStates)
+			storyFlagged,
+			commentVoteStates: Object.fromEntries(commentVoteStates),
+			flaggedCommentIds: Array.from(flaggedCommentIds)
 		};
 	}
 
@@ -52,14 +62,20 @@ export const load: PageServerLoad = async ({ params, platform, locals }) => {
 		throw error(404, 'Parent story not found');
 	}
 
-	const childComments = await getChildComments(db, comment.id, comment.story_id, locals.user?.id);
+	const childComments = await getChildComments(db, comment.id, comment.story_id, locals.user?.id, showdead);
 
 	let commentVoted = false;
+	let commentFlagged = false;
 	let commentVoteStates: Map<number, 'up' | 'down'> = new Map();
+	let flaggedCommentIds: Set<number> = new Set();
 
 	if (locals.user) {
 		const allCommentIds = [comment.id, ...childComments.map((c) => c.id)];
-		commentVoteStates = await getCommentVoteStates(db, locals.user.id, allCommentIds);
+		[commentVoteStates, flaggedCommentIds, commentFlagged] = await Promise.all([
+			getCommentVoteStates(db, locals.user.id, allCommentIds),
+			getFlaggedItemIds(db, locals.user.id, allCommentIds, 'comment'),
+			hasFlagged(db, locals.user.id, comment.id, 'comment')
+		]);
 		commentVoted = commentVoteStates.get(comment.id) === 'up';
 	}
 
@@ -69,7 +85,9 @@ export const load: PageServerLoad = async ({ params, platform, locals }) => {
 		parentStory,
 		comments: childComments,
 		commentVoted,
-		commentVoteStates: Object.fromEntries(commentVoteStates)
+		commentFlagged,
+		commentVoteStates: Object.fromEntries(commentVoteStates),
+		flaggedCommentIds: Array.from(flaggedCommentIds)
 	};
 };
 

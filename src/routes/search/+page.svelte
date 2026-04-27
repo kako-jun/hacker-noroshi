@@ -1,14 +1,69 @@
 <script lang="ts">
+	import { FLAG_KARMA_THRESHOLD } from '$lib/constants';
 	import { timeAgo, extractDomain, isNewUser } from '$lib/ranking';
 	import { formatText } from '$lib/format';
 
 	let { data } = $props();
 	let votedIds = $derived(new Set<number>(data.votedIds));
+	let flaggedIds = $derived(new Set<number>(data.flaggedIds ?? []));
+	let flaggedCommentIds = $derived(new Set<number>(data.flaggedCommentIds ?? []));
 	let localVotedIds = $state<Set<number> | null>(null);
 	let localPoints = $state<Record<number, number>>({});
 	let localHiddenIds = $state<Set<number>>(new Set());
 	let localVoteStates = $state<Record<number, 'up' | 'down' | null> | null>(null);
 	let localCommentPoints = $state<Record<number, number>>({});
+	let localFlaggedIds = $state<Set<number> | null>(null);
+	let localFlaggedCommentIds = $state<Set<number> | null>(null);
+	let localFlagCounts = $state<Record<number, number>>({});
+	let localCommentFlagCounts = $state<Record<number, number>>({});
+
+	function getFlaggedIds(): Set<number> {
+		return localFlaggedIds ?? flaggedIds;
+	}
+
+	function getFlaggedCommentIds(): Set<number> {
+		return localFlaggedCommentIds ?? flaggedCommentIds;
+	}
+
+	function getFlagCount(item: { id: number; flag_count?: number }, type: 'story' | 'comment'): number {
+		const map = type === 'story' ? localFlagCounts : localCommentFlagCounts;
+		return map[item.id] ?? item.flag_count ?? 0;
+	}
+
+	function canFlag(item: { user_id: number }): boolean {
+		return !!data.user && data.user.karma >= FLAG_KARMA_THRESHOLD && item.user_id !== data.user.id;
+	}
+
+	async function flagItem(itemId: number, itemType: 'story' | 'comment') {
+		if (!data.user) {
+			window.location.href = '/login';
+			return;
+		}
+		const res = await fetch('/api/flag', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ itemId, itemType })
+		});
+		if (res.ok) {
+			const result: { flagged: boolean; flagCount: number } = await res.json();
+			if (itemType === 'story') {
+				const next = new Set(getFlaggedIds());
+				if (result.flagged) next.add(itemId);
+				else next.delete(itemId);
+				localFlaggedIds = next;
+				localFlagCounts = { ...localFlagCounts, [itemId]: result.flagCount };
+			} else {
+				const next = new Set(getFlaggedCommentIds());
+				if (result.flagged) next.add(itemId);
+				else next.delete(itemId);
+				localFlaggedCommentIds = next;
+				localCommentFlagCounts = { ...localCommentFlagCounts, [itemId]: result.flagCount };
+			}
+		} else if (res.status === 403) {
+			const result = (await res.json()) as { error?: string };
+			alert(result.error || 'Permission denied');
+		}
+	}
 
 	function getVotedIds(): Set<number> {
 		return localVotedIds ?? votedIds;
@@ -140,7 +195,7 @@
 								&#9650;
 							</button>
 						</span>
-						<div class="story-content">
+						<div class="story-content" class:faded={story.dead === 1}>
 							<div class="story-title-line">
 								{#if story.url}
 									<a href={story.url} class="story-title">{story.title}</a>
@@ -148,6 +203,8 @@
 								{:else}
 									<a href="/item/{story.id}" class="story-title">{story.title}</a>
 								{/if}
+								{#if getFlagCount(story, 'story') > 0} <span class="story-tag">[flagged]</span>{/if}
+								{#if story.dead === 1} <span class="story-tag">[dead]</span>{/if}
 							</div>
 							<div class="story-meta">
 								{getPoints(story)} point{getPoints(story) !== 1 ? 's' : ''} by
@@ -158,6 +215,9 @@
 								>
 								{#if data.user}
 									| <a href="#hide" onclick={(e) => { e.preventDefault(); hide(story.id); }}>hide</a>
+								{/if}
+								{#if canFlag(story)}
+									| <a href="#flag" onclick={(e) => { e.preventDefault(); flagItem(story.id, 'story'); }}>{getFlaggedIds().has(story.id) ? 'un-flag' : 'flag'}</a>
 								{/if}
 							</div>
 						</div>

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { FLAG_KARMA_THRESHOLD } from '$lib/constants';
 	import { timeAgo, extractDomain, isNewUser, isThreadOpen } from '$lib/ranking';
 	import { formatText } from '$lib/format';
 	import { invalidateAll } from '$app/navigation';
@@ -15,6 +16,98 @@
 	let localTargetCommentVoteState = $state<'up' | 'down' | null | undefined>(undefined);
 	let localTargetCommentPoints = $state<number | null>(null);
 	let localStoryFavorited = $state<boolean | null>(null);
+	let localStoryFlagged = $state<boolean | null>(null);
+	let localTargetCommentFlagged = $state<boolean | null>(null);
+	let localStoryDead = $state<number | null>(null);
+	let localTargetCommentDead = $state<number | null>(null);
+
+	function canFlagItem(authorId: number): boolean {
+		return !!data.user && data.user.karma >= FLAG_KARMA_THRESHOLD && authorId !== data.user.id;
+	}
+
+	async function flagStory() {
+		if (!data.user) {
+			window.location.href = '/login';
+			return;
+		}
+		if (data.mode !== 'story') return;
+		const res = await fetch('/api/flag', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ itemId: data.story.id, itemType: 'story' })
+		});
+		if (res.ok) {
+			const result: { flagged: boolean; flagCount: number } = await res.json();
+			localStoryFlagged = result.flagged;
+			if (result.flagCount > 4) localStoryDead = 1;
+		} else if (res.status === 403) {
+			const result = (await res.json()) as { error?: string };
+			alert(result.error || 'Permission denied');
+		}
+	}
+
+	async function flagTargetComment() {
+		if (!data.user) {
+			window.location.href = '/login';
+			return;
+		}
+		if (data.mode !== 'comment') return;
+		const res = await fetch('/api/flag', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ itemId: data.targetComment.id, itemType: 'comment' })
+		});
+		if (res.ok) {
+			const result: { flagged: boolean; flagCount: number } = await res.json();
+			localTargetCommentFlagged = result.flagged;
+			if (result.flagCount > 4) localTargetCommentDead = 1;
+		} else if (res.status === 403) {
+			const result = (await res.json()) as { error?: string };
+			alert(result.error || 'Permission denied');
+		}
+	}
+
+	async function vouchStory() {
+		if (!data.user) {
+			window.location.href = '/login';
+			return;
+		}
+		if (data.mode !== 'story') return;
+		const res = await fetch('/api/vouch', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ itemId: data.story.id, itemType: 'story' })
+		});
+		if (res.ok) {
+			localStoryDead = 0;
+			localStoryFlagged = false;
+			await invalidateAll();
+		} else {
+			const result = (await res.json()) as { error?: string };
+			alert(result.error || 'Vouch failed');
+		}
+	}
+
+	async function vouchTargetComment() {
+		if (!data.user) {
+			window.location.href = '/login';
+			return;
+		}
+		if (data.mode !== 'comment') return;
+		const res = await fetch('/api/vouch', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ itemId: data.targetComment.id, itemType: 'comment' })
+		});
+		if (res.ok) {
+			localTargetCommentDead = 0;
+			localTargetCommentFlagged = false;
+			await invalidateAll();
+		} else {
+			const result = (await res.json()) as { error?: string };
+			alert(result.error || 'Vouch failed');
+		}
+	}
 
 	function canEdit(createdAt: string, userId: number): boolean {
 		if (!data.user || data.user.id !== userId) return false;
@@ -36,6 +129,10 @@
 	let storyVoted = $derived(localStoryVoted ?? (data.mode === 'story' ? data.storyVoted : false));
 	let storyPoints = $derived(localStoryPoints ?? (data.mode === 'story' ? data.story.points : 0));
 	let storyFavorited = $derived(localStoryFavorited ?? (data.mode === 'story' ? data.storyFavorited : false));
+	let storyFlagged = $derived(localStoryFlagged ?? (data.mode === 'story' ? data.storyFlagged : false));
+	let storyDead = $derived(localStoryDead ?? (data.mode === 'story' ? data.story.dead : 0));
+	let targetCommentFlagged = $derived(localTargetCommentFlagged ?? (data.mode === 'comment' ? data.commentFlagged : false));
+	let targetCommentDead = $derived(localTargetCommentDead ?? (data.mode === 'comment' ? data.targetComment.dead : 0));
 	let commentVoteStatesFromServer = $derived(data.commentVoteStates as Record<number, 'up' | 'down'>);
 
 	function getCommentVoteState(commentId: number): 'up' | 'down' | null {
@@ -148,7 +245,7 @@
 				[data.targetComment.id]: result.voteState
 			};
 		} else if (res.status === 403) {
-			const result = await res.json();
+			const result = (await res.json()) as { error?: string };
 			alert(result.error || 'Permission denied');
 		}
 	}
@@ -171,7 +268,7 @@
 				[commentId]: result.voteState
 			};
 		} else if (res.status === 403) {
-			const result = await res.json();
+			const result = (await res.json()) as { error?: string };
 			alert(result.error || 'Permission denied');
 		}
 	}
@@ -231,6 +328,8 @@
 				| <a href="/item/{parentStory.id}" style="color: #828282;">parent</a>
 			{/if}
 			| on: <a href="/item/{parentStory.id}">{parentStory.title}</a>
+			{#if (comment.flag_count ?? 0) > 0} <span class="story-tag">[flagged]</span>{/if}
+			{#if targetCommentDead === 1} <span class="story-tag">[dead]</span>{/if}
 			{#if canEdit(comment.created_at, comment.user_id)}
 				| <a
 					href="#edit"
@@ -238,6 +337,12 @@
 						e.preventDefault();
 						editingCommentId = comment.id;
 					}}>edit</a>
+			{/if}
+			{#if canFlagItem(comment.user_id)}
+				| <a href="#flag" onclick={(e) => { e.preventDefault(); flagTargetComment(); }}>{targetCommentFlagged ? 'un-flag' : 'flag'}</a>
+			{/if}
+			{#if canFlagItem(comment.user_id) && targetCommentDead === 1}
+				| <a href="#vouch" onclick={(e) => { e.preventDefault(); vouchTargetComment(); }}>vouch</a>
 			{/if}
 		</div>
 		{#if editingCommentId === comment.id}
@@ -414,6 +519,8 @@
 				{:else}
 					{data.story.title}
 				{/if}
+				{#if (data.story.flag_count ?? 0) > 0} <span class="story-tag">[flagged]</span>{/if}
+				{#if storyDead === 1} <span class="story-tag">[dead]</span>{/if}
 			</span>
 		</div>
 
@@ -439,6 +546,12 @@
 						e.preventDefault();
 						toggleFavorite();
 					}}>{storyFavorited ? 'un-fav' : 'favorite'}</a>
+			{/if}
+			{#if canFlagItem(data.story.user_id)}
+				| <a href="#flag" onclick={(e) => { e.preventDefault(); flagStory(); }}>{storyFlagged ? 'un-flag' : 'flag'}</a>
+			{/if}
+			{#if canFlagItem(data.story.user_id) && storyDead === 1}
+				| <a href="#vouch" onclick={(e) => { e.preventDefault(); vouchStory(); }}>vouch</a>
 			{/if}
 		</div>
 

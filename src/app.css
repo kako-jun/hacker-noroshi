@@ -392,6 +392,18 @@ a:hover {
 	color: #828282;
 }
 
+/* dead アイテム（showdead 表示時の薄表示）と [flagged]/[dead] タグ */
+.story-content.faded a.story-title,
+.story-content.faded a.story-title:visited {
+	color: #828282;
+}
+
+.story-tag {
+	font-size: 7pt;
+	color: #828282;
+	margin-left: 4px;
+}
+
 .comment-text p {
 	margin-bottom: 4px;
 }

@@ -1,8 +1,9 @@
-export function calculateScore(points: number, createdAt: string): number {
+export function calculateScore(points: number, createdAt: string, flagCount: number = 0): number {
 	const now = Date.now();
 	const created = new Date(createdAt).getTime();
 	const hoursAge = (now - created) / (1000 * 60 * 60);
-	return (points - 1) / Math.pow(hoursAge + 2, 1.8);
+	const flagPenalty = Math.pow(flagCount + 1, 1.5);
+	return ((points - 1) / Math.pow(hoursAge + 2, 1.8)) / flagPenalty;
 }
 
 export function timeAgo(dateString: string): string {
