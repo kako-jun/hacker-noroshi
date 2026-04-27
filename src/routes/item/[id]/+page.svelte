@@ -553,6 +553,7 @@
 			{#if canFlagItem(data.story.user_id) && storyDead === 1}
 				| <a href="#vouch" onclick={(e) => { e.preventDefault(); vouchStory(); }}>vouch</a>
 			{/if}
+			| <a href="#comments">{data.comments.length} comment{data.comments.length !== 1 ? "s" : ""}</a>
 		</div>
 
 		{#if editingStory}
@@ -568,7 +569,7 @@
 						<tbody>
 							<tr>
 								<td style="color: #828282; text-align: right; padding: 2px 5px; vertical-align: top;">title:</td>
-								<td style="padding: 2px 5px;"><input type="text" name="title" value={data.story.title} style="font-family: monospace; font-size: 9pt; width: 300px;" /></td>
+								<td style="padding: 2px 5px;"><input type="text" name="title" value={data.story.title} style="font-family: monospace; font-size: 10pt; width: 300px;" /></td>
 							</tr>
 							<tr>
 								<td style="color: #828282; text-align: right; padding: 2px 5px; vertical-align: top;">text:</td>
@@ -614,7 +615,7 @@
 			</div>
 		{/if}
 
-		<div class="comments-section" style="padding-left: 0;">
+		<div class="comments-section" id="comments" style="padding-left: 0;">
 			{#each commentTree as comment}
 				<div class="comment-item" style="padding-left: {comment.depth * 40}px;">
 					<div class="comment-head">

@@ -8,6 +8,18 @@ Faithful Hacker News clone. The design is intentionally minimal — a direct rep
 
 Inspirations: Hacker News (news.ycombinator.com), early 2000s web forums, plain HTML.
 
+### Core Principle: Visual Fidelity, Modern Implementation
+
+**Match HN visually pixel-by-pixel, but implement with modern CSS** (flex, grid, semantic HTML). Do not reproduce HN's 2007-era table-based layout (`<table id="hnmain">`, nested `<tr.comtr><td.ind>` for comments, etc.). The user-visible result must be indistinguishable; the DOM does not need to be.
+
+Concretely:
+- Comment nesting: `padding-left: depth * 40px` on `<div>`, not nested `<table>`.
+- Page container: flex/block layout, not `<table id="hnmain">`.
+- Forms: HTML `<table>` is acceptable here because forms are small and the table layout actually maps to "label / input" pairs cleanly. This is not legacy — it's the right tool.
+- CSS class names: own naming is fine. We do not need to mirror HN's `athing`/`commtext`/`sitebit` etc.
+
+When Issue / CLAUDE.md says "match HN exactly," it refers to the **rendered result**, not the markup.
+
 ## 2. Color Palette & Roles
 
 Hardcoded CSS values. No variables, no tokens.
@@ -37,10 +49,10 @@ Links: `#000000` (unvisited), `#828282` (visited). Hover: underline only.
 
 | Element       | Size  | Weight | Notes              |
 | ------------- | ----- | ------ | ------------------ |
-| Logo/site name | 11pt | bold   |                    |
+| Logo/site name | 10pt | bold   | HN `.pagetop b.hnname` に一致 |
 | Body default  | 10pt  | normal |                    |
 | Item text     | 9pt   | normal | Line-height 14pt   |
-| Form inputs   | 9pt   | normal | Monospace           |
+| Form inputs   | 10pt  | normal | Monospace（HN `input` に一致） |
 | Buttons/small | 8pt   | normal |                    |
 | Metadata      | 7pt   | normal | Timestamps, meta   |
 
@@ -52,7 +64,7 @@ Base font size is `10pt` on html/body. Everything is in `pt`, not `rem` or `px`.
 
 - Background: `#ff6600`
 - Layout: flex, `align-items: center`, `gap: 4px`
-- Line-height: `12pt`
+- Line-height: `12px` (HN `.pagetop` に一致 — pt統一の例外)
 - Logo: `18x18px` WebP image (`/icon-32.webp`) wrapped in `20x20px` container with `1px solid white` border
 - Navigation: items separated by `|` with `3px` margins
 - All links: `#000000`, no underline
@@ -69,7 +81,7 @@ Base font size is `10pt` on html/body. Everything is in `pt`, not `rem` or `px`.
 ### Comments
 
 - Nesting: `40px` left padding per depth level
-- Head: `7pt`, `#828282`
+- Head: `8pt`, `#828282` (HN `.comhead` に一致)
 - Upvote: `▲` (`&#9650;`), `8pt`, default `#9a9a9a`, hover/voted `#ff6600`
 - Downvote: `▼` (`&#9660;`), `8pt`, default `#9a9a9a`, hover/voted `#ff6600`（karma >= 500 のみ表示）
 - Text: `9pt`, `#000000`, line-height `14pt`
@@ -171,7 +183,7 @@ Error:          #ff0000
 ### When generating UI for this project
 
 - This is a Hacker News clone. Match HN's design exactly
-- Verdana font, pt-based sizes (10pt body, 7-11pt range)
+- Verdana font, pt-based sizes (10pt body, 7-10pt range)
 - `#ff6600` orange is the ONLY accent color
 - `#828282` gray for everything secondary
 - No CSS framework concepts — raw CSS, table layouts for forms

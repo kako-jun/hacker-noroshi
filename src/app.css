@@ -49,7 +49,7 @@ a:hover {
 	display: flex;
 	align-items: center;
 	gap: 4px;
-	line-height: 12pt;
+	line-height: 12px;
 }
 
 .hn-header-logo {
@@ -96,7 +96,8 @@ a:hover {
 
 .hn-header-left .hn-header-site-name {
 	font-weight: bold;
-	margin-right: 10px;
+	margin-left: 1px;
+	margin-right: 5px;
 }
 
 .hn-header-nav {
@@ -147,7 +148,6 @@ a:hover {
 }
 
 .story-vote {
-	padding-right: 4px;
 	cursor: pointer;
 }
 
@@ -162,6 +162,7 @@ a:hover {
 	background: none;
 	border: none;
 	padding: 0;
+	margin: 3px 2px 6px;
 	font-family: Verdana, Geneva, sans-serif;
 }
 
@@ -255,7 +256,7 @@ a:hover {
 
 .hn-footer-search input {
 	font-family: monospace;
-	font-size: 9pt;
+	font-size: 10pt;
 	width: 200px;
 }
 
@@ -295,7 +296,8 @@ a:hover {
 }
 
 .item-detail .item-text p {
-	margin-bottom: 8px;
+	margin-top: 8px;
+	margin-bottom: 0;
 }
 
 /* Comment form */
@@ -306,7 +308,7 @@ a:hover {
 
 .comment-form textarea {
 	font-family: monospace;
-	font-size: 9pt;
+	font-size: 10pt;
 	width: 60%;
 	min-width: 300px;
 	display: block;
@@ -329,7 +331,7 @@ a:hover {
 }
 
 .comment-head {
-	font-size: 7pt;
+	font-size: 8pt;
 	color: #828282;
 }
 
@@ -405,7 +407,8 @@ a:hover {
 }
 
 .comment-text p {
-	margin-bottom: 4px;
+	margin-top: 8px;
+	margin-bottom: 0;
 }
 
 .comment-reply {
@@ -478,13 +481,13 @@ a:hover {
 .hn-form input[type='password'],
 .hn-form input[type='url'] {
 	font-family: monospace;
-	font-size: 9pt;
+	font-size: 10pt;
 	width: 300px;
 }
 
 .hn-form textarea {
 	font-family: monospace;
-	font-size: 9pt;
+	font-size: 10pt;
 	width: 500px;
 }
 

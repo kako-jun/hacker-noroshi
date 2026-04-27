@@ -175,7 +175,7 @@ hacker-noroshi/
 | `/newcomments` | 全ストーリーの最新コメント一覧 |
 | `/best` | 高スコアのストーリー一覧 |
 | `/active` | アクティブな議論一覧（最新コメント時刻順） |
-| `/lists` | ブラウズリンク集（front, newcomments, best, active, show, ask） |
+| `/lists` | ブラウズリンク集（本家HN順: front, show, ask, best, active, newcomments） |
 | `/item/[id]` | 投稿詳細 or コメントパーマリンク + コメントスレッド + 編集 |
 | `/user/[id]` | ユーザープロフィール + 編集 |
 | `/user/[id]/submissions` | ユーザーの投稿一覧 |

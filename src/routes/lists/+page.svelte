@@ -2,27 +2,27 @@
 	<table><tbody>
 		<tr>
 			<td><a href="/front">front</a></td>
-			<td>past stories</td>
-		</tr>
-		<tr>
-			<td><a href="/newcomments">newcomments</a></td>
-			<td>new comments</td>
-		</tr>
-		<tr>
-			<td><a href="/best">best</a></td>
-			<td>best stories</td>
-		</tr>
-		<tr>
-			<td><a href="/active">active</a></td>
-			<td>most active current discussions</td>
+			<td>指定した日のフロントページ投稿</td>
 		</tr>
 		<tr>
 			<td><a href="/show">show</a></td>
-			<td>Show HN</td>
+			<td>新着の Show HN 投稿</td>
 		</tr>
 		<tr>
 			<td><a href="/ask">ask</a></td>
-			<td>Ask HN</td>
+			<td>新着の Ask HN（テキスト）投稿</td>
+		</tr>
+		<tr>
+			<td><a href="/best">best</a></td>
+			<td>直近で最も支持された投稿</td>
+		</tr>
+		<tr>
+			<td><a href="/active">active</a></td>
+			<td>最も活発に議論されているスレッド</td>
+		</tr>
+		<tr>
+			<td><a href="/newcomments">newcomments</a></td>
+			<td>新着コメント</td>
 		</tr>
 	</tbody></table>
 </div>

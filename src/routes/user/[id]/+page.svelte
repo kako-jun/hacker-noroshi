@@ -24,7 +24,7 @@
 					</tr>
 					<tr>
 						<td style="vertical-align: top; text-align: right; padding-right: 4px;">created:</td>
-						<td>{formatDate(data.profile.created_at)}</td>
+						<td><a href="/front?day={formatDate(data.profile.created_at)}">{formatDate(data.profile.created_at)}</a></td>
 					</tr>
 					<tr>
 						<td style="vertical-align: top; text-align: right; padding-right: 4px;">karma:</td>
@@ -96,7 +96,7 @@
 				</tr>
 				<tr>
 					<td style="vertical-align: top; text-align: right; padding-right: 4px;">created:</td>
-					<td>{formatDate(data.profile.created_at)}</td>
+					<td><a href="/front?day={formatDate(data.profile.created_at)}">{formatDate(data.profile.created_at)}</a></td>
 				</tr>
 				<tr>
 					<td style="vertical-align: top; text-align: right; padding-right: 4px;">karma:</td>
@@ -112,13 +112,13 @@
 		</table>
 	{/if}
 
-	<div style="margin-top: 10px; font-size: 10pt;">
-		<a href="/user/{data.profile.username}/submissions">submissions</a><br />
-		<a href="/user/{data.profile.username}/comments">comments</a><br />
-		<a href="/user/{data.profile.username}/favorites">favorites</a>
+	<div style="margin-top: 10px; padding-left: 50px; font-size: 10pt;">
+		<a href="/user/{data.profile.username}/submissions" style="text-decoration: underline; color: #828282;">submissions</a><br />
+		<a href="/user/{data.profile.username}/comments" style="text-decoration: underline; color: #828282;">comments</a><br />
+		<a href="/user/{data.profile.username}/favorites" style="text-decoration: underline; color: #828282;">favorites</a>
 		{#if data.isOwnProfile}
 			<br />
-			<a href="/user/{data.profile.username}/hidden">hidden</a>
+			<a href="/user/{data.profile.username}/hidden" style="text-decoration: underline; color: #828282;">hidden</a>
 		{/if}
 	</div>
 </div>

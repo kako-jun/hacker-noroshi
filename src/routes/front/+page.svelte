@@ -107,26 +107,32 @@
 		});
 	}
 
-	function prevDay(day: string): string {
+	function shiftDay(day: string, delta: number): string {
 		const d = new Date(day + 'T00:00:00Z');
-		d.setUTCDate(d.getUTCDate() - 1);
+		d.setUTCDate(d.getUTCDate() + delta);
 		return d.toISOString().slice(0, 10);
 	}
 
-	function nextDay(day: string): string {
+	function shiftMonth(day: string, delta: number): string {
 		const d = new Date(day + 'T00:00:00Z');
-		d.setUTCDate(d.getUTCDate() + 1);
+		d.setUTCMonth(d.getUTCMonth() + delta);
+		return d.toISOString().slice(0, 10);
+	}
+
+	function shiftYear(day: string, delta: number): string {
+		const d = new Date(day + 'T00:00:00Z');
+		d.setUTCFullYear(d.getUTCFullYear() + delta);
 		return d.toISOString().slice(0, 10);
 	}
 </script>
 
 <div class="front-nav">
-	<span class="front-nav-label">Stories from {formatDay(data.day)}</span>
-	<span class="front-nav-links">
-		&lt; <a href="/front?day={prevDay(data.day)}">prev</a>
-		|
-		<a href="/front?day={nextDay(data.day)}">next</a> &gt;
-	</span>
+	{formatDay(data.day)} (UTC) より前に戻る:
+	<a href="/front?day={shiftDay(data.day, -1)}">1日</a>,
+	<a href="/front?day={shiftMonth(data.day, -1)}">1ヶ月</a>,
+	<a href="/front?day={shiftYear(data.day, -1)}">1年</a>。
+	先に進む:
+	<a href="/front?day={shiftDay(data.day, 1)}">1日</a>。
 </div>
 
 {#if data.stories.length === 0}
@@ -187,17 +193,13 @@
 
 <style>
 	.front-nav {
-		padding: 5pt 0;
-		font-size: 7pt;
-		color: #828282;
+		padding: 6pt 0 6pt 6pt;
+		font-size: 9pt;
+		color: #000000;
 	}
 
-	.front-nav-label {
-		margin-right: 5pt;
-	}
-
-	.front-nav-links a {
-		color: #828282;
+	.front-nav a {
+		color: #000000;
 	}
 
 	.front-empty {
