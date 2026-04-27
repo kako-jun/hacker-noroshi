@@ -356,6 +356,19 @@
 										e.preventDefault();
 										editingCommentId = child.id;
 									}}>edit</a>
+								| <form method="POST" action="?/deleteComment" style="display: inline;" use:enhance={({ cancel }) => {
+									if (!confirm('Delete this comment? Text will be replaced with [deleted].')) {
+										cancel();
+										return;
+									}
+									return async ({ update }) => {
+										await update();
+										await invalidateAll();
+									};
+								}}>
+									<input type="hidden" name="comment_id" value={child.id} />
+									<button type="submit" class="link-button">delete</button>
+								</form>
 							{/if}
 						</div>
 						{#if isThreadOpen(data.parentStory.created_at) && replyTo === child.id}
@@ -413,6 +426,18 @@
 						e.preventDefault();
 						editingStory = true;
 					}}>edit</a>
+				| <form method="POST" action="?/deleteStory" style="display: inline;" use:enhance={({ cancel }) => {
+					if (!confirm('Delete this story? Text will be replaced with [deleted].')) {
+						cancel();
+						return;
+					}
+					return async ({ update }) => {
+						await update();
+						await invalidateAll();
+					};
+				}}>
+					<button type="submit" class="link-button">delete</button>
+				</form>
 			{/if}
 			{#if data.user}
 				| <a
@@ -559,6 +584,19 @@
 										e.preventDefault();
 										editingCommentId = comment.id;
 									}}>edit</a>
+								| <form method="POST" action="?/deleteComment" style="display: inline;" use:enhance={({ cancel }) => {
+									if (!confirm('Delete this comment? Text will be replaced with [deleted].')) {
+										cancel();
+										return;
+									}
+									return async ({ update }) => {
+										await update();
+										await invalidateAll();
+									};
+								}}>
+									<input type="hidden" name="comment_id" value={comment.id} />
+									<button type="submit" class="link-button">delete</button>
+								</form>
 							{/if}
 						</div>
 						{#if isThreadOpen(data.story.created_at) && replyTo === comment.id}

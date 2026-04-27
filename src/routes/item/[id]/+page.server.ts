@@ -215,5 +215,66 @@ export const actions: Actions = {
 			.run();
 
 		return { success: true };
+	},
+
+	deleteStory: async ({ platform, locals, params }) => {
+		if (!locals.user) {
+			throw redirect(302, '/login');
+		}
+
+		const db = getDB(platform);
+		const storyId = parseInt(params.id, 10);
+		const story = await getStoryById(db, storyId);
+
+		if (!story) {
+			throw error(404, 'Story not found');
+		}
+
+		if (story.user_id !== locals.user.id) {
+			throw error(403, "Cannot delete another user's story");
+		}
+
+		const elapsed = Date.now() - new Date(story.created_at).getTime();
+		if (elapsed >= 2 * 60 * 60 * 1000) {
+			return fail(400, { error: 'Delete window has expired (2 hours)' });
+		}
+
+		await db
+			.prepare('UPDATE stories SET title = ?, url = ?, text = ? WHERE id = ?')
+			.bind('[deleted]', null, '[deleted]', storyId)
+			.run();
+
+		return { success: true };
+	},
+
+	deleteComment: async ({ request, platform, locals }) => {
+		if (!locals.user) {
+			throw redirect(302, '/login');
+		}
+
+		const db = getDB(platform);
+		const formData = await request.formData();
+		const commentId = parseInt(formData.get('comment_id') as string, 10);
+
+		const comment = await getCommentById(db, commentId);
+		if (!comment) {
+			throw error(404, 'Comment not found');
+		}
+
+		if (comment.user_id !== locals.user.id) {
+			throw error(403, "Cannot delete another user's comment");
+		}
+
+		const elapsed = Date.now() - new Date(comment.created_at).getTime();
+		if (elapsed >= 2 * 60 * 60 * 1000) {
+			return fail(400, { error: 'Delete window has expired (2 hours)' });
+		}
+
+		await db
+			.prepare('UPDATE comments SET text = ? WHERE id = ?')
+			.bind('[deleted]', commentId)
+			.run();
+
+		return { success: true };
 	}
 };

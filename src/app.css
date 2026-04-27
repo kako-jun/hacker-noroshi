@@ -406,6 +406,22 @@ a:hover {
 	text-decoration: underline;
 }
 
+/* フォームボタンを a タグと同じ見た目にするためのユーティリティ（delete などの POST リンク用） */
+.link-button {
+	background: none;
+	border: none;
+	padding: 0;
+	margin: 0;
+	font: inherit;
+	color: inherit;
+	cursor: pointer;
+	text-decoration: underline;
+}
+
+.link-button:hover {
+	color: inherit;
+}
+
 /* User page */
 .user-profile {
 	padding: 10px 0;
