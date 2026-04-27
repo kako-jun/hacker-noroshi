@@ -40,6 +40,22 @@ a:hover {
 	.hn-page {
 		width: 100%;
 	}
+
+	/* Allow header contents to wrap onto a second line on narrow viewports.
+	   On HN, the nav (new | past | comments | ...) wraps below the site name
+	   when there isn't room. We mirror that behaviour. */
+	.hn-header {
+		flex-wrap: wrap;
+	}
+
+	.hn-header-left {
+		flex-wrap: wrap;
+		flex: 1 1 auto;
+	}
+
+	.hn-header-nav {
+		flex-wrap: wrap;
+	}
 }
 
 /* Header */
@@ -98,6 +114,7 @@ a:hover {
 	font-weight: bold;
 	margin-left: 1px;
 	margin-right: 5px;
+	white-space: nowrap;
 }
 
 .hn-header-nav {
