@@ -73,3 +73,13 @@ wrangler d1 execute hacker-noroshi-db --remote --command "CREATE INDEX IF NOT EX
 ```
 
 ローカル開発 DB に対しても同じコマンドを `--local` で実行する（`--remote` を `--local` に置き換え）。
+
+### #76 アカウント削除（本番反映手順）
+
+```bash
+# users.deleted / deleted_at カラム追加
+wrangler d1 execute hacker-noroshi-db --remote --command "ALTER TABLE users ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0"
+wrangler d1 execute hacker-noroshi-db --remote --command "ALTER TABLE users ADD COLUMN deleted_at TEXT"
+```
+
+ローカル開発 DB にも `--local` で同じコマンドを流す。

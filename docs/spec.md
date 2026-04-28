@@ -95,10 +95,11 @@ score = (points - 1) / (hours_since_post + 2) ^ 1.8
   - プロフィールページ本体: "This user has deleted their account." のみ表示
   - `/user/[name]/submissions` `/user/[name]/comments`: 投稿・コメントは残し、username 表示は `[deleted]`（`displayUsername` ヘルパで一貫）
   - `/user/[name]/favorites`: プライバシー観点で空表示
-  - `/leaders`: 削除済みは除外
+  - `/leaders`: 削除済みは除外。アクティブユーザーのみ表彰（小規模時はページング歯抜けを許容）
 - 即時実行・復旧不可。投稿・コメントはスレッド整合性のため `[deleted]` 名義で保持
 - 削除済み username は **永久に再取得不可**（自分自身も含む）
 - 本家HN FAQ #32「Can I delete my account?」相当だが、本家とは異なりセルフサービスで完結する
+- スキーマ追加 (`users.deleted`, `users.deleted_at`) は `db/schema.sql` に ALTER 文をコメントとして併記。本番反映手順は `docs/operations.md` の「#76 アカウント削除」を参照
 
 #### パスワードリセット
 

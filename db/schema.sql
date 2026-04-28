@@ -107,5 +107,6 @@ CREATE INDEX IF NOT EXISTS idx_username_history_user ON username_history(user_id
 -- Migrations (#76 アカウント削除)
 -- SQLite/D1 の ALTER TABLE は IF NOT EXISTS をサポートしないため、
 -- 既存DBに対しては手動で1度だけ流す。新規セットアップでは上の CREATE TABLE 側で列が定義済み。
+-- 本番デプロイ時は以下の ALTER 文を `wrangler d1 execute` 等で1度だけ流すこと。
 -- ALTER TABLE users ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0;
 -- ALTER TABLE users ADD COLUMN deleted_at TEXT;
