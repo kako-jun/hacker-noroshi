@@ -75,8 +75,8 @@ score = (points - 1) / (hours_since_post + 2) ^ 1.8
 - 頻度制限: **90日に1回**まで。直前の変更時刻を `username_history.changed_at` から判定
 - バリデーション: signup と同じ規則（3-15文字、英数字+`_-`）。`validateUsernameFormat()` で共通化
 - 重複チェック: 現在の users.username だけでなく `username_history.old_username` も対象（過去に使われた名前は永久ロック、自分の旧名も含む）
-- 成功時: users.username を更新、`username_history` に旧名を insert（D1 batch でアトミック）、`/user/{new_username}` に 303 リダイレクト
-- 旧 URL（`/user/{old_username}` とその子ルート submissions/comments/favorites/hidden）は最新の username へ **301 リダイレクト**。連鎖変更（A→B→C）も最新まで解決
+- 成功時: users.username を更新、`username_history` に旧名を insert（D1 batch でアトミック）、`/user/{new_username}` に **303 See Other** リダイレクト（form action の POST 後 GET 用、一時的な遷移）
+- 旧 URL（`/user/{old_username}` とその子ルート submissions/comments/favorites/hidden）は最新の username へ **301 Moved Permanently** リダイレクト（永続的）。連鎖変更（A→B→C）も最新まで解決。querystring（`?p=2` 等）は保持する
 - 本家HN FAQ #31「Can I change my username?」相当だが、本家とは異なりセルフサービスで完結する
 
 #### パスワードリセット

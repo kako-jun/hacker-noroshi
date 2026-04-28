@@ -160,7 +160,7 @@ hacker-noroshi/
 | user_id | INTEGER FK | users.id |
 | old_username | TEXT | 変更前の名前（重複チェック対象、永久ロック） |
 | new_username | TEXT | 変更後の名前 |
-| changed_at | TEXT | ISO8601 |
+| changed_at | TEXT | ISO8601。アプリ層で「直近の変更」を取るため DESC ソートする。挿入順は時刻順なので実質単調増加だが、CHECK 制約は付けていない（運用上の前提） |
 | INDEX | idx_username_history_old ON (old_username) | リダイレクト解決と重複判定 |
 | INDEX | idx_username_history_user ON (user_id) | 90日制限判定用 |
 
