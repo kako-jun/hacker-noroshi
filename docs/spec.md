@@ -189,6 +189,28 @@ score = ((points - 1) / (hours_since_post + 2)^1.8) / (flag_count + 1)^1.5
 - `[deleted]` は `dead`（モデレーション）とは別概念。`showdead` 設定の影響を受けず、常に `[deleted]` のまま表示される
 - フロントエンドでは確認ダイアログ（`confirm()`）を挟む
 
+### IP ban (#77)
+
+悪質な投稿・スパムに対する IP 単位の防衛機構。骨格のみを v1 スコープに含める。
+
+- スキーマ: `ip_bans` テーブル（id / ip / reason / banned_at / expires_at / banned_by）
+- 判定: `hooks.server.ts` で session 取得より前に `getActiveBan(ip)` を呼ぶ。
+  - `expires_at IS NULL`（無期限）または `expires_at > now`（時限）のとき active
+  - active なら `/ipban` に 302 リダイレクト
+  - `/ipban` 自身と `/api/*` は除外（無限ループ防止）
+- IP 取得: `CF-Connecting-IP` ヘッダ（Cloudflare 経由）→ `getClientAddress()`（直結）の優先順位
+- 認可: `users.is_admin = 1` のユーザーのみ `/admin/*` にアクセス可能
+- 管理 UI: `/admin/ipban`
+  - active な ban の一覧（IP / 理由 / ban日時 / 解除予定）
+  - ban フォーム（IP / 理由 / 有効期限を時間単位、空欄で無期限）
+  - 各行に unban ボタン（物理削除）
+- 自分のステータス確認: `/ipban`（誰でもアクセス可、自分の IP の状態を見るだけ）
+
+別 Issue で対応:
+
+- `#91` CAPTCHA セルフサービス unban
+- `#92` 自動 ban（フラグ過多・スパム検出等）
+
 ### 静的ページ
 
 - `/guidelines` — 投稿・コメントのガイドライン

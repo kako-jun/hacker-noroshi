@@ -90,6 +90,7 @@ hacker-noroshi/
 | created_at | TEXT | ISO8601 |
 | deleted | INTEGER | アカウント削除フラグ（0=有効、1=削除済み）。表示は `[deleted]` に置換 |
 | deleted_at | TEXT | 削除時刻（ISO8601）。未削除なら NULL |
+| is_admin | INTEGER | 管理者フラグ（0=一般、1=管理者）。/admin/* と ban 操作の認可に使う |
 
 ### stories
 
@@ -177,6 +178,24 @@ hacker-noroshi/
 | PRIMARY KEY | (user_id, item_id, item_type) | 重複フラグ防止 |
 | INDEX | idx_flags_item ON (item_id, item_type) | flag 数集計用 |
 
+### ip_bans
+
+IP 単位の ban を保持する（#77）。`hooks.server.ts` が全リクエストの先頭で
+`getActiveBan()` を呼んで判定する。
+
+| カラム | 型 | 備考 |
+|---|---|---|
+| id | INTEGER PK | autoincrement |
+| ip | TEXT | ban 対象の IP アドレス |
+| reason | TEXT | ban 理由（任意、デフォルト空文字） |
+| banned_at | TEXT | ban 時刻（ISO8601、デフォルト now） |
+| expires_at | TEXT | 失効時刻（ISO8601、NULL のときは無期限） |
+| banned_by | INTEGER FK | 操作した管理者 user_id（任意） |
+| INDEX | idx_ip_bans_ip ON (ip) | ban チェック用 |
+| INDEX | idx_ip_bans_expires ON (expires_at) | 失効スイープ用 |
+
+active 判定: `expires_at IS NULL OR expires_at > now`。unban は物理削除（DELETE）。
+
 ## ルート一覧
 
 | パス | 説明 |
@@ -263,6 +282,11 @@ hacker-noroshi/
 | `updateUsername()` | users.username 更新と username_history への履歴 insert を batch で実行 |
 | `deleteAccount()` | users 行を `deleted=1` にし個人情報・設定をクリア + sessions 削除を batch で実行 |
 | `displayUsername()` | 削除済みユーザーの username を `[deleted]` に置換するクライアント表示ヘルパ（`src/lib/format.ts`） |
+| `getActiveBan()` | 該当 IP の active な ban を取得（無期限 or expires_at 未来）。なければ null（#77） |
+| `listActiveBans()` | active な ban の一覧を新しい順で返す（admin 用、#77） |
+| `createIpBan()` | IP ban を新規作成（ip / reason / expiresAt / bannedBy、#77） |
+| `removeIpBan()` | IP ban を物理削除（unban、#77） |
+| `expireIpBan()` | IP ban の expires_at を now にして論理失効（履歴保持用、#77） |
 
 ## ランキングスコア計算式
 
