@@ -21,6 +21,38 @@
 	let localTargetCommentFlagged = $state<boolean | null>(null);
 	let localStoryDead = $state<number | null>(null);
 	let localTargetCommentDead = $state<number | null>(null);
+	// poll: ローカル状態。サーバーから来た投票済みID Set を初期値に持ち、トグルで更新する。
+	let localPollVotedOptionIds = $state<Set<number> | null>(null);
+	let localPollOptionCounts = $state<Record<number, number>>({});
+
+	function getPollVotedIds(): Set<number> {
+		if (localPollVotedOptionIds) return localPollVotedOptionIds;
+		return new Set(data.pollVotedOptionIds ?? []);
+	}
+
+	function getPollOptionCount(opt: { id: number; vote_count: number }): number {
+		return localPollOptionCounts[opt.id] ?? opt.vote_count;
+	}
+
+	async function votePollOption(optionId: number) {
+		if (!data.user) {
+			window.location.href = '/login';
+			return;
+		}
+		const res = await fetch('/api/vote', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ itemId: optionId, itemType: 'poll_option' })
+		});
+		if (res.ok) {
+			const result: { voteState: 'up' | null; points: number } = await res.json();
+			localPollOptionCounts = { ...localPollOptionCounts, [optionId]: result.points };
+			const next = new Set(getPollVotedIds());
+			if (result.voteState === 'up') next.add(optionId);
+			else next.delete(optionId);
+			localPollVotedOptionIds = next;
+		}
+	}
 
 	function canFlagItem(authorId: number): boolean {
 		return !!data.user && data.user.karma >= FLAG_KARMA_THRESHOLD && authorId !== data.user.id;
@@ -539,6 +571,7 @@
 				{:else}
 					{data.story.title}
 				{/if}
+				{#if data.story.type === 'poll'} <span class="story-tag">[poll]</span>{/if}
 				{#if (data.story.flag_count ?? 0) > 0} <span class="story-tag">[flagged]</span>{/if}
 				{#if storyDead === 1} <span class="story-tag">[dead]</span>{/if}
 			</span>
@@ -624,6 +657,29 @@
 					{#if paragraph.trim()}
 						<p>{@html formatText(paragraph)}</p>
 					{/if}
+				{/each}
+			</div>
+		{/if}
+
+		{#if data.story.type === 'poll' && data.pollOptions && data.pollOptions.length > 0}
+			<div class="poll-options" style="padding-left: 18px; margin-top: 8pt;">
+				{#each data.pollOptions as opt}
+					<div class="poll-option" style="margin-bottom: 4pt;">
+						<span class="story-vote" style="margin-right: 4px;">
+							<button
+								class="upvote"
+								class:voted={getPollVotedIds().has(opt.id)}
+								onclick={() => votePollOption(opt.id)}
+								aria-label="upvote choice"
+							>
+								&#9650;
+							</button>
+						</span>
+						<span class="poll-option-text" style="font-size: 10pt;">{opt.text}</span>
+						<div class="poll-option-meta" style="padding-left: 18px; font-size: 7pt; color: #828282;">
+							{getPollOptionCount(opt)} point{getPollOptionCount(opt) !== 1 ? 's' : ''}
+						</div>
+					</div>
 				{/each}
 			</div>
 		{/if}

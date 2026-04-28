@@ -1,5 +1,5 @@
 import type { PageServerLoad, Actions } from './$types';
-import { getDB, getStoryById, getCommentsByStoryId, getCommentById, getChildComments, getCommentVoteStates, getVoteState, hasFavorited, hasFlagged, hasHidden, getFlaggedItemIds } from '$lib/server/db';
+import { getDB, getStoryById, getCommentsByStoryId, getCommentById, getChildComments, getCommentVoteStates, getVoteState, hasFavorited, hasFlagged, hasHidden, getFlaggedItemIds, getPollOptions, getPollOptionsVoted } from '$lib/server/db';
 import { TWO_WEEKS_MS } from '$lib/ranking';
 import { error, fail, redirect } from '@sveltejs/kit';
 
@@ -42,6 +42,17 @@ export const load: PageServerLoad = async ({ params, platform, locals }) => {
 			storyHidden = hidden;
 		}
 
+		// poll の場合は選択肢と投票状況も取得する。
+		let pollOptions: Awaited<ReturnType<typeof getPollOptions>> = [];
+		let pollVotedOptionIds: number[] = [];
+		if (story.type === 'poll') {
+			pollOptions = await getPollOptions(db, story.id);
+			if (locals.user) {
+				const voted = await getPollOptionsVoted(db, locals.user.id, story.id);
+				pollVotedOptionIds = Array.from(voted);
+			}
+		}
+
 		return {
 			mode: 'story' as const,
 			story,
@@ -51,7 +62,9 @@ export const load: PageServerLoad = async ({ params, platform, locals }) => {
 			storyFlagged,
 			storyHidden,
 			commentVoteStates: Object.fromEntries(commentVoteStates),
-			flaggedCommentIds: Array.from(flaggedCommentIds)
+			flaggedCommentIds: Array.from(flaggedCommentIds),
+			pollOptions,
+			pollVotedOptionIds
 		};
 	}
 
@@ -91,7 +104,9 @@ export const load: PageServerLoad = async ({ params, platform, locals }) => {
 		commentVoted,
 		commentFlagged,
 		commentVoteStates: Object.fromEntries(commentVoteStates),
-		flaggedCommentIds: Array.from(flaggedCommentIds)
+		flaggedCommentIds: Array.from(flaggedCommentIds),
+		pollOptions: [] as Awaited<ReturnType<typeof getPollOptions>>,
+		pollVotedOptionIds: [] as number[]
 	};
 };
 
