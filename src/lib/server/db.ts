@@ -348,10 +348,13 @@ export async function getUserById(db: D1Database, id: number): Promise<UserRow |
 // 個人情報フィールド (email, about, password_hash) を空にし、
 // 設定系 (delay, noprocrast, maxvisit, minaway, showdead) をデフォルトに戻し、
 // deleted=1 / deleted_at=now を立てる。同時に sessions を全削除して即時ログアウト。
-// D1 batch でトランザクション化する（途中失敗時に整合を保つため）。
+// D1 batch でシリアル実行（部分失敗時はクライアント側で再試行可能）。
+// 順序は sessions DELETE → users UPDATE。
+// 部分失敗時に「セッション残存だが削除済み」より「再ログイン強制（実質ログアウト済み）」の方が安全側。
 export async function deleteAccount(db: D1Database, userId: number): Promise<void> {
 	const nowIso = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
 	await db.batch([
+		db.prepare('DELETE FROM sessions WHERE user_id = ?').bind(userId),
 		db
 			.prepare(
 				`UPDATE users SET
@@ -368,8 +371,7 @@ export async function deleteAccount(db: D1Database, userId: number): Promise<voi
 					last_visit = NULL
 				WHERE id = ?`
 			)
-			.bind(nowIso, userId),
-		db.prepare('DELETE FROM sessions WHERE user_id = ?').bind(userId)
+			.bind(nowIso, userId)
 	]);
 }
 

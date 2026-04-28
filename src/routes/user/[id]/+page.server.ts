@@ -155,7 +155,7 @@ export const actions: Actions = {
 
 	deleteAccount: async ({ request, platform, locals, params, url, cookies }) => {
 		if (!locals.user) {
-			throw error(401, 'Not logged in');
+			throw redirect(302, '/login');
 		}
 
 		const db = getDB(platform);
@@ -176,7 +176,7 @@ export const actions: Actions = {
 		// locals.user には password_hash が入っていないため getUserById で引く。
 		const fullUser = await getUserById(db, user.id);
 		if (!fullUser || fullUser.deleted === 1) {
-			return fail(400, { deleteAccountError: 'Account not found' });
+			return fail(400, { deleteAccountError: 'Account already deleted' });
 		}
 		const valid = await verifyPassword(password, fullUser.password_hash);
 		if (!valid) {
