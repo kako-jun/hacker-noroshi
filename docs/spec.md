@@ -79,6 +79,27 @@ score = (points - 1) / (hours_since_post + 2) ^ 1.8
 - 旧 URL（`/user/{old_username}` とその子ルート submissions/comments/favorites/hidden）は最新の username へ **301 Moved Permanently** リダイレクト（永続的）。連鎖変更（A→B→C）も最新まで解決。querystring（`?p=2` 等）は保持する
 - 本家HN FAQ #31「Can I change my username?」相当だが、本家とは異なりセルフサービスで完結する
 
+#### アカウント削除
+
+- プロフィールページ `/user/[id]` の「Delete account」フォームから本人がセルフサービスで削除可能
+- パスワード再入力 + ブラウザの `confirm()` 二重確認（CSR で `use:enhance` 経由）
+- 削除処理（`deleteAccount(db, userId)`）:
+  - users 行は残す（username の永久ロックのため）。`deleted=1`, `deleted_at=now`
+  - 個人情報をクリア: `email='', about='', password_hash=''`
+  - 設定をデフォルトに戻す: `delay=0, noprocrast=0, maxvisit=20, minaway=180, showdead=0, last_visit=NULL`
+  - 当該ユーザーの sessions を全削除（即時ログアウト）
+  - D1 batch でアトミック実行
+- 削除済みアカウントの挙動:
+  - `getSession()` は `u.deleted = 0` で絞るためログイン済みでもセッション無効化される
+  - ログイン時 `user.deleted === 1` は通常の "Bad login" として拒否（列挙防止）
+  - プロフィールページ本体: "This user has deleted their account." のみ表示
+  - `/user/[name]/submissions` `/user/[name]/comments`: 投稿・コメントは残し、username 表示は `[deleted]`（`displayUsername` ヘルパで一貫）
+  - `/user/[name]/favorites`: プライバシー観点で空表示
+  - `/leaders`: 削除済みは除外
+- 即時実行・復旧不可。投稿・コメントはスレッド整合性のため `[deleted]` 名義で保持
+- 削除済み username は **永久に再取得不可**（自分自身も含む）
+- 本家HN FAQ #32「Can I delete my account?」相当だが、本家とは異なりセルフサービスで完結する
+
 #### パスワードリセット
 
 - `/forgot` ページ: ユーザー名 + 登録メールアドレスで本人確認
