@@ -1,13 +1,16 @@
 import type { PageServerLoad, Actions } from './$types';
 import {
+	deleteAccount,
 	getDB,
 	getLastUsernameChange,
+	getUserById,
 	isUsernameTaken,
 	isUsernameUniqueConstraintError,
 	updateUsername,
 	validateUsernameFormat,
 	USERNAME_CHANGE_COOLDOWN_MS
 } from '$lib/server/db';
+import { verifyPassword } from '$lib/server/auth';
 import { resolveUserOrRedirect } from '$lib/server/userRoute';
 import { error, fail, redirect } from '@sveltejs/kit';
 
@@ -17,7 +20,9 @@ export const load: PageServerLoad = async ({ params, platform, locals, url }) =>
 
 	const user = await resolveUserOrRedirect(db, username, '', url);
 
-	const isOwnProfile = locals.user?.username === user.username;
+	// 削除済みユーザーは locals.user との一致でも編集 UI を出さない（#76）。
+	// セッションは削除時に全消去されるが、防御的に false に倒す。
+	const isOwnProfile = locals.user?.username === user.username && user.deleted === 0;
 
 	let nextUsernameChangeAt: string | null = null;
 	if (isOwnProfile) {
@@ -42,7 +47,8 @@ export const load: PageServerLoad = async ({ params, platform, locals, url }) =>
 			maxvisit: isOwnProfile ? user.maxvisit : 20,
 			minaway: isOwnProfile ? user.minaway : 180,
 			showdead: isOwnProfile ? user.showdead : 0,
-			created_at: user.created_at
+			created_at: user.created_at,
+			deleted: user.deleted
 		},
 		isOwnProfile,
 		nextUsernameChangeAt
@@ -145,5 +151,43 @@ export const actions: Actions = {
 		// 引いているので変更不要。
 		// 自分のプロフィールページの URL が変わるので新しい URL に redirect する。
 		throw redirect(303, `/user/${newUsername}`);
+	},
+
+	deleteAccount: async ({ request, platform, locals, params, url, cookies }) => {
+		if (!locals.user) {
+			throw redirect(302, '/login');
+		}
+
+		const db = getDB(platform);
+		// 認可は id ベース。旧名 URL からでも本人なら通す。
+		const user = await resolveUserOrRedirect(db, params.id, '', url);
+		if (locals.user.id !== user.id) {
+			throw error(403, "Cannot delete another user's account");
+		}
+
+		const formData = await request.formData();
+		const password = (formData.get('password') as string) ?? '';
+
+		if (!password) {
+			return fail(400, { deleteAccountError: 'Password is required' });
+		}
+
+		// 本人確認のため password_hash を再取得して照合する。
+		// locals.user には password_hash が入っていないため getUserById で引く。
+		const fullUser = await getUserById(db, user.id);
+		if (!fullUser || fullUser.deleted === 1) {
+			return fail(400, { deleteAccountError: 'Account already deleted' });
+		}
+		const valid = await verifyPassword(password, fullUser.password_hash);
+		if (!valid) {
+			return fail(400, { deleteAccountError: 'Incorrect password' });
+		}
+
+		await deleteAccount(db, user.id);
+
+		// セッション cookie を削除して即時ログアウト
+		cookies.delete('session', { path: '/' });
+
+		throw redirect(303, '/');
 	}
 };

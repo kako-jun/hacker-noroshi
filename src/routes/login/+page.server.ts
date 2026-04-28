@@ -26,6 +26,12 @@ export const actions: Actions = {
 			return fail(400, { loginError: 'Bad login', loginUsername: username });
 		}
 
+		// 削除済みアカウントはログイン不可（#76）。情報量を増やさないため
+		// 通常の "Bad login" と同じメッセージで返す（ユーザー存在の列挙防止）。
+		if (user.deleted === 1) {
+			return fail(400, { loginError: 'Bad login', loginUsername: username });
+		}
+
 		const valid = await verifyPassword(password, user.password_hash);
 		if (!valid) {
 			return fail(400, { loginError: 'Bad login', loginUsername: username });

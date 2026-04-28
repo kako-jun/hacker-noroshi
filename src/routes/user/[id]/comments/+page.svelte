@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { timeAgo, isNewUser } from '$lib/ranking';
-	import { formatText } from '$lib/format';
+	import { formatText, displayUsername } from '$lib/format';
 
 	let { data } = $props();
 	let localVoteStates = $state<Record<number, 'up' | 'down' | null> | null>(null);
@@ -42,7 +42,7 @@
 </script>
 
 <svelte:head>
-	<title>{data.username}'s comments | ハッカーのろし</title>
+	<title>{data.userDeleted ? "[deleted]" : data.username}'s comments | ハッカーのろし</title>
 </svelte:head>
 
 <div style="padding-left: 40px;">
@@ -69,7 +69,7 @@
 						</button>
 					{/if}
 				</span>
-				<a href="/user/{comment.username}" style={isNewUser(comment.user_created_at) ? 'color: #3c963c;' : ''}>{comment.username}</a>
+				<a href="/user/{comment.username}" style={isNewUser(comment.user_created_at) ? 'color: #3c963c;' : ''}>{displayUsername({ username: comment.username, deleted: comment.user_deleted })}</a>
 				<a href="/item/{comment.id}">{timeAgo(comment.created_at)}</a>
 				| <a href="/item/{comment.parent_id ?? comment.story_id}" style="color: #828282;">parent</a>
 				| <a href="/item/{comment.id}" style="color: #828282;">context</a>

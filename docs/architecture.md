@@ -88,6 +88,8 @@ hacker-noroshi/
 | showdead | INTEGER | dead表示（0=非表示, 1=表示） |
 | last_visit | TEXT | noprocrast 用の最終アクセス時刻 |
 | created_at | TEXT | ISO8601 |
+| deleted | INTEGER | アカウント削除フラグ（0=有効、1=削除済み）。表示は `[deleted]` に置換 |
+| deleted_at | TEXT | 削除時刻（ISO8601）。未削除なら NULL |
 
 ### stories
 
@@ -259,6 +261,8 @@ hacker-noroshi/
 | `getOldUsernameRedirect()` | 旧 username から最新 new_username を解決（連鎖変更対応） |
 | `getLastUsernameChange()` | 直近のユーザー名変更日時（90日制限判定用） |
 | `updateUsername()` | users.username 更新と username_history への履歴 insert を batch で実行 |
+| `deleteAccount()` | users 行を `deleted=1` にし個人情報・設定をクリア + sessions 削除を batch で実行 |
+| `displayUsername()` | 削除済みユーザーの username を `[deleted]` に置換するクライアント表示ヘルパ（`src/lib/format.ts`） |
 
 ## ランキングスコア計算式
 

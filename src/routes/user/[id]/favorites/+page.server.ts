@@ -9,8 +9,12 @@ export const load: PageServerLoad = async ({ params, url, platform, locals }) =>
 
 	const user = await resolveUserOrRedirect(db, username, '/favorites', url);
 
+	// 削除済みユーザーの favorites はプライバシー観点で非公開（#76）。
+	// 投稿・コメントはスレッド整合性のため [deleted] 名義で公開を続けるが、
+	// 「何を気に入っていたか」は本人を辿る情報になりうるため空扱い。
 	const showdead = locals.user?.showdead === 1;
-	const favorites = await getFavoriteStoriesByUserId(db, user.id, page, 30, showdead);
+	const favorites =
+		user.deleted === 1 ? [] : await getFavoriteStoriesByUserId(db, user.id, page, 30, showdead);
 
 	let votedIds: Set<number> = new Set();
 	let flaggedIds: Set<number> = new Set();
@@ -22,6 +26,7 @@ export const load: PageServerLoad = async ({ params, url, platform, locals }) =>
 	}
 
 	return {
+		userDeleted: user.deleted,
 		username: user.username,
 		favorites,
 		votedIds: Array.from(votedIds),
