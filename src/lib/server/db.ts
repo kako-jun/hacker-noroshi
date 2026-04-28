@@ -266,7 +266,11 @@ export async function getOldUsernameRedirect(
 	let current = oldUsername;
 	let result: string | null = null;
 	for (let i = 0; i < USERNAME_REDIRECT_MAX_DEPTH; i++) {
-		if (visited.has(current)) break;
+		if (visited.has(current)) {
+			// 循環検出。リダイレクト先が現存しない可能性が高いため null を返し、
+			// 呼び出し側を 404 に倒す（壊れた履歴データに対する防御）
+			return null;
+		}
 		visited.add(current);
 		const row = await db
 			.prepare(

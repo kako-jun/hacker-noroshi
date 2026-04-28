@@ -327,8 +327,8 @@ describe('getOldUsernameRedirect 循環ガード', () => {
 		const result = await getOldUsernameRedirect(db, 'a');
 		const elapsed = Date.now() - start;
 		expect(elapsed).toBeLessThan(1000);
-		// 訪問済みで停止するため、a→b→a と辿って a でストップ。最終 result は 'a'。
-		expect(result).toBe('a');
+		// 循環を検出したら壊れたデータと判断して null を返す（呼び出し側は 404 に倒す）
+		expect(result).toBeNull();
 	});
 
 	it('深い連鎖でも上限 10 で打ち切る', async () => {
