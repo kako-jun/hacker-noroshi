@@ -97,24 +97,7 @@ function makeMockDB() {
 			return { all: [], first: null, meta: { last_row_id: id } };
 		}
 
-		// poll_options insert (last_insert_rowid() 版: createPoll 用)
-		if (
-			/^INSERT INTO poll_options \(story_id, text, position\) VALUES \(last_insert_rowid\(\), \?, \?\)$/i.test(
-				s
-			)
-		) {
-			// 直近に挿入された stories の id を story_id として使う
-			const lastStoryId = stories.length > 0 ? stories[stories.length - 1].id : 0;
-			options.push({
-				id: nextOptId++,
-				story_id: lastStoryId,
-				text: params[0] as string,
-				position: params[1] as number,
-				created_at: '2026-04-28T00:00:00Z'
-			});
-			return { all: [], first: null };
-		}
-		// poll_options insert (旧形式: 直接 story_id を bind する版。互換のため残す)
+		// poll_options insert (story_id を明示 bind する形式。createPoll の 2 段階実装で使用)
 		if (/^INSERT INTO poll_options \(story_id, text, position\) VALUES \(\?, \?, \?\)$/i.test(s)) {
 			options.push({
 				id: nextOptId++,
@@ -147,6 +130,14 @@ function makeMockDB() {
 				item_type: 'poll_option',
 				vote_type: 'up'
 			});
+			return { all: [], first: null };
+		}
+
+		// stories delete (createPoll のロールバック用)
+		if (/^DELETE FROM stories WHERE id = \?$/i.test(s)) {
+			const sid = params[0] as number;
+			const idx = stories.findIndex((st) => st.id === sid);
+			if (idx >= 0) stories.splice(idx, 1);
 			return { all: [], first: null };
 		}
 
@@ -321,6 +312,36 @@ describe('createPoll', () => {
 		expect(options.map((o) => o.position)).toEqual([0, 1, 2]);
 		// 自動 upvote
 		expect(votes.some((v) => v.item_type === 'story' && v.item_id === 1)).toBe(true);
+	});
+
+	// last_insert_rowid() 連結バグの回帰防止: 2 つ目以降の poll でも全 option が
+	// 正しい story_id を持つこと（過去に options.story_id が前 option.id を参照する不具合あり）
+	it('keeps options story_id correct across multiple polls', async () => {
+		const { createPoll } = await import('../../src/lib/server/db');
+		const { db, stories, options } = makeMockDB();
+		const id1 = await createPoll(db, { userId: 1, title: 'p1', text: null, options: ['a', 'b'] });
+		const id2 = await createPoll(db, { userId: 1, title: 'p2', text: null, options: ['x', 'y', 'z'] });
+		expect(stories.length).toBe(2);
+		expect(options.filter((o) => o.story_id === id1).map((o) => o.text)).toEqual(['a', 'b']);
+		expect(options.filter((o) => o.story_id === id2).map((o) => o.text)).toEqual(['x', 'y', 'z']);
+	});
+
+	// poll_options batch が失敗したら stories 行も残らないこと（手動ロールバック）
+	it('rolls back stories row if options batch fails', async () => {
+		const { createPoll } = await import('../../src/lib/server/db');
+		const { db, stories } = makeMockDB();
+		// batch を1度だけ失敗させるラッパ
+		const realBatch = (db as unknown as { batch: (s: unknown[]) => Promise<unknown> }).batch;
+		let calls = 0;
+		(db as unknown as { batch: (s: unknown[]) => Promise<unknown> }).batch = async (s) => {
+			calls++;
+			if (calls === 1) throw new Error('simulated batch failure');
+			return realBatch(s);
+		};
+		await expect(
+			createPoll(db, { userId: 1, title: 'fail', text: null, options: ['a', 'b'] })
+		).rejects.toThrow('simulated batch failure');
+		expect(stories.length).toBe(0);
 	});
 });
 

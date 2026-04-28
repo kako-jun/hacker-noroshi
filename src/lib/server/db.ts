@@ -1042,60 +1042,46 @@ export async function expireIpBan(db: D1Database, id: number): Promise<void> {
 // 各 option への投票は votes(item_type='poll_option') として記録する。
 // karma は **加算しない**（HN 仕様）。複数 option への重複投票可。
 
-// poll を新規作成する。stories / poll_options / 自動 upvote の3種を **1つの batch** で
-// 投入し、原子性を確保する（途中失敗で「選択肢ゼロの壊れた poll」が残るのを防ぐ）。
-// D1 batch は内部で BEGIN/COMMIT に相当するトランザクションになり、いずれかが失敗すれば
-// 全体ロールバックされる。
+// poll を新規作成する。
 //
-// last_insert_rowid() は SQLite/D1 の同一セッションで「直近に AUTOINCREMENT 行が
-// 挿入された rowid」を返す。D1 batch は同一セッションで順次実行されるため、stories の
-// INSERT 直後に poll_options / votes 側で last_insert_rowid() を参照できる。
-//
-// 戻り値の story id は batch 結果の最初の statement (stories INSERT) の last_row_id を
-// 採用する。
+// SQLite の last_insert_rowid() は「直近に rowid テーブルへ INSERT された行の rowid」を
+// テーブル無関係に返す仕様のため、batch 内で複数 poll_options を last_insert_rowid() で
+// 連結すると 2 つ目以降は直前の poll_option.id を story_id として保存してしまう。
+// よって以下の 2 段階で実装する:
+//   1. stories INSERT を単独実行し meta.last_row_id から storyId を取得
+//   2. storyId を明示 bind した poll_options 全件 + 自動 upvote を 1 batch で投入
+//      失敗時は手動で stories を DELETE してロールバック（孤児 stories を残さない）
 export async function createPoll(
 	db: D1Database,
 	params: { userId: number; title: string; text: string | null; options: string[] }
 ): Promise<number> {
-	const stmts: D1PreparedStatement[] = [
-		db
-			.prepare(
-				"INSERT INTO stories (title, url, text, user_id, type) VALUES (?, NULL, ?, ?, 'poll')"
-			)
-			.bind(params.title, params.text, params.userId)
-	];
-	for (let i = 0; i < params.options.length; i++) {
-		stmts.push(
-			db
-				.prepare(
-					'INSERT INTO poll_options (story_id, text, position) VALUES (last_insert_rowid(), ?, ?)'
-				)
-				.bind(params.options[i], i)
-		);
-	}
-	// 投稿者本人の自動 upvote（story 本体）。/submit と同じ挙動。
-	// poll_options の INSERT で last_insert_rowid() が更新されるため、stories の id を
-	// 直接 bind する必要があるが batch 内では未確定。
-	// → batch 結果の最初の statement (stories INSERT) の last_row_id を取得し、
-	//   その後で votes を別 batch ではなく、同 batch 内で stories.id を再取得する形にする。
-	//   ここでは stories.id は subquery で取得する: 投稿直前の自分の最新 poll story。
-	//   ただし race condition を避けるため、より単純に「最初の statement の戻り値から
-	//   id を取り出して votes を **同 batch の最後** に追加」する戦略を取る。
-	//
-	// 実際には D1 batch を実行した後に最初の result.meta.last_row_id を取れる。
-	// votes だけ別 statement にして、stories+options の batch 後に追加で1本走らせると
-	// 自動 upvote が落ちた場合に「選択肢付き poll は残るが投稿者 upvote 0」になる。
-	// これは表示上ほぼ問題ない（points が 0 表示）ので許容。重要なのは
-	// 「stories と poll_options が常に揃っている」こと。
-	const results = await db.batch(stmts);
-	const storyId = results[0].meta.last_row_id as number;
-
-	// 自動 upvote は stories+options の整合性が確定した後に追加で1本実行する。
-	// 失敗してもデータ上の致命的不整合にはならない（points 表示のみ）。
-	await db
-		.prepare("INSERT INTO votes (user_id, item_id, item_type) VALUES (?, ?, 'story')")
-		.bind(params.userId, storyId)
+	const storyResult = await db
+		.prepare(
+			"INSERT INTO stories (title, url, text, user_id, type) VALUES (?, NULL, ?, ?, 'poll')"
+		)
+		.bind(params.title, params.text, params.userId)
 		.run();
+	const storyId = storyResult.meta.last_row_id as number;
+
+	const stmts: D1PreparedStatement[] = params.options.map((text, i) =>
+		db
+			.prepare('INSERT INTO poll_options (story_id, text, position) VALUES (?, ?, ?)')
+			.bind(storyId, text, i)
+	);
+	// 投稿者本人の自動 upvote（story 本体）
+	stmts.push(
+		db
+			.prepare("INSERT INTO votes (user_id, item_id, item_type) VALUES (?, ?, 'story')")
+			.bind(params.userId, storyId)
+	);
+
+	try {
+		await db.batch(stmts);
+	} catch (err) {
+		// options or vote の batch が失敗したら stories を手動で消して整合を保つ
+		await db.prepare('DELETE FROM stories WHERE id = ?').bind(storyId).run();
+		throw err;
+	}
 	return storyId;
 }
 
