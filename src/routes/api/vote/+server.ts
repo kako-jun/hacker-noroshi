@@ -27,27 +27,27 @@ export const POST: RequestHandler = async ({ request, platform, locals }) => {
 			return json({ error: 'Poll option not found' }, { status: 404 });
 		}
 		const currentVote = await getVoteState(db, locals.user.id, itemId, 'poll_option');
-		if (currentVote === null) {
-			// 新規投票: votes に INSERT のみ。karma 加算なし、points カラムなし。
-			await db
-				.prepare(
-					"INSERT INTO votes (user_id, item_id, item_type, vote_type) VALUES (?, ?, 'poll_option', 'up')"
-				)
-				.bind(locals.user.id, itemId)
-				.run();
-		} else {
-			// トグル: 同じ option を再クリックで取り消し（DELETE）。
-			await db
-				.prepare("DELETE FROM votes WHERE user_id = ? AND item_id = ? AND item_type = 'poll_option'")
-				.bind(locals.user.id, itemId)
-				.run();
-		}
-		const countRow = await db
+		// INSERT/DELETE と COUNT を D1 batch で一括化して原子性を保つ
+		// （部分失敗で UI と DB が乖離するのを防ぐ）。
+		const mutateStmt =
+			currentVote === null
+				? db
+						.prepare(
+							"INSERT INTO votes (user_id, item_id, item_type, vote_type) VALUES (?, ?, 'poll_option', 'up')"
+						)
+						.bind(locals.user.id, itemId)
+				: db
+						.prepare(
+							"DELETE FROM votes WHERE user_id = ? AND item_id = ? AND item_type = 'poll_option'"
+						)
+						.bind(locals.user.id, itemId);
+		const countStmt = db
 			.prepare(
 				"SELECT COUNT(*) as n FROM votes WHERE item_id = ? AND item_type = 'poll_option' AND vote_type = 'up'"
 			)
-			.bind(itemId)
-			.first<{ n: number }>();
+			.bind(itemId);
+		const batchResults = await db.batch<{ n: number }>([mutateStmt, countStmt]);
+		const countRow = batchResults[1].results?.[0];
 		const newState = currentVote === null ? 'up' : null;
 		return json({ voteState: newState, points: countRow?.n ?? 0 });
 	}

@@ -80,6 +80,16 @@ export const actions: Actions = {
 				});
 			}
 		}
+		// 重複選択肢を弾く（ユーザーが同じ文言を複数行入れた場合）。
+		// 投票結果の集計が分散して意味をなさなくなるため、UI レベルで防ぐ。
+		if (new Set(options).size !== options.length) {
+			return fail(400, {
+				error: 'Choices must be unique',
+				title,
+				text,
+				options: optionsRaw
+			});
+		}
 
 		// Rate limit: 10 minutes between story submissions（poll も submit と同枠で扱う）。
 		const lastStory = await db
