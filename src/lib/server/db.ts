@@ -20,6 +20,7 @@ export interface StoryRow {
 	created_at: string;
 	username: string;
 	user_created_at: string;
+	user_deleted?: number;
 	flag_count?: number;
 }
 
@@ -34,6 +35,7 @@ export interface CommentRow {
 	created_at: string;
 	username: string;
 	user_created_at: string;
+	user_deleted?: number;
 	flag_count?: number;
 }
 
@@ -51,6 +53,8 @@ export interface UserRow {
 	showdead: number;
 	last_visit: string | null;
 	created_at: string;
+	deleted: number;
+	deleted_at: string | null;
 }
 
 export interface SessionRow {
@@ -89,7 +93,7 @@ export async function getStories(
 
 	if (orderBy === 'best') {
 		const sql = `
-			SELECT s.*, u.username, u.created_at as user_created_at, ${STORY_FLAG_COUNT_SQL}
+			SELECT s.*, u.username, u.created_at as user_created_at, u.deleted as user_deleted, ${STORY_FLAG_COUNT_SQL}
 			FROM stories s
 			JOIN users u ON s.user_id = u.id
 			${whereClause}
@@ -103,7 +107,7 @@ export async function getStories(
 
 	if (orderBy === 'newest') {
 		const sql = `
-			SELECT s.*, u.username, u.created_at as user_created_at, ${STORY_FLAG_COUNT_SQL}
+			SELECT s.*, u.username, u.created_at as user_created_at, u.deleted as user_deleted, ${STORY_FLAG_COUNT_SQL}
 			FROM stories s
 			JOIN users u ON s.user_id = u.id
 			${whereClause}
@@ -118,7 +122,7 @@ export async function getStories(
 	// Rank mode: fetch recent stories, sort by HN algorithm in JS
 	const fetchLimit = 500;
 	const sql = `
-		SELECT s.*, u.username, u.created_at as user_created_at, ${STORY_FLAG_COUNT_SQL}
+		SELECT s.*, u.username, u.created_at as user_created_at, u.deleted as user_deleted, ${STORY_FLAG_COUNT_SQL}
 		FROM stories s
 		JOIN users u ON s.user_id = u.id
 		${whereClause}
@@ -154,7 +158,7 @@ export async function getFrontPageStories(
 	const fetchLimit = 500;
 	const deadFilter = showdead ? '' : 'AND s.dead = 0';
 	const sql = `
-		SELECT s.*, u.username, u.created_at as user_created_at, ${STORY_FLAG_COUNT_SQL}
+		SELECT s.*, u.username, u.created_at as user_created_at, u.deleted as user_deleted, ${STORY_FLAG_COUNT_SQL}
 		FROM stories s
 		JOIN users u ON s.user_id = u.id
 		WHERE s.created_at >= ? AND s.created_at <= ? ${deadFilter}
@@ -179,7 +183,7 @@ export async function getFrontPageStories(
 export async function getStoryById(db: D1Database, id: number): Promise<StoryRow | null> {
 	const result = await db
 		.prepare(
-			`SELECT s.*, u.username, u.created_at as user_created_at, ${STORY_FLAG_COUNT_SQL}
+			`SELECT s.*, u.username, u.created_at as user_created_at, u.deleted as user_deleted, ${STORY_FLAG_COUNT_SQL}
 			FROM stories s
 			JOIN users u ON s.user_id = u.id
 			WHERE s.id = ?`
@@ -198,7 +202,7 @@ export async function getCommentsByStoryId(
 	const deadFilter = showdead ? '' : 'AND c.dead = 0';
 	const result = await db
 		.prepare(
-			`SELECT c.*, u.username, u.created_at as user_created_at, u.delay as author_delay, ${COMMENT_FLAG_COUNT_SQL}
+			`SELECT c.*, u.username, u.created_at as user_created_at, u.deleted as user_deleted, u.delay as author_delay, ${COMMENT_FLAG_COUNT_SQL}
 			FROM comments c
 			JOIN users u ON c.user_id = u.id
 			WHERE c.story_id = ? ${deadFilter}
@@ -240,6 +244,8 @@ export function validateUsernameFormat(username: string): string | null {
 
 // users.username と username_history.old_username の両方を見て、過去に使われた
 // 名前も含めて重複判定する（履歴も永久ロック）。1 クエリ（UNION ALL）でラウンドトリップを削減。
+// 削除済みユーザー (users.deleted = 1) も username 行は残るため UNIQUE 制約で
+// 自動的にロックされ、再取得は不可能。本家HN FAQ #32 相当の永久ロック挙動。
 export async function isUsernameTaken(db: D1Database, username: string): Promise<boolean> {
 	const r = await db
 		.prepare(
@@ -337,6 +343,36 @@ export async function getUserById(db: D1Database, id: number): Promise<UserRow |
 	return db.prepare('SELECT * FROM users WHERE id = ?').bind(id).first<UserRow>();
 }
 
+// アカウント削除（#76）。本家HN FAQ #32 相当のセルフサービス削除。
+// 投稿・コメントはスレッド整合性のため保持し、users 行も username の永久ロックのため保持する。
+// 個人情報フィールド (email, about, password_hash) を空にし、
+// 設定系 (delay, noprocrast, maxvisit, minaway, showdead) をデフォルトに戻し、
+// deleted=1 / deleted_at=now を立てる。同時に sessions を全削除して即時ログアウト。
+// D1 batch でトランザクション化する（途中失敗時に整合を保つため）。
+export async function deleteAccount(db: D1Database, userId: number): Promise<void> {
+	const nowIso = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+	await db.batch([
+		db
+			.prepare(
+				`UPDATE users SET
+					deleted = 1,
+					deleted_at = ?,
+					email = '',
+					about = '',
+					password_hash = '',
+					delay = 0,
+					noprocrast = 0,
+					maxvisit = 20,
+					minaway = 180,
+					showdead = 0,
+					last_visit = NULL
+				WHERE id = ?`
+			)
+			.bind(nowIso, userId),
+		db.prepare('DELETE FROM sessions WHERE user_id = ?').bind(userId)
+	]);
+}
+
 export async function getStoriesByUserId(
 	db: D1Database,
 	userId: number,
@@ -348,7 +384,7 @@ export async function getStoriesByUserId(
 	const deadFilter = showdead ? '' : 'AND s.dead = 0';
 	const result = await db
 		.prepare(
-			`SELECT s.*, u.username, u.created_at as user_created_at, ${STORY_FLAG_COUNT_SQL}
+			`SELECT s.*, u.username, u.created_at as user_created_at, u.deleted as user_deleted, ${STORY_FLAG_COUNT_SQL}
 			FROM stories s
 			JOIN users u ON s.user_id = u.id
 			WHERE s.user_id = ? ${deadFilter}
@@ -402,7 +438,7 @@ export async function getCommentsByUserId(
 	const deadFilter = showdead ? '' : 'AND c.dead = 0';
 	const result = await db
 		.prepare(
-			`SELECT c.*, u.username, u.created_at as user_created_at, u.delay as author_delay, s.title as story_title, ${COMMENT_FLAG_COUNT_SQL}
+			`SELECT c.*, u.username, u.created_at as user_created_at, u.deleted as user_deleted, u.delay as author_delay, s.title as story_title, ${COMMENT_FLAG_COUNT_SQL}
 			FROM comments c
 			JOIN users u ON c.user_id = u.id
 			JOIN stories s ON c.story_id = s.id
@@ -429,7 +465,7 @@ export async function getCommentsByUserId(
 export async function getCommentById(db: D1Database, id: number): Promise<CommentRow | null> {
 	const result = await db
 		.prepare(
-			`SELECT c.*, u.username, u.created_at as user_created_at, ${COMMENT_FLAG_COUNT_SQL}
+			`SELECT c.*, u.username, u.created_at as user_created_at, u.deleted as user_deleted, ${COMMENT_FLAG_COUNT_SQL}
 			FROM comments c
 			JOIN users u ON c.user_id = u.id
 			WHERE c.id = ?`
@@ -492,7 +528,7 @@ export async function getActiveStories(
 	const offset = (page - 1) * limit;
 	const deadFilter = showdead ? '' : 'WHERE s.dead = 0 AND c.dead = 0';
 	const sql = `
-		SELECT s.*, u.username, u.created_at as user_created_at, ${STORY_FLAG_COUNT_SQL}
+		SELECT s.*, u.username, u.created_at as user_created_at, u.deleted as user_deleted, ${STORY_FLAG_COUNT_SQL}
 		FROM stories s
 		JOIN users u ON s.user_id = u.id
 		JOIN comments c ON c.story_id = s.id
@@ -544,7 +580,7 @@ export async function getFavoriteStoriesByUserId(
 	const deadFilter = showdead ? '' : 'AND s.dead = 0';
 	const result = await db
 		.prepare(
-			`SELECT s.*, u.username, u.created_at as user_created_at, ${STORY_FLAG_COUNT_SQL}
+			`SELECT s.*, u.username, u.created_at as user_created_at, u.deleted as user_deleted, ${STORY_FLAG_COUNT_SQL}
 			FROM favorites f
 			JOIN stories s ON f.story_id = s.id
 			JOIN users u ON s.user_id = u.id
@@ -591,7 +627,7 @@ export async function getHiddenStoriesByUserId(
 	const deadFilter = showdead ? '' : 'AND s.dead = 0';
 	const result = await db
 		.prepare(
-			`SELECT s.*, u.username, u.created_at as user_created_at, ${STORY_FLAG_COUNT_SQL}
+			`SELECT s.*, u.username, u.created_at as user_created_at, u.deleted as user_deleted, ${STORY_FLAG_COUNT_SQL}
 			FROM hidden h
 			JOIN stories s ON h.story_id = s.id
 			JOIN users u ON s.user_id = u.id
@@ -620,7 +656,7 @@ export async function getStoriesByDomain(
 	const wwwPattern = `%://www.${escapeLikePattern(domain)}%`;
 	const deadFilter = showdead ? '' : 'AND s.dead = 0';
 	const sql = `
-		SELECT s.*, u.username, u.created_at as user_created_at, ${STORY_FLAG_COUNT_SQL}
+		SELECT s.*, u.username, u.created_at as user_created_at, u.deleted as user_deleted, ${STORY_FLAG_COUNT_SQL}
 		FROM stories s
 		JOIN users u ON s.user_id = u.id
 		WHERE s.url IS NOT NULL
@@ -643,7 +679,7 @@ export async function searchStories(
 	const pattern = `%${escapeLikePattern(query)}%`;
 	const deadFilter = showdead ? '' : 'AND s.dead = 0';
 	const sql = `
-		SELECT s.*, u.username, u.created_at as user_created_at, ${STORY_FLAG_COUNT_SQL}
+		SELECT s.*, u.username, u.created_at as user_created_at, u.deleted as user_deleted, ${STORY_FLAG_COUNT_SQL}
 		FROM stories s
 		JOIN users u ON s.user_id = u.id
 		WHERE (s.title LIKE ? ESCAPE '\\' OR s.url LIKE ? ESCAPE '\\' OR s.text LIKE ? ESCAPE '\\') ${deadFilter}
@@ -667,7 +703,7 @@ export async function searchComments(
 	const pattern = `%${escapeLikePattern(query)}%`;
 	const deadFilter = showdead ? '' : 'AND c.dead = 0';
 	const sql = `
-		SELECT c.*, u.username, u.created_at as user_created_at, u.delay as author_delay, s.title as story_title, ${COMMENT_FLAG_COUNT_SQL}
+		SELECT c.*, u.username, u.created_at as user_created_at, u.deleted as user_deleted, u.delay as author_delay, s.title as story_title, ${COMMENT_FLAG_COUNT_SQL}
 		FROM comments c
 		JOIN users u ON c.user_id = u.id
 		JOIN stories s ON c.story_id = s.id
@@ -703,7 +739,7 @@ export async function getRecentComments(
 	const deadFilter = showdead ? '' : 'WHERE c.dead = 0';
 	const result = await db
 		.prepare(
-			`SELECT c.*, u.username, u.created_at as user_created_at, u.delay as author_delay, s.title as story_title, ${COMMENT_FLAG_COUNT_SQL}
+			`SELECT c.*, u.username, u.created_at as user_created_at, u.deleted as user_deleted, u.delay as author_delay, s.title as story_title, ${COMMENT_FLAG_COUNT_SQL}
 			FROM comments c
 			JOIN users u ON c.user_id = u.id
 			JOIN stories s ON c.story_id = s.id
@@ -734,9 +770,11 @@ export async function getTopUsersByKarma(
 	const offset = (page - 1) * limit;
 	// 列限定: password_hash など機微フィールドを取らない（将来のフィールド追加事故も回避）
 	// 同 karma は古参優先（本家HN準拠）
+	// 削除済みユーザーはランキングから除外（#76）。karma が残っていても本人がいないため。
 	const result = await db
 		.prepare(
 			`SELECT id, username, karma, created_at FROM users
+			WHERE deleted = 0
 			ORDER BY karma DESC, created_at ASC
 			LIMIT ? OFFSET ?`
 		)
@@ -770,7 +808,7 @@ export async function getBestComments(
 	const whereClause = conds.length > 0 ? `WHERE ${conds.join(' AND ')}` : '';
 
 	const sql = `
-		SELECT c.*, u.username, u.created_at as user_created_at, u.delay as author_delay, s.title as story_title, ${COMMENT_FLAG_COUNT_SQL}
+		SELECT c.*, u.username, u.created_at as user_created_at, u.deleted as user_deleted, u.delay as author_delay, s.title as story_title, ${COMMENT_FLAG_COUNT_SQL}
 		FROM comments c
 		JOIN users u ON c.user_id = u.id
 		JOIN stories s ON c.story_id = s.id
@@ -807,7 +845,7 @@ export async function getStoriesByNewUsers(
 	const sinceIso = new Date(Date.now() - thresholdMs).toISOString().replace(/\.\d{3}Z$/, 'Z');
 	const deadFilter = showdead ? '' : 'AND s.dead = 0';
 	const sql = `
-		SELECT s.*, u.username, u.created_at as user_created_at, ${STORY_FLAG_COUNT_SQL}
+		SELECT s.*, u.username, u.created_at as user_created_at, u.deleted as user_deleted, ${STORY_FLAG_COUNT_SQL}
 		FROM stories s
 		JOIN users u ON s.user_id = u.id
 		WHERE u.created_at >= ? ${deadFilter}
@@ -833,7 +871,7 @@ export async function getCommentsByNewUsers(
 	const sinceIso = new Date(Date.now() - thresholdMs).toISOString().replace(/\.\d{3}Z$/, 'Z');
 	const deadFilter = showdead ? '' : 'AND c.dead = 0';
 	const sql = `
-		SELECT c.*, u.username, u.created_at as user_created_at, u.delay as author_delay, s.title as story_title, ${COMMENT_FLAG_COUNT_SQL}
+		SELECT c.*, u.username, u.created_at as user_created_at, u.deleted as user_deleted, u.delay as author_delay, s.title as story_title, ${COMMENT_FLAG_COUNT_SQL}
 		FROM comments c
 		JOIN users u ON c.user_id = u.id
 		JOIN stories s ON c.story_id = s.id

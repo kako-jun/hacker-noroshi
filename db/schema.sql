@@ -13,7 +13,11 @@ CREATE TABLE IF NOT EXISTS users (
   minaway INTEGER NOT NULL DEFAULT 180,
   showdead INTEGER NOT NULL DEFAULT 0,
   last_visit TEXT,
-  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+  -- アカウント削除フラグ（#76）。deleted=1 のとき表示時は [deleted] に置換し、
+  -- ログインも拒否する。username は UNIQUE 制約で永久ロックされる（再取得不可）。
+  deleted INTEGER NOT NULL DEFAULT 0,
+  deleted_at TEXT
 );
 
 CREATE TABLE IF NOT EXISTS stories (
@@ -99,3 +103,9 @@ CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
 CREATE INDEX IF NOT EXISTS idx_flags_item ON flags(item_id, item_type);
 CREATE INDEX IF NOT EXISTS idx_username_history_old ON username_history(old_username);
 CREATE INDEX IF NOT EXISTS idx_username_history_user ON username_history(user_id);
+
+-- Migrations (#76 アカウント削除)
+-- SQLite/D1 の ALTER TABLE は IF NOT EXISTS をサポートしないため、
+-- 既存DBに対しては手動で1度だけ流す。新規セットアップでは上の CREATE TABLE 側で列が定義済み。
+-- ALTER TABLE users ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0;
+-- ALTER TABLE users ADD COLUMN deleted_at TEXT;
