@@ -18,7 +18,8 @@ export const GET: RequestHandler = async ({ platform }) => {
 	const items = stories
 		.map((story) => {
 			const link = story.url || `https://hn.llll-ll.com/item/${story.id}`;
-			const description = `${story.points} points by ${story.username} | ${story.comment_count} comments`;
+			const author = story.user_deleted ? '[deleted]' : story.username;
+			const description = `${story.points} points by ${author} | ${story.comment_count} comments`;
 			const date = new Date(story.created_at);
 			const pubDate = isNaN(date.getTime()) ? new Date().toUTCString() : date.toUTCString();
 

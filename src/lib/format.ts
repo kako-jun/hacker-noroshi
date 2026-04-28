@@ -31,7 +31,7 @@ function italicize(text: string): string {
  * SQL 側で CASE 置換せず、クライアント表示時に一貫してこのヘルパを通すことで
  * カラム漏れによる本名漏洩を防ぐ。本家HN FAQ #32 相当の挙動。
  */
-export function displayUsername(user: { username: string; deleted?: number | null }): string {
+export function displayUsername(user: { username: string; deleted?: 0 | 1 | null | undefined }): string {
 	return user.deleted ? '[deleted]' : user.username;
 }
 

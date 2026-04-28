@@ -15,7 +15,7 @@
 </script>
 
 <svelte:head>
-	<title>Profile: {data.profile.username} | ハッカーのろし</title>
+	<title>Profile: {data.profile.deleted === 1 ? '[deleted]' : data.profile.username} | ハッカーのろし</title>
 </svelte:head>
 
 <div class="user-profile" style="padding-left: 40px;">
