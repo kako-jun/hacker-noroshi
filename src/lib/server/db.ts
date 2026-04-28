@@ -220,6 +220,93 @@ export async function getUserByUsername(db: D1Database, username: string): Promi
 	return db.prepare('SELECT * FROM users WHERE username = ?').bind(username).first<UserRow>();
 }
 
+// username 変更の頻度制限（90日に1回）。本家HN FAQ #31 相当の運用に合わせる。
+export const USERNAME_CHANGE_COOLDOWN_MS = 90 * 24 * 60 * 60 * 1000;
+
+// signup と共通のユーザー名バリデーション。signup 側 (src/routes/login/+page.server.ts) と
+// 規則を必ず一致させること。
+export function validateUsernameFormat(username: string): string | null {
+	if (!username) return 'Username is required';
+	if (username.length < 3 || username.length > 15) {
+		return 'Username must be between 3 and 15 characters';
+	}
+	if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
+		return 'Username can only contain letters, numbers, underscores, and hyphens';
+	}
+	return null;
+}
+
+// users.username と username_history.old_username の両方を見て、過去に使われた
+// 名前も含めて重複判定する（履歴も永久ロック）。
+export async function isUsernameTaken(db: D1Database, username: string): Promise<boolean> {
+	const u = await db
+		.prepare('SELECT 1 FROM users WHERE username = ?')
+		.bind(username)
+		.first();
+	if (u) return true;
+	const h = await db
+		.prepare('SELECT 1 FROM username_history WHERE old_username = ?')
+		.bind(username)
+		.first();
+	return h !== null;
+}
+
+// 旧 username から最新の new_username を返す。同じ old_username が複数あれば
+// 最新の changed_at を採用する。
+export async function getOldUsernameRedirect(
+	db: D1Database,
+	oldUsername: string
+): Promise<string | null> {
+	const row = await db
+		.prepare(
+			`SELECT new_username FROM username_history
+			WHERE old_username = ?
+			ORDER BY changed_at DESC LIMIT 1`
+		)
+		.bind(oldUsername)
+		.first<{ new_username: string }>();
+	if (!row) return null;
+	// 連鎖変更（A→B→C）の場合、B から飛び込んだら最新の C まで辿る
+	const chained = await getOldUsernameRedirect(db, row.new_username);
+	return chained ?? row.new_username;
+}
+
+// 該当ユーザーの最後の username 変更時刻（ISO8601）。なければ null。
+export async function getLastUsernameChange(
+	db: D1Database,
+	userId: number
+): Promise<string | null> {
+	const row = await db
+		.prepare(
+			`SELECT changed_at FROM username_history
+			WHERE user_id = ?
+			ORDER BY changed_at DESC LIMIT 1`
+		)
+		.bind(userId)
+		.first<{ changed_at: string }>();
+	return row?.changed_at ?? null;
+}
+
+// users.username を更新し、username_history に旧 username を記録する。
+// D1 はトランザクションを batch で表現する。
+export async function updateUsername(
+	db: D1Database,
+	userId: number,
+	oldUsername: string,
+	newUsername: string
+): Promise<void> {
+	await db.batch([
+		db
+			.prepare('UPDATE users SET username = ? WHERE id = ?')
+			.bind(newUsername, userId),
+		db
+			.prepare(
+				'INSERT INTO username_history (user_id, old_username, new_username) VALUES (?, ?, ?)'
+			)
+			.bind(userId, oldUsername, newUsername)
+	]);
+}
+
 export async function getUserById(db: D1Database, id: number): Promise<UserRow | null> {
 	return db.prepare('SELECT * FROM users WHERE id = ?').bind(id).first<UserRow>();
 }

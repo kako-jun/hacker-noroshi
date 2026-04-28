@@ -1,5 +1,5 @@
 import type { PageServerLoad, Actions } from './$types';
-import { getDB, getUserByUsername } from '$lib/server/db';
+import { getDB, getUserByUsername, isUsernameTaken, validateUsernameFormat } from '$lib/server/db';
 import { verifyPassword, hashPassword, createSession } from '$lib/server/auth';
 import { fail, redirect } from '@sveltejs/kit';
 
@@ -54,23 +54,17 @@ export const actions: Actions = {
 			return fail(400, { signupError: 'Username and password are required', signupUsername: username });
 		}
 
-		if (username.length < 3 || username.length > 15) {
-			return fail(400, { signupError: 'Username must be between 3 and 15 characters', signupUsername: username });
-		}
-
-		if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
-			return fail(400, {
-				signupError: 'Username can only contain letters, numbers, underscores, and hyphens',
-				signupUsername: username
-			});
+		const formatError = validateUsernameFormat(username);
+		if (formatError) {
+			return fail(400, { signupError: formatError, signupUsername: username });
 		}
 
 		if (password.length < 8) {
 			return fail(400, { signupError: 'Password must be at least 8 characters', signupUsername: username });
 		}
 
-		const existing = await getUserByUsername(db, username);
-		if (existing) {
+		// 過去に使われた username も含めて重複チェック（永久ロック）。
+		if (await isUsernameTaken(db, username)) {
 			return fail(400, { signupError: 'That username is taken', signupUsername: username });
 		}
 
