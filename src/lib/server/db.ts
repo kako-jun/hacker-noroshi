@@ -1,3 +1,5 @@
+import { nowIsoSeconds } from '../format';
+
 export function getDB(platform: App.Platform | undefined): D1Database {
 	if (!platform?.env?.DB) {
 		throw new Error(
@@ -961,7 +963,7 @@ export async function getFlagCount(
 // 該当 IP に active な ban があれば返す。なければ null。
 // 同 IP に複数 ban が積まれていた場合は banned_at 最新を採用。
 export async function getActiveBan(db: D1Database, ip: string): Promise<IpBanRow | null> {
-	const nowIso = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+	const nowIso = nowIsoSeconds();
 	const row = await db
 		.prepare(
 			`SELECT * FROM ip_bans
@@ -975,7 +977,7 @@ export async function getActiveBan(db: D1Database, ip: string): Promise<IpBanRow
 
 // admin 一覧用。active な ban のみを新しい順で返す。
 export async function listActiveBans(db: D1Database): Promise<IpBanRow[]> {
-	const nowIso = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+	const nowIso = nowIsoSeconds();
 	const result = await db
 		.prepare(
 			`SELECT * FROM ip_bans
@@ -988,10 +990,20 @@ export async function listActiveBans(db: D1Database): Promise<IpBanRow[]> {
 }
 
 // IP ban を作成する。expiresAt が null のときは無期限 ban。
+// 重複防止のため、同 IP の既存 active ban は INSERT 前に物理削除して上書きする。
+// （should-1: 同 IP に複数 active が積み上がると一覧の見通しが悪くなるため）
 export async function createIpBan(
 	db: D1Database,
 	params: { ip: string; reason: string; expiresAt: string | null; bannedBy: number }
 ): Promise<void> {
+	const nowIso = nowIsoSeconds();
+	// 既存の active ban を全て物理削除してから INSERT。
+	await db
+		.prepare(
+			'DELETE FROM ip_bans WHERE ip = ? AND (expires_at IS NULL OR expires_at > ?)'
+		)
+		.bind(params.ip, nowIso)
+		.run();
 	await db
 		.prepare(
 			'INSERT INTO ip_bans (ip, reason, expires_at, banned_by) VALUES (?, ?, ?, ?)'
@@ -1008,7 +1020,7 @@ export async function removeIpBan(db: D1Database, id: number): Promise<void> {
 // IP ban を論理失効させる（expires_at = now）。履歴を残したいときに使う。
 // 現状の運用では removeIpBan を使う。将来の「unban 履歴を見たい」要件に備えて用意。
 export async function expireIpBan(db: D1Database, id: number): Promise<void> {
-	const nowIso = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+	const nowIso = nowIsoSeconds();
 	await db
 		.prepare('UPDATE ip_bans SET expires_at = ? WHERE id = ?')
 		.bind(nowIso, id)
