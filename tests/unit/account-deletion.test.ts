@@ -303,7 +303,7 @@ describe('deleteAccount action（統合）', () => {
 		const { verifyPassword } = await import('../../src/lib/server/auth');
 
 		if (!localsUser) {
-			return { status: 401 as const };
+			return { status: 302 as const, redirect: '/login' };
 		}
 		const userRow = await db
 			.prepare('SELECT * FROM users WHERE username = ?')
@@ -318,7 +318,7 @@ describe('deleteAccount action（統合）', () => {
 		}
 		const fullUser = await getUserById(db, userRow.id);
 		if (!fullUser || fullUser.deleted === 1) {
-			return { status: 400 as const, deleteAccountError: 'Account not found' };
+			return { status: 400 as const, deleteAccountError: 'Account already deleted' };
 		}
 		const valid = await verifyPassword(password, fullUser.password_hash);
 		if (!valid) {
@@ -328,7 +328,7 @@ describe('deleteAccount action（統合）', () => {
 		return { status: 303 as const, redirect: '/' };
 	}
 
-	it('未ログインなら 401', async () => {
+	it('未ログインなら /login に 302 リダイレクト', async () => {
 		const { db } = makeMockDB({ users: [{ id: 1, username: 'alice' }] });
 		const r = await callDeleteAccount({
 			db,
@@ -336,7 +336,8 @@ describe('deleteAccount action（統合）', () => {
 			params: { id: 'alice' },
 			password: 'pw'
 		});
-		expect(r.status).toBe(401);
+		expect(r.status).toBe(302);
+		expect((r as { redirect: string }).redirect).toBe('/login');
 	});
 
 	it('他人のアカウント削除は 403', async () => {
@@ -396,5 +397,57 @@ describe('deleteAccount action（統合）', () => {
 		expect(r.status).toBe(303);
 		expect(mock.users[0].deleted).toBe(1);
 		expect(mock.sessions.find((s) => s.user_id === 1)).toBeUndefined();
+	});
+});
+
+describe('displayUsername (falsy 値の網羅)', () => {
+	it('deleted=0 (number) は username を返す', async () => {
+		const { displayUsername } = await import('../../src/lib/format');
+		expect(displayUsername({ username: 'alice', deleted: 0 as 0 })).toBe('alice');
+	});
+
+	it('deleted=1 (number) は [deleted] を返す', async () => {
+		const { displayUsername } = await import('../../src/lib/format');
+		expect(displayUsername({ username: 'alice', deleted: 1 as 1 })).toBe('[deleted]');
+	});
+
+	it('deleted=null は username を返す', async () => {
+		const { displayUsername } = await import('../../src/lib/format');
+		expect(displayUsername({ username: 'alice', deleted: null })).toBe('alice');
+	});
+
+	it('deleted=undefined は username を返す', async () => {
+		const { displayUsername } = await import('../../src/lib/format');
+		expect(displayUsername({ username: 'alice', deleted: undefined })).toBe('alice');
+	});
+
+	// 型シグネチャは 0 | 1 | null | undefined だが、ランタイムで他の値が来ても
+	// !user.deleted の falsy 判定で破綻しないことを保証する。
+	it('deleted=true (型外) でも [deleted] 扱い（truthy）', async () => {
+		const { displayUsername } = await import('../../src/lib/format');
+		expect(
+			displayUsername({ username: 'alice', deleted: true as unknown as 1 })
+		).toBe('[deleted]');
+	});
+
+	it('deleted=false (型外) は username を返す（falsy）', async () => {
+		const { displayUsername } = await import('../../src/lib/format');
+		expect(
+			displayUsername({ username: 'alice', deleted: false as unknown as 0 })
+		).toBe('alice');
+	});
+});
+
+describe('isUsernameTaken (削除済み username の永久ロック)', () => {
+	it('削除済みユーザーの username で再 signup が弾かれる', async () => {
+		const { deleteAccount, isUsernameTaken } = await import('../../src/lib/server/db');
+		const { db } = makeMockDB({ users: [{ id: 1, username: 'alice' }] });
+		// 削除前から取られている
+		expect(await isUsernameTaken(db, 'alice')).toBe(true);
+		await deleteAccount(db, 1);
+		// 削除後も users 行は残るため取られたまま
+		expect(await isUsernameTaken(db, 'alice')).toBe(true);
+		// 別名は空いている
+		expect(await isUsernameTaken(db, 'bob')).toBe(false);
 	});
 });
