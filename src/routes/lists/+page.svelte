@@ -52,6 +52,10 @@
 			<td><a href="/newcomments">newcomments</a></td>
 			<td>新着コメント</td>
 		</tr>
+		<tr>
+			<td><a href="/polls">polls</a></td>
+			<td>投票（poll）一覧</td>
+		</tr>
 	</tbody></table>
 </div>
 

@@ -19,6 +19,23 @@ URL: https://hn.llll-ll.com
 - 投稿には要ログイン
 - レート制限: 同一ユーザーの連続投稿は10分間隔が必要。違反時は "You're submitting too fast. Please slow down." を表示
 
+### 投票投稿（poll, #74）
+
+本家HN /newpoll 相当。
+
+- `/newpoll` から投稿。要ログイン（karma 閾値なし）
+- フィールド: タイトル（1-80文字）、テキスト（任意、最大4000文字）、選択肢（改行区切り、2-10個、各1-300文字）
+- type='poll' として stories に保存。url は NULL
+- 各選択肢は `poll_options` テーブルに position 順で保存
+- 選択肢への投票は `votes` に `item_type='poll_option'` で記録。トグル式（再クリックで取り消し）
+- 1ユーザーが複数選択肢に重複投票可能
+- 選択肢への投票では karma 加算しない（投稿者・投票者の両方）
+- 一覧ページで `[poll]` タグを表示。`/polls` で投票投稿のみ一覧表示
+- `/submit` ページに「Or submit a poll」リンクあり
+- レート制限は `/submit` と同枠（同一ユーザーの連続投稿は10分間隔）。違反時は "You're submitting too fast. Please slow down." を表示
+- poll を削除（`[deleted]` 化）すると、選択肢テキストと既存の投票は残る（論理削除のため）。物理削除時のみ `poll_options` が `ON DELETE CASCADE` で消える
+- poll の編集（編集窓 2 時間以内）では type は `poll` のまま固定。タイトル先頭が `Ask HN:` / `Show HN:` でも type を書き換えない
+
 ### コメント
 
 - ネストスレッド（40px/段のインデント）

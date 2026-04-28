@@ -1,14 +1,15 @@
 <script lang="ts">
-	import { FLAG_KARMA_THRESHOLD } from '$lib/constants';
+	import { timeAgo, isNewUser } from '$lib/ranking';
 	import { displayUsername } from '$lib/format';
-	import { timeAgo, extractDomain, isNewUser } from '$lib/ranking';
+	import { FLAG_KARMA_THRESHOLD } from '$lib/constants';
 
 	let { data } = $props();
 	let votedIds = $derived(new Set(data.votedIds));
 	let flaggedIds = $derived(new Set(data.flaggedIds ?? []));
+	let hiddenIdsServer = $derived(new Set(data.hiddenIds ?? []));
 	let localVotedIds = $state<Set<number> | null>(null);
 	let localPoints = $state<Record<number, number>>({});
-	let localUnhiddenIds = $state<Set<number>>(new Set());
+	let localHiddenIds = $state<Set<number>>(new Set());
 	let localFlaggedIds = $state<Set<number> | null>(null);
 	let localFlagCounts = $state<Record<number, number>>({});
 
@@ -22,6 +23,14 @@
 
 	function getFlagCount(story: { id: number; flag_count?: number }): number {
 		return localFlagCounts[story.id] ?? story.flag_count ?? 0;
+	}
+
+	function getPoints(story: { id: number; points: number }): number {
+		return localPoints[story.id] ?? story.points;
+	}
+
+	function isHidden(id: number): boolean {
+		return hiddenIdsServer.has(id) || localHiddenIds.has(id);
 	}
 
 	function canFlag(story: { user_id: number }): boolean {
@@ -45,21 +54,10 @@
 			else next.delete(storyId);
 			localFlaggedIds = next;
 			localFlagCounts = { ...localFlagCounts, [storyId]: result.flagCount };
-		} else if (res.status === 403) {
-			const result = (await res.json()) as { error?: string };
-			alert(result.error || 'Permission denied');
 		}
 	}
 
-	function getPoints(story: { id: number; points: number }): number {
-		return localPoints[story.id] ?? story.points;
-	}
-
-	function isUnhidden(id: number): boolean {
-		return localUnhiddenIds.has(id);
-	}
-
-	async function unhide(storyId: number) {
+	async function hide(storyId: number) {
 		const res = await fetch('/api/hide', {
 			method: 'POST',
 			headers: { 'Content-Type': 'application/json' },
@@ -67,10 +65,10 @@
 		});
 		if (res.ok) {
 			const result: { hidden: boolean } = await res.json();
-			if (!result.hidden) {
-				const next = new Set(localUnhiddenIds);
+			if (result.hidden) {
+				const next = new Set(localHiddenIds);
 				next.add(storyId);
-				localUnhiddenIds = next;
+				localHiddenIds = next;
 			}
 		}
 	}
@@ -89,23 +87,20 @@
 			const result: { voteState: 'up' | 'down' | null; points: number } = await res.json();
 			localPoints = { ...localPoints, [storyId]: result.points };
 			const next = new Set(getVotedIds());
-			if (result.voteState === 'up') {
-				next.add(storyId);
-			} else {
-				next.delete(storyId);
-			}
+			if (result.voteState === 'up') next.add(storyId);
+			else next.delete(storyId);
 			localVotedIds = next;
 		}
 	}
 </script>
 
 <svelte:head>
-	<title>{data.username}'s hidden | ハッカーのろし</title>
+	<title>Polls | ハッカーのろし</title>
 </svelte:head>
 
-<div class="story-list" style="padding-left: 40px;">
-	{#each data.hidden as story, i}
-		{#if !isUnhidden(story.id)}
+<div class="story-list">
+	{#each data.stories as story, i}
+		{#if !isHidden(story.id)}
 		<div class="story-item">
 			<span class="story-rank">{(data.page - 1) * 30 + i + 1}.</span>
 			<span class="story-vote">
@@ -120,13 +115,8 @@
 			</span>
 			<div class="story-content" class:faded={story.dead === 1}>
 				<div class="story-title-line">
-					{#if story.url}
-						<a href={story.url} class="story-title">{story.title}</a>
-						<span class="story-domain">({extractDomain(story.url)})</span>
-					{:else}
-						<a href="/item/{story.id}" class="story-title">{story.title}</a>
-					{/if}
-					{#if story.type === 'poll'} <span class="story-tag">[poll]</span>{/if}
+					<a href="/item/{story.id}" class="story-title">{story.title}</a>
+					<span class="story-tag">[poll]</span>
 					{#if getFlagCount(story) > 0} <span class="story-tag">[flagged]</span>{/if}
 					{#if story.dead === 1} <span class="story-tag">[dead]</span>{/if}
 				</div>
@@ -134,10 +124,10 @@
 					{getPoints(story)} point{getPoints(story) !== 1 ? 's' : ''} by
 					<a href="/user/{story.username}" style={isNewUser(story.user_created_at) ? 'color: #3c963c;' : ''}>{displayUsername({ username: story.username, deleted: story.user_deleted })}</a>
 					<a href="/item/{story.id}">{timeAgo(story.created_at)}</a> |
-					<a href="/item/{story.id}"
-						>{story.comment_count} comment{story.comment_count !== 1 ? 's' : ''}</a
-					>
-					| <a href="#unhide" onclick={(e) => { e.preventDefault(); unhide(story.id); }}>un-hide</a>
+					<a href="/item/{story.id}">{story.comment_count} comment{story.comment_count !== 1 ? 's' : ''}</a>
+					{#if data.user}
+						| <a href="#hide" onclick={(e) => { e.preventDefault(); hide(story.id); }}>hide</a>
+					{/if}
 					{#if canFlag(story)}
 						| <a href="#flag" onclick={(e) => { e.preventDefault(); flag(story.id); }}>{getFlaggedIds().has(story.id) ? 'un-flag' : 'flag'}</a>
 					{/if}
@@ -148,8 +138,8 @@
 	{/each}
 </div>
 
-{#if data.hidden.length === 30}
+{#if data.stories.length === 30}
 	<div class="more-link">
-		<a href="/user/{data.username}/hidden?p={data.page + 1}">More</a>
+		<a href="/polls?p={data.page + 1}">More</a>
 	</div>
 {/if}

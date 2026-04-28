@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { getDB, getVoteState, getCommentById } from '$lib/server/db';
+import { getDB, getVoteState, getCommentById, getPollOptionById } from '$lib/server/db';
 
 export const POST: RequestHandler = async ({ request, platform, locals }) => {
 	if (!locals.user) {
@@ -12,8 +12,44 @@ export const POST: RequestHandler = async ({ request, platform, locals }) => {
 	const { itemId, itemType } = body;
 	const direction = body.direction === 'down' ? 'down' : 'up';
 
-	if (!itemId || !itemType || !['story', 'comment'].includes(itemType)) {
+	if (!itemId || !itemType || !['story', 'comment', 'poll_option'].includes(itemType)) {
 		return json({ error: 'Invalid request' }, { status: 400 });
+	}
+
+	// poll_option の場合は実在確認 + type='poll' の story に紐づくことを検証する。
+	// poll_option は points/karma カラムを持たないため、独自の分岐で処理する。
+	if (itemType === 'poll_option') {
+		if (direction === 'down') {
+			return json({ error: 'Poll options cannot be downvoted' }, { status: 400 });
+		}
+		const option = await getPollOptionById(db, itemId);
+		if (!option) {
+			return json({ error: 'Poll option not found' }, { status: 404 });
+		}
+		const currentVote = await getVoteState(db, locals.user.id, itemId, 'poll_option');
+		// INSERT/DELETE と COUNT を D1 batch で一括化して原子性を保つ
+		// （部分失敗で UI と DB が乖離するのを防ぐ）。
+		const mutateStmt =
+			currentVote === null
+				? db
+						.prepare(
+							"INSERT INTO votes (user_id, item_id, item_type, vote_type) VALUES (?, ?, 'poll_option', 'up')"
+						)
+						.bind(locals.user.id, itemId)
+				: db
+						.prepare(
+							"DELETE FROM votes WHERE user_id = ? AND item_id = ? AND item_type = 'poll_option'"
+						)
+						.bind(locals.user.id, itemId);
+		const countStmt = db
+			.prepare(
+				"SELECT COUNT(*) as n FROM votes WHERE item_id = ? AND item_type = 'poll_option' AND vote_type = 'up'"
+			)
+			.bind(itemId);
+		const batchResults = await db.batch<{ n: number }>([mutateStmt, countStmt]);
+		const countRow = batchResults[1].results?.[0];
+		const newState = currentVote === null ? 'up' : null;
+		return json({ voteState: newState, points: countRow?.n ?? 0 });
 	}
 
 	// Downvote restrictions

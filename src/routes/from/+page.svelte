@@ -128,6 +128,7 @@
 					{:else}
 						<a href="/item/{story.id}" class="story-title">{story.title}</a>
 					{/if}
+					{#if story.type === 'poll'} <span class="story-tag">[poll]</span>{/if}
 					{#if getFlagCount(story) > 0} <span class="story-tag">[flagged]</span>{/if}
 					{#if story.dead === 1} <span class="story-tag">[dead]</span>{/if}
 				</div>

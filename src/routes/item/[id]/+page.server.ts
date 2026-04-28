@@ -1,5 +1,5 @@
 import type { PageServerLoad, Actions } from './$types';
-import { getDB, getStoryById, getCommentsByStoryId, getCommentById, getChildComments, getCommentVoteStates, getVoteState, hasFavorited, hasFlagged, hasHidden, getFlaggedItemIds } from '$lib/server/db';
+import { getDB, getStoryById, getCommentsByStoryId, getCommentById, getChildComments, getCommentVoteStates, getVoteState, hasFavorited, hasFlagged, hasHidden, getFlaggedItemIds, getPollOptions, getPollOptionsVoted } from '$lib/server/db';
 import { TWO_WEEKS_MS } from '$lib/ranking';
 import { error, fail, redirect } from '@sveltejs/kit';
 
@@ -42,6 +42,17 @@ export const load: PageServerLoad = async ({ params, platform, locals }) => {
 			storyHidden = hidden;
 		}
 
+		// poll の場合は選択肢と投票状況も取得する。
+		let pollOptions: Awaited<ReturnType<typeof getPollOptions>> = [];
+		let pollVotedOptionIds: number[] = [];
+		if (story.type === 'poll') {
+			pollOptions = await getPollOptions(db, story.id);
+			if (locals.user) {
+				const voted = await getPollOptionsVoted(db, locals.user.id, story.id);
+				pollVotedOptionIds = Array.from(voted);
+			}
+		}
+
 		return {
 			mode: 'story' as const,
 			story,
@@ -51,7 +62,9 @@ export const load: PageServerLoad = async ({ params, platform, locals }) => {
 			storyFlagged,
 			storyHidden,
 			commentVoteStates: Object.fromEntries(commentVoteStates),
-			flaggedCommentIds: Array.from(flaggedCommentIds)
+			flaggedCommentIds: Array.from(flaggedCommentIds),
+			pollOptions,
+			pollVotedOptionIds
 		};
 	}
 
@@ -91,7 +104,9 @@ export const load: PageServerLoad = async ({ params, platform, locals }) => {
 		commentVoted,
 		commentFlagged,
 		commentVoteStates: Object.fromEntries(commentVoteStates),
-		flaggedCommentIds: Array.from(flaggedCommentIds)
+		flaggedCommentIds: Array.from(flaggedCommentIds),
+		pollOptions: [] as Awaited<ReturnType<typeof getPollOptions>>,
+		pollVotedOptionIds: [] as number[]
 	};
 };
 
@@ -188,11 +203,19 @@ export const actions: Actions = {
 			return fail(400, { error: 'Title is required' });
 		}
 
-		let type = 'story';
-		if (title.startsWith('Ask HN:')) {
+		// poll の編集では type='poll' を維持する。タイトル先頭が "Ask HN:" / "Show HN:"
+		// に変わっても type を書き換えない（書き換えると poll_options への参照は残るが
+		// /polls 一覧や [poll] タグから外れて poll 機能が事実上消失するため）。
+		// poll 以外は従来どおり title から自動判定。
+		let type: string;
+		if (story.type === 'poll') {
+			type = 'poll';
+		} else if (title.startsWith('Ask HN:')) {
 			type = 'ask';
 		} else if (title.startsWith('Show HN:')) {
 			type = 'show';
+		} else {
+			type = 'story';
 		}
 
 		await db

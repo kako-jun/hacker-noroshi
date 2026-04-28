@@ -71,6 +71,15 @@ export interface IpBanRow {
 	banned_by: number | null;
 }
 
+export interface PollOptionRow {
+	id: number;
+	story_id: number;
+	text: string;
+	position: number;
+	created_at: string;
+	vote_count: number;
+}
+
 export interface SessionRow {
 	id: string;
 	user_id: number;
@@ -1025,4 +1034,128 @@ export async function expireIpBan(db: D1Database, id: number): Promise<void> {
 		.prepare('UPDATE ip_bans SET expires_at = ? WHERE id = ?')
 		.bind(nowIso, id)
 		.run();
+}
+
+// ===== Poll (#74) =====
+//
+// 本家HN の /newpoll 相当。type='poll' の stories と poll_options を 1:N で対応させ、
+// 各 option への投票は votes(item_type='poll_option') として記録する。
+// karma は **加算しない**（HN 仕様）。複数 option への重複投票可。
+
+// poll を新規作成する。
+//
+// SQLite の last_insert_rowid() は「直近に rowid テーブルへ INSERT された行の rowid」を
+// テーブル無関係に返す仕様のため、batch 内で複数 poll_options を last_insert_rowid() で
+// 連結すると 2 つ目以降は直前の poll_option.id を story_id として保存してしまう。
+// よって以下の 2 段階で実装する:
+//   1. stories INSERT を単独実行し meta.last_row_id から storyId を取得
+//   2. storyId を明示 bind した poll_options 全件 + 自動 upvote を 1 batch で投入
+//      失敗時は手動で stories を DELETE してロールバック（孤児 stories を残さない）
+export async function createPoll(
+	db: D1Database,
+	params: { userId: number; title: string; text: string | null; options: string[] }
+): Promise<number> {
+	const storyResult = await db
+		.prepare(
+			"INSERT INTO stories (title, url, text, user_id, type) VALUES (?, NULL, ?, ?, 'poll')"
+		)
+		.bind(params.title, params.text, params.userId)
+		.run();
+	const storyId = storyResult.meta.last_row_id as number;
+
+	const stmts: D1PreparedStatement[] = params.options.map((text, i) =>
+		db
+			.prepare('INSERT INTO poll_options (story_id, text, position) VALUES (?, ?, ?)')
+			.bind(storyId, text, i)
+	);
+	// 投稿者本人の自動 upvote（story 本体）
+	stmts.push(
+		db
+			.prepare("INSERT INTO votes (user_id, item_id, item_type) VALUES (?, ?, 'story')")
+			.bind(params.userId, storyId)
+	);
+
+	try {
+		await db.batch(stmts);
+	} catch (err) {
+		// options or vote の batch が失敗したら stories を手動で消して整合を保つ
+		await db.prepare('DELETE FROM stories WHERE id = ?').bind(storyId).run();
+		throw err;
+	}
+	return storyId;
+}
+
+// 指定 story の poll_options を position 順で取得する。各 option の vote_count は
+// votes(item_type='poll_option', vote_type='up') の COUNT。
+export async function getPollOptions(
+	db: D1Database,
+	storyId: number
+): Promise<PollOptionRow[]> {
+	const result = await db
+		.prepare(
+			`SELECT po.id, po.story_id, po.text, po.position, po.created_at,
+				(SELECT COUNT(*) FROM votes v
+					WHERE v.item_id = po.id AND v.item_type = 'poll_option' AND v.vote_type = 'up') AS vote_count
+			FROM poll_options po
+			WHERE po.story_id = ?
+			ORDER BY po.position ASC`
+		)
+		.bind(storyId)
+		.all<PollOptionRow>();
+	return result.results;
+}
+
+// ログインユーザーが投票済みの option_id Set を返す。
+export async function getPollOptionsVoted(
+	db: D1Database,
+	userId: number,
+	storyId: number
+): Promise<Set<number>> {
+	const result = await db
+		.prepare(
+			`SELECT v.item_id FROM votes v
+			JOIN poll_options po ON po.id = v.item_id
+			WHERE v.user_id = ? AND v.item_type = 'poll_option' AND v.vote_type = 'up' AND po.story_id = ?`
+		)
+		.bind(userId, storyId)
+		.all<{ item_id: number }>();
+	return new Set(result.results.map((r) => r.item_id));
+}
+
+// poll_option の存在確認 + どの story に紐づくかを返す。/api/vote のバリデーション用。
+// dead な poll への投票は弾く（s.dead = 0 で絞り込み）。
+export async function getPollOptionById(
+	db: D1Database,
+	id: number
+): Promise<{ id: number; story_id: number } | null> {
+	const result = await db
+		.prepare(
+			`SELECT po.id, po.story_id FROM poll_options po
+			JOIN stories s ON s.id = po.story_id
+			WHERE po.id = ? AND s.type = 'poll' AND s.dead = 0`
+		)
+		.bind(id)
+		.first<{ id: number; story_id: number }>();
+	return result;
+}
+
+// /polls 一覧用。type='poll' の stories を points 降順 + 新しい順で返す。
+export async function getPolls(
+	db: D1Database,
+	page: number = 1,
+	limit: number = 30,
+	showdead: boolean = false
+): Promise<StoryRow[]> {
+	const offset = (page - 1) * limit;
+	const deadFilter = showdead ? '' : 'AND s.dead = 0';
+	const sql = `
+		SELECT s.*, u.username, u.created_at as user_created_at, u.deleted as user_deleted, ${STORY_FLAG_COUNT_SQL}
+		FROM stories s
+		JOIN users u ON s.user_id = u.id
+		WHERE s.type = 'poll' ${deadFilter}
+		ORDER BY s.points DESC, s.created_at DESC
+		LIMIT ? OFFSET ?
+	`;
+	const result = await db.prepare(sql).bind(limit, offset).all<StoryRow>();
+	return result.results;
 }
