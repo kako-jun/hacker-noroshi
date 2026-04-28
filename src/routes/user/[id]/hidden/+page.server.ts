@@ -29,6 +29,7 @@ export const load: PageServerLoad = async ({ params, url, platform, locals }) =>
 	}
 
 	return {
+		userDeleted: user.deleted,
 		username: user.username,
 		hidden,
 		votedIds: Array.from(votedIds),

@@ -19,7 +19,9 @@
 </svelte:head>
 
 <div class="user-profile" style="padding-left: 40px;">
-	{#if data.isOwnProfile}
+	{#if data.profile.deleted === 1}
+		<p style="font-size: 9pt;">This user has deleted their account.</p>
+	{:else if data.isOwnProfile}
 		<form method="POST" action="?/update" use:enhance>
 			<table style="border-spacing: 0;">
 				<tbody>
@@ -150,10 +152,54 @@
 		</div>
 	{/if}
 
+	{#if data.isOwnProfile}
+		<div style="margin-top: 14pt; padding-left: 50px;">
+			<p style="font-size: 9pt; margin: 0 0 4pt 0;"><b>Delete account</b></p>
+			{#if form?.deleteAccountError}
+				<p style="font-size: 9pt; color: #ff6600; margin: 0 0 4pt 0;">{form.deleteAccountError}</p>
+			{/if}
+			<p style="font-size: 8pt; color: #828282; margin: 0 0 6pt 0;">
+				アカウントを削除すると元に戻せません。投稿とコメントは <code>[deleted]</code> としてスレッドに残ります。削除済みユーザー名は再取得できません。
+			</p>
+			<form
+				method="POST"
+				action="?/deleteAccount"
+				use:enhance={({ cancel }) => {
+					if (!confirm('本当にアカウントを削除しますか？この操作は元に戻せません。')) {
+						cancel();
+					}
+					return async ({ update }) => {
+						await update();
+					};
+				}}
+			>
+				<table style="border-spacing: 0;">
+					<tbody>
+						<tr>
+							<td style="vertical-align: top; text-align: right; padding-right: 4px;"><label for="deletePassword">password:</label></td>
+							<td>
+								<input id="deletePassword" type="password" name="password" size="20" required autocomplete="current-password" style="font-family: monospace; font-size: 9pt;" />
+							</td>
+						</tr>
+						<tr>
+							<td></td>
+							<td>
+								<button type="submit" style="font-family: Verdana, Geneva, sans-serif; font-size: 8pt;">delete account</button>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</form>
+		</div>
+	{/if}
+
 	<div style="margin-top: 10px; padding-left: 50px; font-size: 10pt;">
 		<a href="/user/{data.profile.username}/submissions" style="text-decoration: underline; color: #828282;">submissions</a><br />
-		<a href="/user/{data.profile.username}/comments" style="text-decoration: underline; color: #828282;">comments</a><br />
-		<a href="/user/{data.profile.username}/favorites" style="text-decoration: underline; color: #828282;">favorites</a>
+		<a href="/user/{data.profile.username}/comments" style="text-decoration: underline; color: #828282;">comments</a>
+		{#if data.profile.deleted !== 1}
+			<br />
+			<a href="/user/{data.profile.username}/favorites" style="text-decoration: underline; color: #828282;">favorites</a>
+		{/if}
 		{#if data.isOwnProfile}
 			<br />
 			<a href="/user/{data.profile.username}/hidden" style="text-decoration: underline; color: #828282;">hidden</a>
