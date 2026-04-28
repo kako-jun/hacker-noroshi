@@ -95,7 +95,7 @@ CREATE TABLE IF NOT EXISTS ip_bans (
   reason TEXT NOT NULL DEFAULT '',
   banned_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
   expires_at TEXT,
-  banned_by INTEGER REFERENCES users(id)
+  banned_by INTEGER REFERENCES users(id) ON DELETE SET NULL
 );
 
 CREATE TABLE IF NOT EXISTS flags (
