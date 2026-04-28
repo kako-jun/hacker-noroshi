@@ -5,7 +5,7 @@
 </script>
 
 <svelte:head>
-	<title>Submit | ハッカーのろし</title>
+	<title>Submit Poll | ハッカーのろし</title>
 </svelte:head>
 
 <div class="hn-form">
@@ -21,15 +21,12 @@
 					<td><input type="text" name="title" value={form?.title ?? ''} maxlength="80" size="50" /></td>
 				</tr>
 				<tr>
-					<td>url</td>
-					<td><input type="url" name="url" value={form?.url ?? ''} size="50" /></td>
-				</tr>
-				<tr>
-					<td colspan="2" style="text-align: center; padding: 10px 0; font-size: 9pt; color: #828282;">or</td>
-				</tr>
-				<tr>
 					<td>text</td>
 					<td><textarea name="text" rows="4" cols="49">{form?.text ?? ''}</textarea></td>
+				</tr>
+				<tr>
+					<td style="vertical-align: top;">choices</td>
+					<td><textarea name="options" rows="8" cols="49">{form?.options ?? ''}</textarea></td>
 				</tr>
 				<tr>
 					<td></td>
@@ -40,11 +37,6 @@
 	</form>
 
 	<div class="form-note">
-		Leave url blank to submit a question for discussion. If the title begins with
-		"Ask HN:" or "Show HN:", it will be categorized accordingly.
-	</div>
-
-	<div class="form-note">
-		Or <a href="/newpoll">submit a poll</a>.
+		Choices: one per line, blank lines OK between. Minimum 2, maximum 10. Each choice up to 300 characters.
 	</div>
 </div>
