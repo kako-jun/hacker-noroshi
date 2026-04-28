@@ -69,6 +69,16 @@ score = (points - 1) / (hours_since_post + 2) ^ 1.8
 ユーザー名: 3-15文字、英数字+アンダースコア+ハイフン
 新規ユーザー表示: アカウント作成から14日以内のユーザー名を緑色（#3c963c）で表示
 
+#### ユーザー名変更
+
+- プロフィールページ `/user/[id]` の「Change username」フォームから本人がセルフサービスで変更可能
+- 頻度制限: **90日に1回**まで。直前の変更時刻を `username_history.changed_at` から判定
+- バリデーション: signup と同じ規則（3-15文字、英数字+`_-`）。`validateUsernameFormat()` で共通化
+- 重複チェック: 現在の users.username だけでなく `username_history.old_username` も対象（過去に使われた名前は永久ロック、自分の旧名も含む）
+- 成功時: users.username を更新、`username_history` に旧名を insert（D1 batch でアトミック）、`/user/{new_username}` に **303 See Other** リダイレクト（form action の POST 後 GET 用、一時的な遷移）
+- 旧 URL（`/user/{old_username}` とその子ルート submissions/comments/favorites/hidden）は最新の username へ **301 Moved Permanently** リダイレクト（永続的）。連鎖変更（A→B→C）も最新まで解決。querystring（`?p=2` 等）は保持する
+- 本家HN FAQ #31「Can I change my username?」相当だが、本家とは異なりセルフサービスで完結する
+
 #### パスワードリセット
 
 - `/forgot` ページ: ユーザー名 + 登録メールアドレスで本人確認
@@ -200,6 +210,7 @@ score = ((points - 1) / (hours_since_post + 2)^1.8) / (flag_count + 1)^1.5
 - [x] パスワードリセット（username + email 照合で即時リセット、メール送信なし）
 - [x] フラグ・モデレーション（karma>=30 でフラグ可能、5件で dead 自動化、vouch で復活）
 - [x] ランキング降格（flag 数で score にペナルティ）
+- [x] ユーザー名変更（セルフサービス、90日に1回、過去名は永久ロック、旧URLは301リダイレクト）
 
 ## v2 以降
 - ~~フラグ / モデレーション~~ → v1 で実装済み（flag/vouch、dead カラム、ランキング降格）

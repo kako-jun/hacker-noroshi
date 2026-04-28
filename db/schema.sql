@@ -69,6 +69,14 @@ CREATE TABLE IF NOT EXISTS hidden (
   PRIMARY KEY (user_id, story_id)
 );
 
+CREATE TABLE IF NOT EXISTS username_history (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  old_username TEXT NOT NULL,
+  new_username TEXT NOT NULL,
+  changed_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+);
+
 CREATE TABLE IF NOT EXISTS flags (
   user_id INTEGER NOT NULL REFERENCES users(id),
   item_id INTEGER NOT NULL,
@@ -89,3 +97,5 @@ CREATE INDEX IF NOT EXISTS idx_comments_user_id ON comments(user_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON sessions(user_id);
 CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
 CREATE INDEX IF NOT EXISTS idx_flags_item ON flags(item_id, item_type);
+CREATE INDEX IF NOT EXISTS idx_username_history_old ON username_history(old_username);
+CREATE INDEX IF NOT EXISTS idx_username_history_user ON username_history(user_id);
