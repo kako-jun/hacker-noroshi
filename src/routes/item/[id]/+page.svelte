@@ -662,10 +662,10 @@
 		{/if}
 
 		{#if data.story.type === 'poll' && data.pollOptions && data.pollOptions.length > 0}
-			<div class="poll-options" style="padding-left: 18px; margin-top: 8pt;">
+			<div class="poll-options">
 				{#each data.pollOptions as opt}
-					<div class="poll-option" style="margin-bottom: 4pt;">
-						<span class="story-vote" style="margin-right: 4px;">
+					<div class="poll-option">
+						<span class="story-vote poll-option-vote">
 							<button
 								class="upvote"
 								class:voted={getPollVotedIds().has(opt.id)}
@@ -675,8 +675,8 @@
 								&#9650;
 							</button>
 						</span>
-						<span class="poll-option-text" style="font-size: 10pt;">{opt.text}</span>
-						<div class="poll-option-meta" style="padding-left: 18px; font-size: 7pt; color: #828282;">
+						<span class="poll-option-text">{opt.text}</span>
+						<div class="poll-option-meta">
 							{getPollOptionCount(opt)} point{getPollOptionCount(opt) !== 1 ? 's' : ''}
 						</div>
 					</div>
@@ -806,3 +806,26 @@
 		</div>
 	</div>
 {/if}
+
+<style>
+	/* poll 選択肢ブロック専用のスタイル。インラインスタイル散らかし対策で
+	   重複していた値（padding-left, font-size 等）を1箇所に集約。 */
+	.poll-options {
+		padding-left: 18px;
+		margin-top: 8pt;
+	}
+	.poll-option {
+		margin-bottom: 4pt;
+	}
+	.poll-option-vote {
+		margin-right: 4px;
+	}
+	.poll-option-text {
+		font-size: 10pt;
+	}
+	.poll-option-meta {
+		padding-left: 18px;
+		font-size: 7pt;
+		color: #828282;
+	}
+</style>
