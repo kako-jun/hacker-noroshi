@@ -107,3 +107,18 @@ wrangler d1 execute hacker-noroshi-db --remote --command "CREATE INDEX IF NOT EX
 ```
 
 ローカル開発 DB にも `--local` で同じコマンドを流す。
+
+### #74 投票投稿（本番反映手順）
+
+`stories.type` と `votes.item_type` の CHECK 制約を変更する必要がある。
+SQLite/D1 は CHECK 制約の ALTER に非対応のため、**新規 DB を再作成するか、テーブル再作成（CREATE TABLE ... AS SELECT で移行）が必要**。本番未公開の現段階では新規 DB に schema.sql を投入し直すのが最短。
+
+```bash
+# poll_options テーブル + インデックス（追加のみで済む新規パーツ）
+wrangler d1 execute hacker-noroshi-db --remote --command "CREATE TABLE IF NOT EXISTS poll_options (id INTEGER PRIMARY KEY AUTOINCREMENT, story_id INTEGER NOT NULL REFERENCES stories(id), text TEXT NOT NULL, position INTEGER NOT NULL, created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')))"
+wrangler d1 execute hacker-noroshi-db --remote --command "CREATE INDEX IF NOT EXISTS idx_poll_options_story ON poll_options(story_id)"
+
+# stories.type / votes.item_type の CHECK 拡張は table 再作成が必要。
+# 既存 DB が空または捨てて良いなら schema.sql を再投入する:
+#   wrangler d1 execute hacker-noroshi-db --remote --file=db/schema.sql
+```
