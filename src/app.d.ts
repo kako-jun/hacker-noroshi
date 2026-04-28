@@ -13,6 +13,7 @@ declare global {
 				minaway: number;
 				showdead: number;
 				last_visit: string | null;
+				is_admin: number;
 			} | null;
 		}
 		interface Platform {

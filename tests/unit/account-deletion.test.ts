@@ -116,7 +116,7 @@ function makeMockDB(initial?: { users?: Partial<UserRecord>[]; sessions?: Sessio
 
 		// getSession 用（deleted=0 フィルタを含む）
 		if (
-			/^SELECT u\.id, u\.username, u\.karma, u\.delay, u\.noprocrast, u\.maxvisit, u\.minaway, u\.showdead, u\.last_visit FROM sessions s JOIN users u ON s\.user_id = u\.id WHERE s\.id = \? AND s\.expires_at > datetime\('now'\) AND u\.deleted = 0$/i.test(
+			/^SELECT u\.id, u\.username, u\.karma, u\.delay, u\.noprocrast, u\.maxvisit, u\.minaway, u\.showdead, u\.last_visit, u\.is_admin FROM sessions s JOIN users u ON s\.user_id = u\.id WHERE s\.id = \? AND s\.expires_at > datetime\('now'\) AND u\.deleted = 0$/i.test(
 				s
 			)
 		) {
@@ -133,7 +133,8 @@ function makeMockDB(initial?: { users?: Partial<UserRecord>[]; sessions?: Sessio
 				maxvisit: u.maxvisit,
 				minaway: u.minaway,
 				showdead: u.showdead,
-				last_visit: u.last_visit
+				last_visit: u.last_visit,
+				is_admin: 0
 			};
 			return { all: [row], first: row };
 		}

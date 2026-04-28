@@ -83,3 +83,27 @@ wrangler d1 execute hacker-noroshi-db --remote --command "ALTER TABLE users ADD 
 ```
 
 ローカル開発 DB にも `--local` で同じコマンドを流す。
+
+### #77 IP ban / 管理者フラグ（本番反映手順）
+
+> **重要: 本番は必ず Cloudflare 経由でアクセスさせること。直結を許すと CF-Connecting-IP ヘッダ偽装で ban を回避される。**
+>
+> hooks.server.ts は `CF-Connecting-IP` ヘッダを優先してクライアント IP を取得する。
+> Cloudflare 越しでは Cloudflare がこのヘッダを上書きするので信頼できるが、
+> Pages のオリジンに直接到達できる経路があると、攻撃者が任意のヘッダで ban を回避できる。
+> Cloudflare Access / Tunnel / Zero Trust などで直結経路を塞ぐこと。
+
+```bash
+# users.is_admin カラム追加
+wrangler d1 execute hacker-noroshi-db --remote --command "ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0"
+
+# 初期管理者を付与（id=1 = noroshi。実際の管理者ユーザー id に合わせて調整）
+wrangler d1 execute hacker-noroshi-db --remote --command "UPDATE users SET is_admin = 1 WHERE id = 1"
+
+# ip_bans テーブル + インデックス
+wrangler d1 execute hacker-noroshi-db --remote --command "CREATE TABLE IF NOT EXISTS ip_bans (id INTEGER PRIMARY KEY AUTOINCREMENT, ip TEXT NOT NULL, reason TEXT NOT NULL DEFAULT '', banned_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')), expires_at TEXT, banned_by INTEGER REFERENCES users(id))"
+wrangler d1 execute hacker-noroshi-db --remote --command "CREATE INDEX IF NOT EXISTS idx_ip_bans_ip ON ip_bans(ip)"
+wrangler d1 execute hacker-noroshi-db --remote --command "CREATE INDEX IF NOT EXISTS idx_ip_bans_expires ON ip_bans(expires_at)"
+```
+
+ローカル開発 DB にも `--local` で同じコマンドを流す。

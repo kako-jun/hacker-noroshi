@@ -1,3 +1,5 @@
+import { nowIsoSeconds } from '../format';
+
 export function getDB(platform: App.Platform | undefined): D1Database {
 	if (!platform?.env?.DB) {
 		throw new Error(
@@ -55,6 +57,18 @@ export interface UserRow {
 	created_at: string;
 	deleted: number;
 	deleted_at: string | null;
+	is_admin: number;
+}
+
+// IP ban の行型（#77）。expires_at が NULL のときは無期限 ban、
+// 未来の ISO8601 文字列のときは時限 ban、過去のときは active ではない（自動失効）。
+export interface IpBanRow {
+	id: number;
+	ip: string;
+	reason: string;
+	banned_at: string;
+	expires_at: string | null;
+	banned_by: number | null;
 }
 
 export interface SessionRow {
@@ -936,4 +950,79 @@ export async function getFlagCount(
 		.bind(itemId, itemType)
 		.first<{ n: number }>();
 	return result?.n ?? 0;
+}
+
+// ===== IP ban (#77) =====
+//
+// active な ban の判定: expires_at IS NULL（無期限）または expires_at > now。
+// 過去日時の expires_at は自動失効扱いとし、active には含めない。
+// 失効した行は DELETE で物理削除（履歴保持は将来要件）。
+//
+// CAPTCHA セルフ unban (#91) と自動 ban (#92) は別 Issue で実装する。
+
+// 該当 IP に active な ban があれば返す。なければ null。
+// 同 IP に複数 ban が積まれていた場合は banned_at 最新を採用。
+export async function getActiveBan(db: D1Database, ip: string): Promise<IpBanRow | null> {
+	const nowIso = nowIsoSeconds();
+	const row = await db
+		.prepare(
+			`SELECT * FROM ip_bans
+			WHERE ip = ? AND (expires_at IS NULL OR expires_at > ?)
+			ORDER BY banned_at DESC LIMIT 1`
+		)
+		.bind(ip, nowIso)
+		.first<IpBanRow>();
+	return row;
+}
+
+// admin 一覧用。active な ban のみを新しい順で返す。
+export async function listActiveBans(db: D1Database): Promise<IpBanRow[]> {
+	const nowIso = nowIsoSeconds();
+	const result = await db
+		.prepare(
+			`SELECT * FROM ip_bans
+			WHERE expires_at IS NULL OR expires_at > ?
+			ORDER BY banned_at DESC`
+		)
+		.bind(nowIso)
+		.all<IpBanRow>();
+	return result.results;
+}
+
+// IP ban を作成する。expiresAt が null のときは無期限 ban。
+// 重複防止のため、同 IP の既存 active ban は INSERT 前に物理削除して上書きする。
+// （should-1: 同 IP に複数 active が積み上がると一覧の見通しが悪くなるため）
+export async function createIpBan(
+	db: D1Database,
+	params: { ip: string; reason: string; expiresAt: string | null; bannedBy: number }
+): Promise<void> {
+	const nowIso = nowIsoSeconds();
+	// 既存の active ban を全て物理削除してから INSERT。
+	await db
+		.prepare(
+			'DELETE FROM ip_bans WHERE ip = ? AND (expires_at IS NULL OR expires_at > ?)'
+		)
+		.bind(params.ip, nowIso)
+		.run();
+	await db
+		.prepare(
+			'INSERT INTO ip_bans (ip, reason, expires_at, banned_by) VALUES (?, ?, ?, ?)'
+		)
+		.bind(params.ip, params.reason, params.expiresAt, params.bannedBy)
+		.run();
+}
+
+// IP ban を物理削除する（unban）。
+export async function removeIpBan(db: D1Database, id: number): Promise<void> {
+	await db.prepare('DELETE FROM ip_bans WHERE id = ?').bind(id).run();
+}
+
+// IP ban を論理失効させる（expires_at = now）。履歴を残したいときに使う。
+// 現状の運用では removeIpBan を使う。将来の「unban 履歴を見たい」要件に備えて用意。
+export async function expireIpBan(db: D1Database, id: number): Promise<void> {
+	const nowIso = nowIsoSeconds();
+	await db
+		.prepare('UPDATE ip_bans SET expires_at = ? WHERE id = ?')
+		.bind(nowIso, id)
+		.run();
 }
