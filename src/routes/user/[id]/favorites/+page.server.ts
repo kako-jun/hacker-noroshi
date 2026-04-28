@@ -7,7 +7,7 @@ export const load: PageServerLoad = async ({ params, url, platform, locals }) =>
 	const username = params.id;
 	const page = parseInt(url.searchParams.get('p') || '1', 10);
 
-	const user = await resolveUserOrRedirect(db, username, '/favorites');
+	const user = await resolveUserOrRedirect(db, username, '/favorites', url);
 
 	const showdead = locals.user?.showdead === 1;
 	const favorites = await getFavoriteStoriesByUserId(db, user.id, page, 30, showdead);

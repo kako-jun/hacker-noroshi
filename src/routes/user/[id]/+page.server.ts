@@ -3,6 +3,7 @@ import {
 	getDB,
 	getLastUsernameChange,
 	isUsernameTaken,
+	isUsernameUniqueConstraintError,
 	updateUsername,
 	validateUsernameFormat,
 	USERNAME_CHANGE_COOLDOWN_MS
@@ -10,11 +11,11 @@ import {
 import { resolveUserOrRedirect } from '$lib/server/userRoute';
 import { error, fail, redirect } from '@sveltejs/kit';
 
-export const load: PageServerLoad = async ({ params, platform, locals }) => {
+export const load: PageServerLoad = async ({ params, platform, locals, url }) => {
 	const db = getDB(platform);
 	const username = params.id;
 
-	const user = await resolveUserOrRedirect(db, username);
+	const user = await resolveUserOrRedirect(db, username, '', url);
 
 	const isOwnProfile = locals.user?.username === user.username;
 
@@ -49,16 +50,19 @@ export const load: PageServerLoad = async ({ params, platform, locals }) => {
 };
 
 export const actions: Actions = {
-	update: async ({ request, platform, locals, params }) => {
+	update: async ({ request, platform, locals, params, url }) => {
 		if (!locals.user) {
 			throw error(401, 'Not logged in');
 		}
 
-		if (locals.user.username !== params.id) {
-			throw error(403, 'Cannot edit another user\'s profile');
+		const db = getDB(platform);
+		// 認可は id ベース: params.id は旧 username の可能性があるため、
+		// resolveUserOrRedirect で実ユーザーを引いてから locals.user.id と比較する。
+		const user = await resolveUserOrRedirect(db, params.id, '', url);
+		if (locals.user.id !== user.id) {
+			throw error(403, "Cannot edit another user's profile");
 		}
 
-		const db = getDB(platform);
 		const formData = await request.formData();
 		const about = (formData.get('about') as string) ?? '';
 		const email = (formData.get('email') as string) ?? '';
@@ -73,23 +77,27 @@ export const actions: Actions = {
 
 		await db
 			.prepare(
-				`UPDATE users SET about = ?, email = ?, delay = ?, noprocrast = ?, maxvisit = ?, minaway = ?, showdead = ?${lastVisitClause} WHERE username = ?`
+				`UPDATE users SET about = ?, email = ?, delay = ?, noprocrast = ?, maxvisit = ?, minaway = ?, showdead = ?${lastVisitClause} WHERE id = ?`
 			)
-			.bind(about, email, delay, noprocrast, maxvisit, minaway, showdead, params.id)
+			.bind(about, email, delay, noprocrast, maxvisit, minaway, showdead, user.id)
 			.run();
 
 		return { success: true };
 	},
 
-	changeUsername: async ({ request, platform, locals, params }) => {
+	changeUsername: async ({ request, platform, locals, params, url }) => {
 		if (!locals.user) {
 			throw error(401, 'Not logged in');
 		}
-		if (locals.user.username !== params.id) {
+
+		const db = getDB(platform);
+		// 認可は id ベース: 旧名 URL から本人が POST しても 403 にならないように、
+		// resolveUserOrRedirect で実ユーザーを引いてから locals.user.id と比較する。
+		const user = await resolveUserOrRedirect(db, params.id, '', url);
+		if (locals.user.id !== user.id) {
 			throw error(403, "Cannot edit another user's profile");
 		}
 
-		const db = getDB(platform);
 		const formData = await request.formData();
 		const newUsername = ((formData.get('newUsername') as string) ?? '').trim();
 
@@ -99,12 +107,12 @@ export const actions: Actions = {
 		}
 
 		// 自分の現在 username と同じなら no-op エラーで返す
-		if (newUsername === locals.user.username) {
+		if (newUsername === user.username) {
 			return fail(400, { changeUsernameError: 'New username must differ from the current one' });
 		}
 
 		// 90日に1回の頻度制限
-		const last = await getLastUsernameChange(db, locals.user.id);
+		const last = await getLastUsernameChange(db, user.id);
 		if (last) {
 			const nextMs = new Date(last).getTime() + USERNAME_CHANGE_COOLDOWN_MS;
 			if (Date.now() < nextMs) {
@@ -120,8 +128,17 @@ export const actions: Actions = {
 			return fail(400, { changeUsernameError: 'That username is taken' });
 		}
 
-		const oldUsername = locals.user.username;
-		await updateUsername(db, locals.user.id, oldUsername, newUsername);
+		const oldUsername = user.username;
+		try {
+			await updateUsername(db, user.id, oldUsername, newUsername);
+		} catch (e) {
+			// users.username UNIQUE 違反（isUsernameTaken と batch の間に他リクエストが
+			// 同名を取った場合のレース）を 400 に変換
+			if (isUsernameUniqueConstraintError(e)) {
+				return fail(400, { changeUsernameError: 'That username is taken' });
+			}
+			throw e;
+		}
 
 		// セッションの username も更新（hooks.server.ts で users から再取得されるが、
 		// 即時反映のため redirect 先 URL を新名にする）。Cookie 自体は user_id を

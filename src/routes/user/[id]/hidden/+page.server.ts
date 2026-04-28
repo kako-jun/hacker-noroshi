@@ -8,9 +8,11 @@ export const load: PageServerLoad = async ({ params, url, platform, locals }) =>
 	const username = params.id;
 	const page = parseInt(url.searchParams.get('p') || '1', 10);
 
-	const user = await resolveUserOrRedirect(db, username, '/hidden');
+	const user = await resolveUserOrRedirect(db, username, '/hidden', url);
 
-	if (!locals.user || locals.user.username !== username) {
+	// must-3: 認可は id ベース。旧名 URL から本人がアクセスした場合は
+	// resolveUserOrRedirect が先に redirect するが、防御的に id で比較する。
+	if (!locals.user || locals.user.id !== user.id) {
 		throw error(403, 'Forbidden');
 	}
 
