@@ -7,6 +7,11 @@
 		const date = new Date(dateString);
 		return date.toISOString().split('T')[0];
 	}
+
+	function formatNextChange(dateString: string | null | undefined): string {
+		if (!dateString) return '';
+		return new Date(dateString).toISOString().split('T')[0];
+	}
 </script>
 
 <svelte:head>
@@ -110,6 +115,39 @@
 				{/if}
 			</tbody>
 		</table>
+	{/if}
+
+	{#if data.isOwnProfile}
+		<div style="margin-top: 14pt; padding-left: 50px;">
+			<p style="font-size: 9pt; margin: 0 0 4pt 0;"><b>Change username</b></p>
+			{#if form?.changeUsernameError}
+				<p style="font-size: 9pt; color: #ff6600; margin: 0 0 4pt 0;">{form.changeUsernameError}</p>
+			{/if}
+			{#if data.nextUsernameChangeAt}
+				<p style="font-size: 9pt; color: #828282; margin: 0 0 4pt 0;">
+					次の変更可能日: {formatNextChange(data.nextUsernameChangeAt)}
+				</p>
+			{/if}
+			<form method="POST" action="?/changeUsername" use:enhance>
+				<table style="border-spacing: 0;">
+					<tbody>
+						<tr>
+							<td style="vertical-align: top; text-align: right; padding-right: 4px;">new username:</td>
+							<td>
+								<input type="text" name="newUsername" size="20" autocomplete="off" autocorrect="off" spellcheck="false" autocapitalize="off" style="font-family: monospace; font-size: 9pt;" />
+							</td>
+						</tr>
+						<tr>
+							<td></td>
+							<td>
+								<button type="submit" style="font-family: Verdana, Geneva, sans-serif; font-size: 8pt;">change username</button>
+								<span style="font-size: 8pt; color: #828282; margin-left: 6pt;">90日に1回まで。過去に使われた名前は使えません。</span>
+							</td>
+						</tr>
+					</tbody>
+				</table>
+			</form>
+		</div>
 	{/if}
 
 	<div style="margin-top: 10px; padding-left: 50px; font-size: 10pt;">
