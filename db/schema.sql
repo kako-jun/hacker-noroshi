@@ -101,10 +101,12 @@ CREATE TABLE IF NOT EXISTS ip_bans (
 -- Poll options (#74). type='poll' のストーリーに紐づく選択肢。
 -- position は表示順を保つための整数。投票は votes テーブルに item_type='poll_option' で記録する。
 -- 複数選択肢への投票が可能（1ユーザーが複数の option に upvote できる）。
--- ON DELETE は付けていない: deleteStory 拡張は別 Issue で扱う。
+-- ON DELETE CASCADE: stories の物理削除時に poll_options も自動削除する。
+-- 現状の deleteStory は title/text を [deleted] に置換する論理削除のみで物理削除しないため
+-- 通常運用では発火しないが、将来 admin による物理削除や DB クリーンアップに備える。
 CREATE TABLE IF NOT EXISTS poll_options (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
-  story_id INTEGER NOT NULL REFERENCES stories(id),
+  story_id INTEGER NOT NULL REFERENCES stories(id) ON DELETE CASCADE,
   text TEXT NOT NULL,
   position INTEGER NOT NULL,
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))

@@ -122,3 +122,49 @@ wrangler d1 execute hacker-noroshi-db --remote --command "CREATE INDEX IF NOT EX
 # 既存 DB が空または捨てて良いなら schema.sql を再投入する:
 #   wrangler d1 execute hacker-noroshi-db --remote --file=db/schema.sql
 ```
+
+### CHECK 制約変更が必要になった場合の汎用テーブル再作成手順
+
+SQLite/D1 は `ALTER TABLE` で CHECK 制約を変更できない。本番運用後に CHECK 列挙値を
+追加・変更する必要が出た場合は、以下の **rename → 新 CREATE → INSERT SELECT → DROP 旧**
+パターンで再作成する。例として `stories` テーブルの `type` に新しい値を加える場合:
+
+```sql
+-- 1. 旧テーブルをリネーム
+ALTER TABLE stories RENAME TO stories_old;
+
+-- 2. 新しい CHECK 制約で新テーブルを作成（インデックス・FK 含む）
+CREATE TABLE stories (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  title TEXT NOT NULL,
+  url TEXT,
+  text TEXT,
+  user_id INTEGER NOT NULL REFERENCES users(id),
+  points INTEGER NOT NULL DEFAULT 1,
+  comment_count INTEGER NOT NULL DEFAULT 0,
+  type TEXT NOT NULL DEFAULT 'story' CHECK (type IN ('story', 'ask', 'show', 'poll', 'NEW_VALUE')),
+  dead INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+);
+
+-- 3. データを旧テーブルから新テーブルへコピー
+INSERT INTO stories (id, title, url, text, user_id, points, comment_count, type, dead, created_at)
+SELECT id, title, url, text, user_id, points, comment_count, type, dead, created_at FROM stories_old;
+
+-- 4. インデックスを再作成（schema.sql の CREATE INDEX 文を流す）
+CREATE INDEX IF NOT EXISTS idx_stories_created_at ON stories(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_stories_type ON stories(type);
+CREATE INDEX IF NOT EXISTS idx_stories_user_id ON stories(user_id);
+
+-- 5. 旧テーブルを削除
+DROP TABLE stories_old;
+```
+
+注意点:
+
+- 外部キー参照（`comments.story_id`、`favorites.story_id`、`hidden.story_id`、`poll_options.story_id` 等）は
+  **id を維持してコピーすれば壊れない**（id を引き継いでいるため）。
+- 実行中は読み書きを止める（`wrangler d1` で1セッションずつ流す）。本番アクセスがある場合は
+  メンテナンスモードを挟む。
+- `votes.item_type` の CHECK 変更も同じパターンで行う（PRIMARY KEY (user_id, item_id, item_type) を維持）。
+- 失敗に備え、事前に `wrangler d1 export` でバックアップを取る。
