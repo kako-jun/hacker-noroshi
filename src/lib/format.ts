@@ -25,6 +25,16 @@ function italicize(text: string): string {
 	);
 }
 
+/**
+ * 削除済みユーザー (users.deleted = 1) の username 表示は [deleted] に置換する。
+ * 投稿・コメント自体はスレッド整合性のため保持されるが、紐づく username は伏せる。
+ * SQL 側で CASE 置換せず、クライアント表示時に一貫してこのヘルパを通すことで
+ * カラム漏れによる本名漏洩を防ぐ。本家HN FAQ #32 相当の挙動。
+ */
+export function displayUsername(user: { username: string; deleted?: number | null }): string {
+	return user.deleted ? '[deleted]' : user.username;
+}
+
 export function formatText(text: string): string {
 	// Split text into URL and non-URL segments.
 	// Process URLs before HTML escape to preserve original href values.

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { FLAG_KARMA_THRESHOLD } from '$lib/constants';
 	import { timeAgo, extractDomain, isNewUser } from '$lib/ranking';
-	import { formatText } from '$lib/format';
+	import { formatText, displayUsername } from '$lib/format';
 
 	let { data } = $props();
 	let votedIds = $derived(new Set<number>(data.votedIds));
@@ -208,7 +208,7 @@
 							</div>
 							<div class="story-meta">
 								{getPoints(story)} point{getPoints(story) !== 1 ? 's' : ''} by
-								<a href="/user/{story.username}" style={isNewUser(story.user_created_at) ? 'color: #3c963c;' : ''}>{story.username}</a>
+								<a href="/user/{story.username}" style={isNewUser(story.user_created_at) ? 'color: #3c963c;' : ''}>{displayUsername({ username: story.username, deleted: story.user_deleted })}</a>
 								<a href="/item/{story.id}">{timeAgo(story.created_at)}</a> |
 								<a href="/item/{story.id}"
 									>{story.comment_count} comment{story.comment_count !== 1 ? 's' : ''}</a
@@ -252,7 +252,7 @@
 								</button>
 							{/if}
 						</span>
-						<a href="/user/{comment.username}" style={isNewUser(comment.user_created_at) ? 'color: #3c963c;' : ''}>{comment.username}</a>
+						<a href="/user/{comment.username}" style={isNewUser(comment.user_created_at) ? 'color: #3c963c;' : ''}>{displayUsername({ username: comment.username, deleted: comment.user_deleted })}</a>
 						<a href="/item/{comment.id}">{timeAgo(comment.created_at)}</a>
 						| <a href="/item/{comment.parent_id ?? comment.story_id}" style="color: #828282;">parent</a>
 						| <a href="/item/{comment.id}" style="color: #828282;">context</a>

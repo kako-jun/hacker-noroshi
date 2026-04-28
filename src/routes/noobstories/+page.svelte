@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { FLAG_KARMA_THRESHOLD } from '$lib/constants';
+	import { displayUsername } from '$lib/format';
 	import { timeAgo, extractDomain, isNewUser } from '$lib/ranking';
 
 	let { data } = $props();
@@ -130,7 +131,7 @@
 				</div>
 				<div class="story-meta">
 					{getPoints(story)} point{getPoints(story) !== 1 ? 's' : ''} by
-					<a href="/user/{story.username}" style={isNewUser(story.user_created_at) ? 'color: #3c963c;' : ''}>{story.username}</a>
+					<a href="/user/{story.username}" style={isNewUser(story.user_created_at) ? 'color: #3c963c;' : ''}>{displayUsername({ username: story.username, deleted: story.user_deleted })}</a>
 					<a href="/item/{story.id}">{timeAgo(story.created_at)}</a> |
 					<a href="/item/{story.id}"
 						>{story.comment_count} comment{story.comment_count !== 1 ? 's' : ''}</a

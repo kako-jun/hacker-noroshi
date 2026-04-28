@@ -2,7 +2,7 @@
 	import { enhance } from '$app/forms';
 	import { FLAG_KARMA_THRESHOLD } from '$lib/constants';
 	import { timeAgo, extractDomain, isNewUser, isThreadOpen } from '$lib/ranking';
-	import { formatText } from '$lib/format';
+	import { formatText, displayUsername } from '$lib/format';
 	import { invalidateAll } from '$app/navigation';
 
 	let { data, form } = $props();
@@ -167,6 +167,7 @@
 		created_at: string;
 		username: string;
 		user_created_at: string;
+		user_deleted?: number;
 		children: CommentNode[];
 		depth: number;
 	}
@@ -339,7 +340,7 @@
 					</button>
 				{/if}
 			</span>
-			<a href="/user/{comment.username}" style={isNewUser(comment.user_created_at) ? 'color: #3c963c;' : ''}>{comment.username}</a>
+			<a href="/user/{comment.username}" style={isNewUser(comment.user_created_at) ? 'color: #3c963c;' : ''}>{displayUsername({ username: comment.username, deleted: comment.user_deleted })}</a>
 			<a href="/item/{comment.id}">{timeAgo(comment.created_at)}</a>
 			{#if comment.parent_id}
 				| <a href="/item/{comment.parent_id}" style="color: #828282;">parent</a>
@@ -439,7 +440,7 @@
 								</button>
 							{/if}
 						</span>
-						<a href="/user/{child.username}" style={isNewUser(child.user_created_at) ? 'color: #3c963c;' : ''}>{child.username}</a>
+						<a href="/user/{child.username}" style={isNewUser(child.user_created_at) ? 'color: #3c963c;' : ''}>{displayUsername({ username: child.username, deleted: child.user_deleted })}</a>
 						<a href="/item/{child.id}">{timeAgo(child.created_at)}</a>
 					</div>
 					{#if editingCommentId === child.id}
@@ -545,7 +546,7 @@
 
 		<div class="item-meta" style="padding-left: 18px;">
 			{storyPoints} point{storyPoints !== 1 ? 's' : ''} by
-			<a href="/user/{data.story.username}" style={isNewUser(data.story.user_created_at) ? 'color: #3c963c;' : ''}>{data.story.username}</a>
+			<a href="/user/{data.story.username}" style={isNewUser(data.story.user_created_at) ? 'color: #3c963c;' : ''}>{displayUsername({ username: data.story.username, deleted: data.story.user_deleted })}</a>
 			{timeAgo(data.story.created_at)}
 			{#if canEdit(data.story.created_at, data.story.user_id)}
 				| <a
@@ -669,7 +670,7 @@
 								</button>
 							{/if}
 						</span>
-						<a href="/user/{comment.username}" style={isNewUser(comment.user_created_at) ? 'color: #3c963c;' : ''}>{comment.username}</a>
+						<a href="/user/{comment.username}" style={isNewUser(comment.user_created_at) ? 'color: #3c963c;' : ''}>{displayUsername({ username: comment.username, deleted: comment.user_deleted })}</a>
 						<a href="/item/{comment.id}">{timeAgo(comment.created_at)}</a>
 					</div>
 					{#if editingCommentId === comment.id}
