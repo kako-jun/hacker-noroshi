@@ -80,6 +80,23 @@ function makeMockDB(initial: IpBanRecord[] = []) {
 			return { all: [], first: null };
 		}
 
+		// createIpBan の事前 DELETE: 同 IP の active を全消し
+		if (
+			/^DELETE FROM ip_bans WHERE ip = \? AND \(expires_at IS NULL OR expires_at > \?\)$/i.test(
+				s
+			)
+		) {
+			const ip = params[0] as string;
+			const now = params[1] as string;
+			for (let i = bans.length - 1; i >= 0; i--) {
+				const b = bans[i];
+				if (b.ip === ip && (b.expires_at === null || b.expires_at > now)) {
+					bans.splice(i, 1);
+				}
+			}
+			return { all: [], first: null };
+		}
+
 		// expireIpBan
 		if (/^UPDATE ip_bans SET expires_at = \? WHERE id = \?$/i.test(s)) {
 			const expiresAt = params[0] as string;
@@ -249,6 +266,85 @@ describe('createIpBan / removeIpBan', () => {
 		expect(bans.length).toBe(0);
 		const ban = await getActiveBan(db, '1.2.3.4');
 		expect(ban).toBeNull();
+	});
+});
+
+describe('境界・上書き挙動', () => {
+	it('expires_at = now ちょうどは active 扱いされない（> 仕様）', async () => {
+		const { getActiveBan } = await import('../../src/lib/server/db');
+		// now を取得してから ban を作る代わりに、十分に近い過去時刻を使って
+		// 「expires_at が現在以下」のケースを再現する。
+		const justPast = new Date(Date.now() - 1000).toISOString().replace(/\.\d{3}Z$/, 'Z');
+		const { db } = makeMockDB([
+			{
+				id: 1,
+				ip: '1.2.3.4',
+				reason: 'edge',
+				banned_at: '2026-01-01T00:00:00Z',
+				expires_at: justPast,
+				banned_by: 1
+			}
+		]);
+		const ban = await getActiveBan(db, '1.2.3.4');
+		expect(ban).toBeNull();
+	});
+
+	it('同 IP に createIpBan を 2 回呼ぶと、新しい方だけが残る', async () => {
+		const { createIpBan, listActiveBans } = await import('../../src/lib/server/db');
+		const { db, bans } = makeMockDB([]);
+		await createIpBan(db, {
+			ip: '1.2.3.4',
+			reason: 'first',
+			expiresAt: null,
+			bannedBy: 1
+		});
+		await createIpBan(db, {
+			ip: '1.2.3.4',
+			reason: 'second',
+			expiresAt: FUTURE,
+			bannedBy: 1
+		});
+		const list = await listActiveBans(db);
+		const sameIp = list.filter((b) => b.ip === '1.2.3.4');
+		expect(sameIp.length).toBe(1);
+		expect(sameIp[0].reason).toBe('second');
+		// 物理削除済みなので bans 全体でも 1 件のみ
+		expect(bans.filter((b) => b.ip === '1.2.3.4').length).toBe(1);
+	});
+});
+
+describe('isValidIpAddress', () => {
+	it('IPv4 正常', async () => {
+		const { isValidIpAddress } = await import('../../src/lib/format');
+		expect(isValidIpAddress('1.2.3.4')).toBe(true);
+		expect(isValidIpAddress('255.255.255.255')).toBe(true);
+		expect(isValidIpAddress('0.0.0.0')).toBe(true);
+	});
+
+	it('IPv4 オクテット 256 は不正', async () => {
+		const { isValidIpAddress } = await import('../../src/lib/format');
+		expect(isValidIpAddress('256.0.0.1')).toBe(false);
+		expect(isValidIpAddress('1.2.3.999')).toBe(false);
+	});
+
+	it('文字列・空は不正', async () => {
+		const { isValidIpAddress } = await import('../../src/lib/format');
+		expect(isValidIpAddress('not-an-ip')).toBe(false);
+		expect(isValidIpAddress('')).toBe(false);
+		expect(isValidIpAddress('1.2.3')).toBe(false);
+	});
+
+	it('IPv6 正常（簡易チェック）', async () => {
+		const { isValidIpAddress } = await import('../../src/lib/format');
+		expect(isValidIpAddress('::1')).toBe(true);
+		expect(isValidIpAddress('2001:db8::1')).toBe(true);
+		expect(isValidIpAddress('fe80::1')).toBe(true);
+	});
+
+	it('長すぎ（45 文字超）は不正', async () => {
+		const { isValidIpAddress } = await import('../../src/lib/format');
+		const tooLong = 'a'.repeat(46);
+		expect(isValidIpAddress(tooLong)).toBe(false);
 	});
 });
 
