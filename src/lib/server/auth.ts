@@ -40,10 +40,11 @@ export async function getSession(
 	minaway: number;
 	showdead: number;
 	last_visit: string | null;
+	is_admin: number;
 } | null> {
 	const result = await db
 		.prepare(
-			`SELECT u.id, u.username, u.karma, u.delay, u.noprocrast, u.maxvisit, u.minaway, u.showdead, u.last_visit
+			`SELECT u.id, u.username, u.karma, u.delay, u.noprocrast, u.maxvisit, u.minaway, u.showdead, u.last_visit, u.is_admin
 			FROM sessions s
 			JOIN users u ON s.user_id = u.id
 			WHERE s.id = ? AND s.expires_at > datetime('now') AND u.deleted = 0`
@@ -59,6 +60,7 @@ export async function getSession(
 			minaway: number;
 			showdead: number;
 			last_visit: string | null;
+			is_admin: number;
 		}>();
 	return result;
 }
