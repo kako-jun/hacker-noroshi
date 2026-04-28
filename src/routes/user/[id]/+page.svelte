@@ -132,9 +132,9 @@
 				<table style="border-spacing: 0;">
 					<tbody>
 						<tr>
-							<td style="vertical-align: top; text-align: right; padding-right: 4px;">new username:</td>
+							<td style="vertical-align: top; text-align: right; padding-right: 4px;"><label for="newUsername">new username:</label></td>
 							<td>
-								<input type="text" name="newUsername" size="20" autocomplete="off" autocorrect="off" spellcheck="false" autocapitalize="off" style="font-family: monospace; font-size: 9pt;" />
+								<input id="newUsername" type="text" name="newUsername" size="20" required minlength="3" maxlength="15" pattern="[a-zA-Z0-9_\-]+" autocomplete="off" autocorrect="off" spellcheck="false" autocapitalize="off" style="font-family: monospace; font-size: 9pt;" />
 							</td>
 						</tr>
 						<tr>
