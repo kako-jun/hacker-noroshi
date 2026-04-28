@@ -32,6 +32,9 @@ URL: https://hn.llll-ll.com
 - 選択肢への投票では karma 加算しない（投稿者・投票者の両方）
 - 一覧ページで `[poll]` タグを表示。`/polls` で投票投稿のみ一覧表示
 - `/submit` ページに「Or submit a poll」リンクあり
+- レート制限は `/submit` と同枠（同一ユーザーの連続投稿は10分間隔）。違反時は "You're submitting too fast. Please slow down." を表示
+- poll を削除（`[deleted]` 化）すると、選択肢テキストと既存の投票は残る（論理削除のため）。物理削除時のみ `poll_options` が `ON DELETE CASCADE` で消える
+- poll の編集（編集窓 2 時間以内）では type は `poll` のまま固定。タイトル先頭が `Ask HN:` / `Show HN:` でも type を書き換えない
 
 ### コメント
 

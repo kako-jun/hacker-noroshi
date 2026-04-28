@@ -203,11 +203,19 @@ export const actions: Actions = {
 			return fail(400, { error: 'Title is required' });
 		}
 
-		let type = 'story';
-		if (title.startsWith('Ask HN:')) {
+		// poll の編集では type='poll' を維持する。タイトル先頭が "Ask HN:" / "Show HN:"
+		// に変わっても type を書き換えない（書き換えると poll_options への参照は残るが
+		// /polls 一覧や [poll] タグから外れて poll 機能が事実上消失するため）。
+		// poll 以外は従来どおり title から自動判定。
+		let type: string;
+		if (story.type === 'poll') {
+			type = 'poll';
+		} else if (title.startsWith('Ask HN:')) {
 			type = 'ask';
 		} else if (title.startsWith('Show HN:')) {
 			type = 'show';
+		} else {
+			type = 'story';
 		}
 
 		await db
