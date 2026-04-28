@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS stories (
   user_id INTEGER NOT NULL REFERENCES users(id),
   points INTEGER NOT NULL DEFAULT 1,
   comment_count INTEGER NOT NULL DEFAULT 0,
-  type TEXT NOT NULL DEFAULT 'story' CHECK (type IN ('story', 'ask', 'show')),
+  type TEXT NOT NULL DEFAULT 'story' CHECK (type IN ('story', 'ask', 'show', 'poll')),
   dead INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
@@ -50,7 +50,7 @@ CREATE TABLE IF NOT EXISTS comments (
 CREATE TABLE IF NOT EXISTS votes (
   user_id INTEGER NOT NULL REFERENCES users(id),
   item_id INTEGER NOT NULL,
-  item_type TEXT NOT NULL CHECK (item_type IN ('story', 'comment')),
+  item_type TEXT NOT NULL CHECK (item_type IN ('story', 'comment', 'poll_option')),
   vote_type TEXT NOT NULL DEFAULT 'up' CHECK (vote_type IN ('up', 'down')),
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
   PRIMARY KEY (user_id, item_id, item_type)
@@ -98,6 +98,19 @@ CREATE TABLE IF NOT EXISTS ip_bans (
   banned_by INTEGER REFERENCES users(id) ON DELETE SET NULL
 );
 
+-- Poll options (#74). type='poll' のストーリーに紐づく選択肢。
+-- position は表示順を保つための整数。投票は votes テーブルに item_type='poll_option' で記録する。
+-- 複数選択肢への投票が可能（1ユーザーが複数の option に upvote できる）。
+-- ON DELETE は付けていない: deleteStory 拡張は別 Issue で扱う。
+CREATE TABLE IF NOT EXISTS poll_options (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  story_id INTEGER NOT NULL REFERENCES stories(id),
+  text TEXT NOT NULL,
+  position INTEGER NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+);
+CREATE INDEX IF NOT EXISTS idx_poll_options_story ON poll_options(story_id);
+
 CREATE TABLE IF NOT EXISTS flags (
   user_id INTEGER NOT NULL REFERENCES users(id),
   item_id INTEGER NOT NULL,
@@ -129,6 +142,11 @@ CREATE INDEX IF NOT EXISTS idx_ip_bans_expires ON ip_bans(expires_at);
 -- 本番デプロイ時は以下の ALTER 文を `wrangler d1 execute` 等で1度だけ流すこと。
 -- ALTER TABLE users ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0;
 -- ALTER TABLE users ADD COLUMN deleted_at TEXT;
+
+-- Migrations (#74 投票投稿)
+-- stories.type と votes.item_type の CHECK 制約変更は SQLite では ALTER TABLE できない。
+-- 本番では table を再作成する（CREATE TABLE ... AS SELECT で移行）か、新規 DB を投入する。
+-- 詳細は docs/operations.md 参照。新規 poll_options テーブルは下の CREATE TABLE で作成する。
 
 -- Migrations (#77 IP ban / 管理者フラグ)
 -- 既存DBに対しては手動で1度だけ流す。詳細は docs/operations.md を参照。
