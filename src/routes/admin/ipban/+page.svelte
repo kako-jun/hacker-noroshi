@@ -9,7 +9,9 @@
 <div style="padding: 20pt; font-family: Verdana, Geneva, sans-serif; font-size: 10pt; color: #000000;">
 	<p><b>IP ban 管理</b></p>
 
-	{#if form?.error}
+	{#if form?.banError}
+		<p style="color: #cc0000;">{form.banError}</p>
+	{:else if form?.error}
 		<p style="color: #cc0000;">{form.error}</p>
 	{/if}
 	{#if form?.success}
@@ -17,6 +19,7 @@
 	{/if}
 
 	<p><b>新規 ban</b></p>
+	<!-- SvelteKit form action は同一オリジンチェック付き -->
 	<form method="POST" action="?/ban">
 		<table style="border-collapse: collapse;">
 			<tr>
@@ -28,7 +31,7 @@
 			<tr>
 				<td style="padding: 4pt 8pt 4pt 0;">理由:</td>
 				<td style="padding: 4pt 0;">
-					<input type="text" name="reason" value={form?.reason ?? ''} size="40" style="font-family: Verdana, Geneva, sans-serif; font-size: 10pt;" />
+					<input type="text" name="reason" value={form?.reason ?? ''} size="40" maxlength="1024" style="font-family: Verdana, Geneva, sans-serif; font-size: 10pt;" />
 				</td>
 			</tr>
 			<tr>
