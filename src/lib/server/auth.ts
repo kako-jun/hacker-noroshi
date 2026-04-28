@@ -46,7 +46,7 @@ export async function getSession(
 			`SELECT u.id, u.username, u.karma, u.delay, u.noprocrast, u.maxvisit, u.minaway, u.showdead, u.last_visit
 			FROM sessions s
 			JOIN users u ON s.user_id = u.id
-			WHERE s.id = ? AND s.expires_at > datetime('now')`
+			WHERE s.id = ? AND s.expires_at > datetime('now') AND u.deleted = 0`
 		)
 		.bind(sessionId)
 		.first<{
