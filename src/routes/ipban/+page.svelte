@@ -3,13 +3,8 @@
 
 	function formatExpires(expiresAt: string | null): string {
 		if (!expiresAt) return '無期限';
-		const d = new Date(expiresAt);
-		const yyyy = d.getUTCFullYear();
-		const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
-		const dd = String(d.getUTCDate()).padStart(2, '0');
-		const hh = String(d.getUTCHours()).padStart(2, '0');
-		const mi = String(d.getUTCMinutes()).padStart(2, '0');
-		return `${yyyy}-${mm}-${dd} ${hh}:${mi} UTC まで`;
+		// 日本人向けサイトのため JST 表示。
+		return `${new Date(expiresAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })} (JST) まで`;
 	}
 </script>
 
