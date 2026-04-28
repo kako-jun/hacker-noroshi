@@ -221,7 +221,9 @@ export async function getUserByUsername(db: D1Database, username: string): Promi
 }
 
 // username 変更の頻度制限（90日に1回）。本家HN FAQ #31 相当の運用に合わせる。
-export const USERNAME_CHANGE_COOLDOWN_MS = 90 * 24 * 60 * 60 * 1000;
+// UTC ベースの ms 差で判定。閏秒・DST 非依存（new Date().getTime() の差分比較）。
+export const USERNAME_CHANGE_COOLDOWN_DAYS = 90;
+export const USERNAME_CHANGE_COOLDOWN_MS = USERNAME_CHANGE_COOLDOWN_DAYS * 24 * 60 * 60 * 1000;
 
 // signup と共通のユーザー名バリデーション。signup 側 (src/routes/login/+page.server.ts) と
 // 規則を必ず一致させること。
@@ -237,38 +239,48 @@ export function validateUsernameFormat(username: string): string | null {
 }
 
 // users.username と username_history.old_username の両方を見て、過去に使われた
-// 名前も含めて重複判定する（履歴も永久ロック）。
+// 名前も含めて重複判定する（履歴も永久ロック）。1 クエリ（UNION ALL）でラウンドトリップを削減。
 export async function isUsernameTaken(db: D1Database, username: string): Promise<boolean> {
-	const u = await db
-		.prepare('SELECT 1 FROM users WHERE username = ?')
-		.bind(username)
-		.first();
-	if (u) return true;
-	const h = await db
-		.prepare('SELECT 1 FROM username_history WHERE old_username = ?')
-		.bind(username)
-		.first();
-	return h !== null;
+	const r = await db
+		.prepare(
+			`SELECT 1 AS hit FROM users WHERE username = ?
+			UNION ALL
+			SELECT 1 AS hit FROM username_history WHERE old_username = ?
+			LIMIT 1`
+		)
+		.bind(username, username)
+		.first<{ hit: number }>();
+	return r !== null;
 }
 
 // 旧 username から最新の new_username を返す。同じ old_username が複数あれば
-// 最新の changed_at を採用する。
+// 最新の changed_at を採用する。連鎖変更（A→B→C）は while ループで辿る。
+// 循環履歴や深すぎる連鎖（壊れたデータ）でも無限ループにならないよう、
+// 訪問済み Set + 深さ上限 10 で停止する。
+const USERNAME_REDIRECT_MAX_DEPTH = 10;
 export async function getOldUsernameRedirect(
 	db: D1Database,
 	oldUsername: string
 ): Promise<string | null> {
-	const row = await db
-		.prepare(
-			`SELECT new_username FROM username_history
-			WHERE old_username = ?
-			ORDER BY changed_at DESC LIMIT 1`
-		)
-		.bind(oldUsername)
-		.first<{ new_username: string }>();
-	if (!row) return null;
-	// 連鎖変更（A→B→C）の場合、B から飛び込んだら最新の C まで辿る
-	const chained = await getOldUsernameRedirect(db, row.new_username);
-	return chained ?? row.new_username;
+	const visited = new Set<string>();
+	let current = oldUsername;
+	let result: string | null = null;
+	for (let i = 0; i < USERNAME_REDIRECT_MAX_DEPTH; i++) {
+		if (visited.has(current)) break;
+		visited.add(current);
+		const row = await db
+			.prepare(
+				`SELECT new_username FROM username_history
+				WHERE old_username = ?
+				ORDER BY changed_at DESC LIMIT 1`
+			)
+			.bind(current)
+			.first<{ new_username: string }>();
+		if (!row) break;
+		result = row.new_username;
+		current = row.new_username;
+	}
+	return result;
 }
 
 // 該当ユーザーの最後の username 変更時刻（ISO8601）。なければ null。
@@ -289,6 +301,9 @@ export async function getLastUsernameChange(
 
 // users.username を更新し、username_history に旧 username を記録する。
 // D1 はトランザクションを batch で表現する。
+// users.username は UNIQUE 制約があるため、isUsernameTaken のチェックと
+// batch 実行の間に他リクエストが同名を取得した場合は UNIQUE 違反で失敗する。
+// 呼び出し側はエラーメッセージに 'UNIQUE' を含むかで race を検出する。
 export async function updateUsername(
 	db: D1Database,
 	userId: number,
@@ -305,6 +320,13 @@ export async function updateUsername(
 			)
 			.bind(userId, oldUsername, newUsername)
 	]);
+}
+
+// updateUsername が UNIQUE 制約違反（同時取得レース）で失敗したかを判定する。
+// D1 / SQLite のエラーメッセージに 'UNIQUE' を含むかで判定。
+export function isUsernameUniqueConstraintError(err: unknown): boolean {
+	if (!(err instanceof Error)) return false;
+	return /UNIQUE/i.test(err.message) && /username/i.test(err.message);
 }
 
 export async function getUserById(db: D1Database, id: number): Promise<UserRow | null> {
