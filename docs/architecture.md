@@ -152,6 +152,18 @@ hacker-noroshi/
 | story_id | INTEGER FK | PK (複合) |
 | created_at | TEXT | ISO8601 |
 
+### username_history
+
+| カラム | 型 | 備考 |
+|---|---|---|
+| id | INTEGER PK | autoincrement |
+| user_id | INTEGER FK | users.id |
+| old_username | TEXT | 変更前の名前（重複チェック対象、永久ロック） |
+| new_username | TEXT | 変更後の名前 |
+| changed_at | TEXT | ISO8601 |
+| INDEX | idx_username_history_old ON (old_username) | リダイレクト解決と重複判定 |
+| INDEX | idx_username_history_user ON (user_id) | 90日制限判定用 |
+
 ### flags
 
 | カラム | 型 | 備考 |
@@ -242,6 +254,11 @@ hacker-noroshi/
 | `hasFlagged()` | 自分が flag 済みか判定 |
 | `getFlaggedItemIds()` | 自分が flag 済みのアイテムID一括取得（story/comment 別） |
 | `getFlagCount()` | アイテムのフラグ数を取得 |
+| `validateUsernameFormat()` | ユーザー名フォーマット検証（signup と共有、3-15文字・英数字+`_-`） |
+| `isUsernameTaken()` | users + username_history の両方で重複チェック（履歴も永久ロック） |
+| `getOldUsernameRedirect()` | 旧 username から最新 new_username を解決（連鎖変更対応） |
+| `getLastUsernameChange()` | 直近のユーザー名変更日時（90日制限判定用） |
+| `updateUsername()` | users.username 更新と username_history への履歴 insert を batch で実行 |
 
 ## ランキングスコア計算式
 
