@@ -2,10 +2,10 @@
 -- password is "test1234" for all users (bcrypt hash)
 -- $2a$10$K4GzQqBq9LZlh9OvBOE6eOqv7GYFv9HZVq3YR6R0HjKq5AXq5GQSy
 
-INSERT INTO users (username, password_hash, karma, about) VALUES
-  ('noroshi', '$2a$10$K4GzQqBq9LZlh9OvBOE6eOqv7GYFv9HZVq3YR6R0HjKq5AXq5GQSy', 100, 'ハッカーのろし管理人'),
-  ('tanaka', '$2a$10$K4GzQqBq9LZlh9OvBOE6eOqv7GYFv9HZVq3YR6R0HjKq5AXq5GQSy', 42, 'Rustが好き'),
-  ('sato', '$2a$10$K4GzQqBq9LZlh9OvBOE6eOqv7GYFv9HZVq3YR6R0HjKq5AXq5GQSy', 15, 'フロントエンド開発者');
+INSERT INTO users (username, password_hash, karma, about, is_admin) VALUES
+  ('noroshi', '$2a$10$K4GzQqBq9LZlh9OvBOE6eOqv7GYFv9HZVq3YR6R0HjKq5AXq5GQSy', 100, 'ハッカーのろし管理人', 1),
+  ('tanaka', '$2a$10$K4GzQqBq9LZlh9OvBOE6eOqv7GYFv9HZVq3YR6R0HjKq5AXq5GQSy', 42, 'Rustが好き', 0),
+  ('sato', '$2a$10$K4GzQqBq9LZlh9OvBOE6eOqv7GYFv9HZVq3YR6R0HjKq5AXq5GQSy', 15, 'フロントエンド開発者', 0);
 
 INSERT INTO stories (title, url, user_id, points, comment_count, type, created_at) VALUES
   ('Rust 2026 Edition が正式リリース', 'https://blog.rust-lang.org/2026/02/01/rust-2026.html', 1, 45, 3, 'story', strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-2 hours')),

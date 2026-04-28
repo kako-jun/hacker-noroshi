@@ -17,7 +17,10 @@ CREATE TABLE IF NOT EXISTS users (
   -- アカウント削除フラグ（#76）。deleted=1 のとき表示時は [deleted] に置換し、
   -- ログインも拒否する。username は UNIQUE 制約で永久ロックされる（再取得不可）。
   deleted INTEGER NOT NULL DEFAULT 0,
-  deleted_at TEXT
+  deleted_at TEXT,
+  -- 管理者フラグ（#77）。is_admin=1 のユーザーのみ /admin/* ページにアクセスできる。
+  -- 初期管理者は seed.sql で id=1 (noroshi) に付与する。本番では UPDATE で手動付与する。
+  is_admin INTEGER NOT NULL DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS stories (
@@ -81,6 +84,20 @@ CREATE TABLE IF NOT EXISTS username_history (
   changed_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
 );
 
+-- IP ban テーブル（#77）。骨格のみ。CAPTCHA セルフ unban (#91) と
+-- 自動 ban (#92) は別 Issue で追加する。
+-- expires_at が NULL のときは無期限 ban、未来時刻のときは時限 ban、
+-- 過去時刻になったら自動的に解除扱い（クエリ側で判定）。
+-- 物理削除（DELETE）で unban する。履歴保持は将来要件、kako-jun 1人運用ではシンプル優先。
+CREATE TABLE IF NOT EXISTS ip_bans (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ip TEXT NOT NULL,
+  reason TEXT NOT NULL DEFAULT '',
+  banned_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+  expires_at TEXT,
+  banned_by INTEGER REFERENCES users(id)
+);
+
 CREATE TABLE IF NOT EXISTS flags (
   user_id INTEGER NOT NULL REFERENCES users(id),
   item_id INTEGER NOT NULL,
@@ -103,6 +120,8 @@ CREATE INDEX IF NOT EXISTS idx_sessions_expires_at ON sessions(expires_at);
 CREATE INDEX IF NOT EXISTS idx_flags_item ON flags(item_id, item_type);
 CREATE INDEX IF NOT EXISTS idx_username_history_old ON username_history(old_username);
 CREATE INDEX IF NOT EXISTS idx_username_history_user ON username_history(user_id);
+CREATE INDEX IF NOT EXISTS idx_ip_bans_ip ON ip_bans(ip);
+CREATE INDEX IF NOT EXISTS idx_ip_bans_expires ON ip_bans(expires_at);
 
 -- Migrations (#76 アカウント削除)
 -- SQLite/D1 の ALTER TABLE は IF NOT EXISTS をサポートしないため、
@@ -110,3 +129,9 @@ CREATE INDEX IF NOT EXISTS idx_username_history_user ON username_history(user_id
 -- 本番デプロイ時は以下の ALTER 文を `wrangler d1 execute` 等で1度だけ流すこと。
 -- ALTER TABLE users ADD COLUMN deleted INTEGER NOT NULL DEFAULT 0;
 -- ALTER TABLE users ADD COLUMN deleted_at TEXT;
+
+-- Migrations (#77 IP ban / 管理者フラグ)
+-- 既存DBに対しては手動で1度だけ流す。詳細は docs/operations.md を参照。
+-- ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0;
+-- UPDATE users SET is_admin = 1 WHERE id = 1;
+-- CREATE TABLE ip_bans (...) -- 上記 CREATE TABLE 文を流す
