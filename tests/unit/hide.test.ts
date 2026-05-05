@@ -68,8 +68,7 @@ function makeMockDB(initial?: { stories?: Partial<StoryRecord>[]; hidden?: Hidde
 		if (/^INSERT INTO hidden \(user_id, story_id\) VALUES \(\?, \?\)$/i.test(s)) {
 			const userId = params[0] as number;
 			const storyId = params[1] as number;
-			// 簡易 UNIQUE: 既にあれば追加しない（DB は UNIQUE 制約で弾くが本番が呼ぶ前に
-			// hasHidden で確認しているのでテスト上はこれで十分）
+			// 防御的な UNIQUE 模倣（現状のテストはこの経路を踏まない）
 			if (!hidden.some((h) => h.user_id === userId && h.story_id === storyId)) {
 				hidden.push({
 					user_id: userId,

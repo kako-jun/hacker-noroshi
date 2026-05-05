@@ -5,15 +5,11 @@ test('hide a story removes it from /newest and shows it on /user/[id]/hidden', a
 	page
 }) => {
 	// User A submits a story.
-	// Note: page.fill 経由で Svelte 5 の <input value={...}> に書き込むと
-	// 値が確定しない既知の挙動があるため、click + keyboard.type を使う。
 	const titleA = `E2E Hide Story ${Date.now()}`;
 	await signupNewUser(page);
 	await page.goto('/submit');
-	await page.locator('input[name="title"]').click();
-	await page.keyboard.type(titleA);
-	await page.locator('textarea[name="text"]').click();
-	await page.keyboard.type('hide test body');
+	await page.fill('input[name="title"]', titleA);
+	await page.fill('textarea[name="text"]', 'hide test body');
 	await Promise.all([
 		page.waitForURL((url) => !url.pathname.startsWith('/submit')),
 		page.click('button[type="submit"]')
@@ -35,7 +31,11 @@ test('hide a story removes it from /newest and shows it on /user/[id]/hidden', a
 	await item.locator('.story-meta a', { hasText: 'hide' }).click();
 
 	// Row disappears from the rendered list (client-side hide via localHiddenIds)
-	await expect(item).toHaveCount(0, { timeout: 5000 });
+	await expect(
+		page
+			.locator('.story-item')
+			.filter({ has: page.locator('a.story-title', { hasText: titleA }) })
+	).toHaveCount(0, { timeout: 5000 });
 
 	// After reload, server-side filter via getHiddenStoryIds keeps it hidden
 	await page.reload();
