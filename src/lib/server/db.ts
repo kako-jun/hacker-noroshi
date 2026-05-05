@@ -1001,7 +1001,7 @@ export async function listActiveBans(db: D1Database): Promise<IpBanRow[]> {
 // （should-1: 同 IP に複数 active が積み上がると一覧の見通しが悪くなるため）
 export async function createIpBan(
 	db: D1Database,
-	params: { ip: string; reason: string; expiresAt: string | null; bannedBy: number }
+	params: { ip: string; reason: string; expiresAt: string | null; bannedBy: number | null }
 ): Promise<void> {
 	const nowIso = nowIsoSeconds();
 	// 既存の active ban を全て物理削除してから INSERT。
