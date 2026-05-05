@@ -86,7 +86,7 @@
 {#if data.q}
 	{#if (data.type === 'all' || data.type === 'stories') && data.stories.length > 0}
 		<div class="story-list">
-			{#each data.stories as story}
+			{#each data.stories as story (story.id)}
 				{#if !isHidden(story.id)}
 					<StoryListItem
 						{story}
@@ -102,7 +102,7 @@
 
 	{#if (data.type === 'all' || data.type === 'comments') && data.comments.length > 0}
 		<div style="padding-left: 40px;">
-			{#each data.comments as comment}
+			{#each data.comments as comment (comment.id)}
 				<div style="padding: 10px 0;">
 					<div class="comment-head">
 						<span class="comment-vote">

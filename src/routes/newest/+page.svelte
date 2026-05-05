@@ -14,7 +14,7 @@
 </script>
 
 <div class="story-list">
-	{#each data.stories as story, i}
+	{#each data.stories as story, i (story.id)}
 		{#if !localHiddenIds.has(story.id)}
 			<StoryListItem
 				{story}

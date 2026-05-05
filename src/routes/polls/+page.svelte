@@ -23,7 +23,7 @@
 </svelte:head>
 
 <div class="story-list">
-	{#each data.stories as story, i}
+	{#each data.stories as story, i (story.id)}
 		{#if !isHidden(story.id)}
 			<StoryListItem
 				{story}
