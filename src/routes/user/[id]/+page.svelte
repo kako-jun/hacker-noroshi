@@ -44,12 +44,6 @@
 						</td>
 					</tr>
 					<tr>
-						<td style="vertical-align: top; text-align: right; padding-right: 4px;">email:</td>
-						<td>
-							<input type="text" name="email" value={data.profile.email ?? ''} size="60" style="font-family: monospace; font-size: 9pt;" />
-						</td>
-					</tr>
-					<tr>
 						<td style="vertical-align: top; text-align: right; padding-right: 4px;">showdead:</td>
 						<td>
 							<select name="showdead" style="font-family: Verdana, Geneva, sans-serif; font-size: 9pt;">

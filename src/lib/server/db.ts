@@ -47,7 +47,6 @@ export interface UserRow {
 	password_hash: string;
 	karma: number;
 	about: string;
-	email: string;
 	delay: number;
 	noprocrast: number;
 	maxvisit: number;
@@ -368,7 +367,7 @@ export async function getUserById(db: D1Database, id: number): Promise<UserRow |
 
 // アカウント削除（#76）。本家HN FAQ #32 相当のセルフサービス削除。
 // 投稿・コメントはスレッド整合性のため保持し、users 行も username の永久ロックのため保持する。
-// 個人情報フィールド (email, about, password_hash) を空にし、
+// 個人情報フィールド (about, password_hash) を空にし、
 // 設定系 (delay, noprocrast, maxvisit, minaway, showdead) をデフォルトに戻し、
 // deleted=1 / deleted_at=now を立てる。同時に sessions を全削除して即時ログアウト。
 // D1 batch でシリアル実行（部分失敗時はクライアント側で再試行可能）。
@@ -383,7 +382,6 @@ export async function deleteAccount(db: D1Database, userId: number): Promise<voi
 				`UPDATE users SET
 					deleted = 1,
 					deleted_at = ?,
-					email = '',
 					about = '',
 					password_hash = '',
 					delay = 0,

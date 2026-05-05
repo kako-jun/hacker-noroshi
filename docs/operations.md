@@ -108,6 +108,19 @@ wrangler d1 execute hacker-noroshi-db --remote --command "CREATE INDEX IF NOT EX
 
 ローカル開発 DB にも `--local` で同じコマンドを流す。
 
+### #90 email カラム廃止（本番反映手順）
+
+`/forgot` を削除し、認証用途として機能しなかった email カラムを廃止する。
+
+```bash
+# users.email カラム削除（D1/SQLite 3.35+ は DROP COLUMN をサポート）
+wrangler d1 execute hacker-noroshi-db --remote --command "ALTER TABLE users DROP COLUMN email"
+```
+
+ローカル開発 DB にも `--local` で同じコマンドを流す。
+
+`DROP COLUMN` がエラーになる古いランタイムでは、下の「CHECK 制約変更が必要になった場合の汎用テーブル再作成手順」と同じ **rename → 新 CREATE → INSERT SELECT → DROP 旧** パターンで email を除外して再作成する。
+
 ### #74 投票投稿（本番反映手順）
 
 `stories.type` と `votes.item_type` の CHECK 制約を変更する必要がある。

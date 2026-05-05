@@ -41,7 +41,6 @@ export const load: PageServerLoad = async ({ params, platform, locals, url }) =>
 			username: user.username,
 			karma: user.karma,
 			about: user.about,
-			email: isOwnProfile ? user.email : '',
 			delay: isOwnProfile ? user.delay : 0,
 			noprocrast: isOwnProfile ? user.noprocrast : 0,
 			maxvisit: isOwnProfile ? user.maxvisit : 20,
@@ -71,7 +70,6 @@ export const actions: Actions = {
 
 		const formData = await request.formData();
 		const about = (formData.get('about') as string) ?? '';
-		const email = (formData.get('email') as string) ?? '';
 		const delay = Math.max(0, Math.min(10, parseInt(formData.get('delay') as string) || 0));
 		const noprocrast = formData.get('noprocrast') === 'yes' ? 1 : 0;
 		const maxvisit = Math.max(1, Math.min(1440, parseInt(formData.get('maxvisit') as string) || 20));
@@ -83,9 +81,9 @@ export const actions: Actions = {
 
 		await db
 			.prepare(
-				`UPDATE users SET about = ?, email = ?, delay = ?, noprocrast = ?, maxvisit = ?, minaway = ?, showdead = ?${lastVisitClause} WHERE id = ?`
+				`UPDATE users SET about = ?, delay = ?, noprocrast = ?, maxvisit = ?, minaway = ?, showdead = ?${lastVisitClause} WHERE id = ?`
 			)
-			.bind(about, email, delay, noprocrast, maxvisit, minaway, showdead, user.id)
+			.bind(about, delay, noprocrast, maxvisit, minaway, showdead, user.id)
 			.run();
 
 		return { success: true };
