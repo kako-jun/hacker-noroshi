@@ -61,6 +61,13 @@
 					</div>
 				</form>
 			</div>
+		{:else}
+			<!-- #91: site key 未設定時（dev / REPLACE_ME）はセルフ unban を提供しない -->
+			<div style="margin-top: 24pt; padding-top: 12pt; border-top: 1px solid #cccccc;">
+				<p style="margin: 4pt 0;">
+					現在セルフサービス unban は無効です。管理者にご連絡ください。
+				</p>
+			</div>
 		{/if}
 	{:else}
 		<p>あなたの IP ({data.ip}) は ban されていません。</p>
