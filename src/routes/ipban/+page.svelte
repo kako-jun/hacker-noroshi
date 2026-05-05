@@ -6,6 +6,11 @@
 		// 日本人向けサイトのため JST 表示。
 		return `${new Date(expiresAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })} (JST) まで`;
 	}
+
+	// banned_at は ISO 文字列（UTC）で来るため、JST に変換して表示する。
+	function formatBannedAt(iso: string): string {
+		return `${new Date(iso).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo' })} (JST)`;
+	}
 </script>
 
 <svelte:head>
@@ -29,7 +34,7 @@
 					<td style="padding: 4pt 0;">理由: {data.ban.reason || '(理由未記入)'}</td>
 				</tr>
 				<tr>
-					<td style="padding: 4pt 0;">ban された日時: {data.ban.banned_at}</td>
+					<td style="padding: 4pt 0;">ban された日時: {formatBannedAt(data.ban.banned_at)}</td>
 				</tr>
 				<tr>
 					<td style="padding: 4pt 0;">解除予定: {formatExpires(data.ban.expires_at)}</td>

@@ -22,7 +22,7 @@ import type { RequestEvent } from '@sveltejs/kit';
 vi.mock('$app/environment', () => ({ dev: false }));
 
 import { actions } from '../../src/routes/ipban/+page.server';
-import { callAction } from './helpers/action-helpers';
+import { callAction, buildRequestEvent } from './helpers/action-helpers';
 
 type AnyAction = (event: RequestEvent) => Promise<unknown> | unknown;
 const unban = actions.unban as unknown as AnyAction;
@@ -380,6 +380,38 @@ describe('/ipban?/unban action', () => {
 		});
 		expect(r.status).toBe(303);
 		expect(bans.filter((b) => b.ip === '1.2.3.4').length).toBe(0);
+	});
+
+	it('siteverify 失敗時の cookie set は secure=true（dev=false 想定）', async () => {
+		// nit-4: should-1 で secure を `!dev` に変更したことの最小確認。
+		// 本ファイル冒頭の vi.mock('$app/environment') で dev=false にしている前提。
+		fetchSpy = mockTurnstile(false);
+		const { db } = makeIpBanDB([
+			{
+				id: 1,
+				ip: '1.2.3.4',
+				reason: 'spam',
+				banned_at: '2026-01-01T00:00:00Z',
+				expires_at: null,
+				banned_by: 1
+			}
+		]);
+		const event = buildRequestEvent({
+			user: null,
+			platform: platformWith(db, { siteKey: 'site', secret: 'secret' }),
+			getClientAddress: () => '1.2.3.4',
+			formData: { 'cf-turnstile-response': 'bad-token' }
+		});
+		const unbanFn = actions.unban as unknown as (e: RequestEvent) => Promise<unknown>;
+		await unbanFn(event);
+		const cookies = event.cookies as unknown as {
+			__getOptions: (name: string) => Record<string, unknown> | undefined;
+		};
+		const opts = cookies.__getOptions('unban_attempts');
+		expect(opts).toBeDefined();
+		expect(opts?.secure).toBe(true);
+		expect(opts?.httpOnly).toBe(true);
+		expect(opts?.sameSite).toBe('lax');
 	});
 
 	it('CF-Connecting-IP ヘッダがあれば getClientAddress より優先する', async () => {

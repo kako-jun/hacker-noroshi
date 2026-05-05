@@ -39,16 +39,18 @@ export const actions: Actions = {
 	// 2. 該当 IP が ban されていなければ 400（既に unban 済み or そもそも ban 中ではない）
 	// 3. Turnstile token を siteverify で検証
 	// 4. 通過したら removeActiveBansByIp で当該 IP の active を全削除し / へ 303
-	// 5. 通過試行（成功・失敗どちらも）で cookie の試行カウンタを +1
-	//    成功時は cookie を削除して次回の制限をリセット
+	// 5. 失敗時は cookie の試行カウンタを +1（成功時は削除して次回の制限をリセット）
 	unban: async (event) => {
 		const { request, platform, cookies } = event;
 		const ip = request.headers.get('CF-Connecting-IP') ?? event.getClientAddress();
 
 		// cookie 試行数チェック。3 回到達後はリクエスト本体を処理しない。
+		// cookie 値が壊れていれば 0 扱い。攻撃者が値を 'abc' にしてリセットを狙えるが、
+		// 24h 内 3 回までというソフト制限の性質上、実害は無い。
 		const attemptsRaw = cookies.get(UNBAN_COOKIE);
-		const attempts = attemptsRaw ? parseInt(attemptsRaw, 10) : 0;
-		if (Number.isFinite(attempts) && attempts >= UNBAN_MAX_ATTEMPTS) {
+		const parsed = attemptsRaw ? parseInt(attemptsRaw, 10) : 0;
+		const attempts = Number.isFinite(parsed) ? parsed : 0;
+		if (attempts >= UNBAN_MAX_ATTEMPTS) {
 			return fail(429, {
 				unbanError:
 					'24時間以内の試行回数を超えました。管理者に連絡してください。'
@@ -111,18 +113,17 @@ export const actions: Actions = {
 			});
 		}
 
-		// 試行カウンタ +1（成功・失敗どちらでも）。
+		// 失敗時のみ試行カウンタ +1。成功時はリセット（cookies.delete）に切り替える。
 		// secure は本番（HTTPS）でのみ on。dev（http）は false にしておかないと cookie が落ちる。
 		// HttpOnly + sameSite=lax で十分とする（v1 範囲）。
-		cookies.set(UNBAN_COOKIE, String(attempts + 1), {
-			path: '/',
-			maxAge: UNBAN_COOKIE_MAX_AGE,
-			httpOnly: true,
-			sameSite: 'lax',
-			secure: !dev
-		});
-
 		if (!verifyJson.success) {
+			cookies.set(UNBAN_COOKIE, String(attempts + 1), {
+				path: '/',
+				maxAge: UNBAN_COOKIE_MAX_AGE,
+				httpOnly: true,
+				sameSite: 'lax',
+				secure: !dev
+			});
 			return fail(400, { unbanError: '認証に失敗しました。再度試してください。' });
 		}
 
