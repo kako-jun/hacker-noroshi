@@ -29,21 +29,32 @@ const LONG_WINDOW_MINUTES = 60;
 const LONG_WINDOW_THRESHOLD = 30;
 const LONG_WINDOW_BAN_HOURS = 24;
 
-// パスワード不一致 / ユーザー不在 / deleted ユーザーいずれの "Bad login" でも
-// IP 単位で失敗を記録し、閾値を越えたら自動 ban を発動する（#92）。
-// - validation エラー（username/password 空）は攻撃ではないため対象外（呼ばない）
-// - 既に active な ban があるときは何もしない（重複 ban を作らない）
-// - DB エラーは握り潰す（ログイン応答自体は元のとおり Bad login で返したい）
+/**
+ * パスワード不一致 / ユーザー不在 / deleted ユーザーいずれの "Bad login" でも
+ * IP 単位で失敗を記録し、閾値を越えたら自動 ban を発動する（#92）。
+ * - validation エラー（username/password 空）は攻撃ではないため対象外（呼ばない）
+ * - 既に active な ban があるときは failure ログ自体も記録しない（重複 ban を作らない、
+ *   かつ ban 中の curl 等直接 POST 攻撃で ip_login_failures が肥大化するのを防ぐ）
+ * - DB エラーは握り潰す（ログイン応答自体は元のとおり Bad login で返したい）
+ *
+ * 並行性: 極端な並列下では同 IP の複数リクエストが同時に閾値判定を通り、
+ * 一瞬複数の ban が INSERT されうるが、createIpBan 内の事前 DELETE で
+ * 既存 active ban を消してから INSERT するため、結果的に最後の 1 件のみ残る。
+ * 1〜2 ms の窓で重複 INSERT が走る可能性は許容範囲。
+ */
 async function handleLoginFailure(
 	db: D1Database,
 	ip: string
 ): Promise<void> {
 	try {
-		await recordLoginFailure(db, ip);
-
-		// 既に active な ban が積まれていれば、追加で ban を作らない。
+		// 既に active な ban がある IP の失敗ログは記録しない。
+		// 通常ユーザーは hooks.server.ts で /ipban に飛ばされるが、curl 等の
+		// 直接 POST 攻撃者は login action に到達できる。失敗ログが ban 中も
+		// 無制限に積み上がるのを防ぐ。
 		const existing = await getActiveBan(db, ip);
 		if (existing) return;
+
+		await recordLoginFailure(db, ip);
 
 		// 24h 条件を先に評価（より長い ban を優先）。
 		const longCount = await countRecentLoginFailures(db, ip, LONG_WINDOW_MINUTES);

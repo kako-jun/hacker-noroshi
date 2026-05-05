@@ -7,7 +7,7 @@
  *     失敗ログが残ること
  *   - 5 分間 / 10 失敗 → 1 時間 ban が発動
  *   - 1 時間 / 30 失敗 → 24 時間 ban が発動（より長い側を優先）
- *   - 既に active な ban がある場合は新規 INSERT を避ける（重複防止）
+ *   - 既に active な ban がある場合は失敗ログ INSERT も新規 ban INSERT も避ける（重複防止 / テーブル肥大化防止）
  *   - 通常の login 成功時 / バリデーションエラー時は失敗ログを残さない
  */
 import { describe, it, expect } from 'vitest';
@@ -512,9 +512,10 @@ describe('login action: 自動 ban 発動', () => {
 			getClientAddress: () => '1.2.3.4'
 		});
 		expect(r.status).toBe(400);
-		// 失敗ログは記録される（次の手で短い ban が長く伸びる可能性のため）
-		expect(state.failures.length).toBe(10);
-		// だが ban は 1 件のまま（既存を上書きしない）
+		// active ban 中は失敗ログ自体も記録しない（curl 等で直接 POST する攻撃者に
+		// ip_login_failures を膨らまされないため）。事前に仕込んだ 9 件のみ残る。
+		expect(state.failures.length).toBe(9);
+		// ban は 1 件のまま（既存を上書きしない）
 		expect(state.bans.length).toBe(1);
 		expect(state.bans[0].reason).toBe('manual');
 	});
