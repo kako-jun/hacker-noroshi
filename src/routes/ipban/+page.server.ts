@@ -1,4 +1,5 @@
 import { fail, redirect } from '@sveltejs/kit';
+import { dev } from '$app/environment';
 import type { Actions, PageServerLoad } from './$types';
 import { getDB, getActiveBan, removeActiveBansByIp } from '$lib/server/db';
 
@@ -20,7 +21,9 @@ export const load: PageServerLoad = async (event) => {
 		// DB 未バインド時は ban=null として「banされていません」を表示する。
 	}
 	// site key が未設定（dev / 未デプロイ環境）なら null を返し、フロントで widget を出さない。
-	const turnstileSiteKey = event.platform?.env?.TURNSTILE_SITE_KEY ?? null;
+	// 'REPLACE_ME' は wrangler.toml の placeholder（dev/未設定）。null として扱い widget を出さない。
+	const rawSiteKey = event.platform?.env?.TURNSTILE_SITE_KEY;
+	const turnstileSiteKey = !rawSiteKey || rawSiteKey === 'REPLACE_ME' ? null : rawSiteKey;
 	return { ip, ban, turnstileSiteKey };
 };
 
@@ -108,15 +111,15 @@ export const actions: Actions = {
 			});
 		}
 
-		// 試行カウンタ +1（成功・失敗どちらでも）。secure は本番 Cloudflare 経由なら付ける。
-		// ローカル dev（http）でも動くよう、ここでは secure を立てない。
+		// 試行カウンタ +1（成功・失敗どちらでも）。
+		// secure は本番（HTTPS）でのみ on。dev（http）は false にしておかないと cookie が落ちる。
 		// HttpOnly + sameSite=lax で十分とする（v1 範囲）。
 		cookies.set(UNBAN_COOKIE, String(attempts + 1), {
 			path: '/',
 			maxAge: UNBAN_COOKIE_MAX_AGE,
 			httpOnly: true,
 			sameSite: 'lax',
-			secure: false
+			secure: !dev
 		});
 
 		if (!verifyJson.success) {

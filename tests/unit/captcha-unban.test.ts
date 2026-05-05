@@ -15,6 +15,12 @@
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { RequestEvent } from '@sveltejs/kit';
+
+// $app/environment は vitest 環境では実体が無い（SvelteKit ランタイムが提供）。
+// dev=false（本番想定）として mock し、+page.server.ts の `import { dev } from
+// '$app/environment'` を解決する。vi.mock は自動 hoisting されるので import より前で動く。
+vi.mock('$app/environment', () => ({ dev: false }));
+
 import { actions } from '../../src/routes/ipban/+page.server';
 import { callAction } from './helpers/action-helpers';
 
