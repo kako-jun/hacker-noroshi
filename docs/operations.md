@@ -108,6 +108,22 @@ wrangler d1 execute hacker-noroshi-db --remote --command "CREATE INDEX IF NOT EX
 
 ローカル開発 DB にも `--local` で同じコマンドを流す。
 
+### #92 自動 IP ban（本番反映手順）
+
+`ip_login_failures` テーブルを追加する。`/login` の login action が IP 単位の
+ログイン失敗を記録し、閾値超過で `ip_bans` に自動投入する。
+
+```bash
+# ip_login_failures テーブル + インデックス
+wrangler d1 execute hacker-noroshi-db --remote --command "CREATE TABLE IF NOT EXISTS ip_login_failures (id INTEGER PRIMARY KEY AUTOINCREMENT, ip TEXT NOT NULL, created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')))"
+wrangler d1 execute hacker-noroshi-db --remote --command "CREATE INDEX IF NOT EXISTS idx_ip_login_failures_ip_created ON ip_login_failures(ip, created_at)"
+```
+
+ローカル開発 DB にも `--local` で同じコマンドを流す。
+
+閾値・継続時間は `src/routes/login/+page.server.ts` 上部の定数で一元管理する
+（`SHORT_WINDOW_*` / `LONG_WINDOW_*`）。仕様の詳細は `docs/spec.md` の自動 ban (#92) 節。
+
 ### #90 email カラム廃止（本番反映手順）
 
 `/forgot` を削除し、認証用途として機能しなかった email カラムを廃止する。

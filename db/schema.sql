@@ -120,6 +120,16 @@ CREATE TABLE IF NOT EXISTS flags (
   PRIMARY KEY (user_id, item_id, item_type)
 );
 
+-- ログイン失敗履歴（#92 自動 ban）。
+-- IP 単位で連続失敗をカウントするための短期保持テーブル。
+-- 24 時間以上前のレコードは確率削除で肥大化を抑制（hooks.server.ts から）。
+CREATE TABLE IF NOT EXISTS ip_login_failures (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  ip TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))
+);
+CREATE INDEX IF NOT EXISTS idx_ip_login_failures_ip_created ON ip_login_failures(ip, created_at);
+
 -- Indexes
 CREATE INDEX IF NOT EXISTS idx_hidden_user_id ON hidden(user_id);
 CREATE INDEX IF NOT EXISTS idx_favorites_user_id ON favorites(user_id);
@@ -154,6 +164,11 @@ CREATE INDEX IF NOT EXISTS idx_ip_bans_expires ON ip_bans(expires_at);
 -- ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0;
 -- UPDATE users SET is_admin = 1 WHERE id = 1;
 -- CREATE TABLE ip_bans (...) -- 上記 CREATE TABLE 文を流す
+
+-- Migrations (#92 IP 自動 ban)
+-- 既存DBに対しては手動で1度だけ流す。詳細は docs/operations.md 参照。
+-- CREATE TABLE ip_login_failures (...) -- 上記 CREATE TABLE 文を流す
+-- CREATE INDEX idx_ip_login_failures_ip_created ON ip_login_failures(ip, created_at);
 
 -- Migrations (#90 /forgot 削除 / email カラム廃止)
 -- email カラムは認証用途として機能しなかったため廃止する。

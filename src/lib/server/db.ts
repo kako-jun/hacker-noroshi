@@ -1001,7 +1001,7 @@ export async function listActiveBans(db: D1Database): Promise<IpBanRow[]> {
 // （should-1: 同 IP に複数 active が積み上がると一覧の見通しが悪くなるため）
 export async function createIpBan(
 	db: D1Database,
-	params: { ip: string; reason: string; expiresAt: string | null; bannedBy: number }
+	params: { ip: string; reason: string; expiresAt: string | null; bannedBy: number | null }
 ): Promise<void> {
 	const nowIso = nowIsoSeconds();
 	// 既存の active ban を全て物理削除してから INSERT。
@@ -1031,6 +1031,57 @@ export async function expireIpBan(db: D1Database, id: number): Promise<void> {
 	await db
 		.prepare('UPDATE ip_bans SET expires_at = ? WHERE id = ?')
 		.bind(nowIso, id)
+		.run();
+}
+
+// ===== 自動 ban 用ログイン失敗ログ (#92) =====
+//
+// パスワード不一致 / 該当ユーザー不在 / deleted ユーザーのいずれの "Bad login" も
+// IP 単位でカウントし、閾値超過で ip_bans に自動投入する。
+// バリデーションエラー（username/password 空）は攻撃ではないので記録しない。
+//
+// 閾値（src/routes/login/+page.server.ts の login action から判定）:
+//   - 5 分間で 10 回失敗 → 1 時間 ban
+//   - 1 時間で 30 回失敗 → 24 時間 ban（より長い側を優先）
+// active な ban が既にある間は新規 INSERT しない（重複 ban を作らない）。
+
+// 1 件の失敗を記録する。ip は format.ts の isValidIpAddress 等で
+// 検証済みの値を渡すこと（本関数は検証しない）。
+export async function recordLoginFailure(db: D1Database, ip: string): Promise<void> {
+	await db
+		.prepare('INSERT INTO ip_login_failures (ip, created_at) VALUES (?, ?)')
+		.bind(ip, nowIsoSeconds())
+		.run();
+}
+
+// 過去 windowMinutes 分間に該当 IP が記録した失敗数を返す。
+// 時間窓は created_at > now - windowMinutes（現時点を含まない過去）で判定。
+export async function countRecentLoginFailures(
+	db: D1Database,
+	ip: string,
+	windowMinutes: number
+): Promise<number> {
+	const sinceIso = new Date(Date.now() - windowMinutes * 60 * 1000)
+		.toISOString()
+		.replace(/\.\d{3}Z$/, 'Z');
+	const row = await db
+		.prepare(
+			'SELECT COUNT(*) AS n FROM ip_login_failures WHERE ip = ? AND created_at > ?'
+		)
+		.bind(ip, sinceIso)
+		.first<{ n: number }>();
+	return row?.n ?? 0;
+}
+
+// 24 時間以上前の失敗ログを物理削除する。確率的クリーンアップ用（hooks.server.ts から呼ぶ）。
+// テーブル肥大化を防ぐためのもの。ロックを掛けないので失敗しても次回掃除されればよい。
+export async function cleanupOldLoginFailures(db: D1Database): Promise<void> {
+	const cutoffIso = new Date(Date.now() - 24 * 60 * 60 * 1000)
+		.toISOString()
+		.replace(/\.\d{3}Z$/, 'Z');
+	await db
+		.prepare('DELETE FROM ip_login_failures WHERE created_at < ?')
+		.bind(cutoffIso)
 		.run();
 }
 

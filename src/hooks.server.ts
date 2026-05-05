@@ -1,8 +1,13 @@
 import type { Handle } from '@sveltejs/kit';
-import { getDB, getActiveBan, type IpBanRow } from '$lib/server/db';
+import { getDB, getActiveBan, cleanupOldLoginFailures, type IpBanRow } from '$lib/server/db';
 import { getSession } from '$lib/server/auth';
 import { nowIsoSeconds } from '$lib/format';
 import { redirect } from '@sveltejs/kit';
+
+// 1% の確率で古いログを掃除（fire-and-forget、テーブル肥大化防止）。
+// 値を変えるときはここだけ触る。下げると掃除頻度が落ちて肥大しやすく、
+// 上げると DB 書き込みが増える。1% 程度なら通常運用で十分追いつく。
+const CLEANUP_PROBABILITY = 0.01;
 
 export const handle: Handle = async ({ event, resolve }) => {
 	event.locals.user = null;
@@ -26,6 +31,14 @@ export const handle: Handle = async ({ event, resolve }) => {
 			const ip =
 				event.request.headers.get('CF-Connecting-IP') ?? event.getClientAddress();
 			activeBan = await getActiveBan(db, ip);
+
+			// 自動 ban 用ログイン失敗ログの確率的クリーンアップ（#92）。
+			// CLEANUP_PROBABILITY の確率で 24h 超のログを物理削除する。
+			// リクエストパスを止めない fire-and-forget。テーブル肥大化を防ぐためのもの。
+			// 失敗しても次回掃除されればよい。
+			if (Math.random() < CLEANUP_PROBABILITY) {
+				cleanupOldLoginFailures(db).catch(() => {});
+			}
 		} catch {
 			// DB 未バインド時（ビルド中など）や DB エラー時は ban チェックをスキップ。
 		}
