@@ -211,6 +211,19 @@ IP 単位の ban を保持する（#77）。`hooks.server.ts` が全リクエス
 
 active 判定: `expires_at IS NULL OR expires_at > now`。unban は物理削除（DELETE）。
 
+### ip_login_failures
+
+ログイン失敗履歴を IP 単位で記録する（#92 自動 ban の判定材料）。
+`/login` の login action がパスワード検証失敗・ユーザー不在・deleted ユーザー時に 1 行 INSERT。
+閾値超過で `ip_bans` に自動投入する。`hooks.server.ts` が 1% の確率で 24h 超のレコードを物理削除する。
+
+| カラム | 型 | 備考 |
+|---|---|---|
+| id | INTEGER PK | autoincrement |
+| ip | TEXT | 失敗時の IP |
+| created_at | TEXT | 失敗時刻（ISO8601、デフォルト now） |
+| INDEX | idx_ip_login_failures_ip_created ON (ip, created_at) | 時間窓 COUNT 用 |
+
 #### Turnstile 統合（#91 セルフ unban）
 
 `/ipban` ページに Cloudflare Turnstile widget を出し、通過すれば当該 IP の
@@ -314,6 +327,9 @@ env: `TURNSTILE_SITE_KEY`（public）と `TURNSTILE_SECRET_KEY`（secret）。
 | `removeIpBan()` | IP ban を物理削除（unban、#77） |
 | `removeActiveBansByIp()` | 該当 IP の active な ban を全件物理削除（#91 セルフ unban 用） |
 | `expireIpBan()` | IP ban の expires_at を now にして論理失効（履歴保持用、#77） |
+| `recordLoginFailure()` | IP 単位のログイン失敗を 1 件 INSERT（#92 自動 ban） |
+| `countRecentLoginFailures()` | 過去 N 分間の該当 IP の失敗数を返す（#92） |
+| `cleanupOldLoginFailures()` | 24h 超の失敗ログを物理削除。確率的クリーンアップ用（#92） |
 | `createPoll()` | 投票投稿を新規作成（stories + poll_options を batch、#74） |
 | `getPollOptions()` | 投票の選択肢を position 順に取得（vote_count 付き、#74） |
 | `getPollOptionsVoted()` | ログインユーザーが投票済みの option_id Set を返す（#74） |
