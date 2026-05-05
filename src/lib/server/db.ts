@@ -1024,6 +1024,20 @@ export async function removeIpBan(db: D1Database, id: number): Promise<void> {
 	await db.prepare('DELETE FROM ip_bans WHERE id = ?').bind(id).run();
 }
 
+// 指定 IP に紐づく active な ban を全て物理削除する（#91 セルフ unban）。
+// `createIpBan` の事前 DELETE と同じ条件で、active のみを対象とする。
+// 既に失効済みの ban（過去の expires_at）は履歴として残す扱いだが、
+// 現状は物理削除運用なのでそもそも存在しないことが多い。
+// セルフ unban で「複数 active が積まれている異常状態」も含めて掃除するため、
+// LIMIT は付けず該当 IP の active を全件削除する。
+export async function removeActiveBansByIp(db: D1Database, ip: string): Promise<void> {
+	const nowIso = nowIsoSeconds();
+	await db
+		.prepare('DELETE FROM ip_bans WHERE ip = ? AND (expires_at IS NULL OR expires_at > ?)')
+		.bind(ip, nowIso)
+		.run();
+}
+
 // IP ban を論理失効させる（expires_at = now）。履歴を残したいときに使う。
 // 現状の運用では removeIpBan を使う。将来の「unban 履歴を見たい」要件に備えて用意。
 export async function expireIpBan(db: D1Database, id: number): Promise<void> {

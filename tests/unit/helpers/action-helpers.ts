@@ -58,6 +58,9 @@ export interface BuildEventOpts {
 export function buildRequestEvent(opts: BuildEventOpts): RequestEvent {
 	const formData = opts.formData ?? {};
 	const cookieStore = new Map(Object.entries(opts.cookies ?? {}));
+	// cookie set 時に渡された options を name 単位で保存する。
+	// secure / httpOnly / sameSite 等の検証をテスト側で行えるようにするため。
+	const cookieOptions = new Map<string, Record<string, unknown>>();
 	const headers = new Headers(opts.request?.headers ?? {});
 
 	const fakeRequest = {
@@ -79,11 +82,20 @@ export function buildRequestEvent(opts: BuildEventOpts): RequestEvent {
 		url: opts.url ?? new URL('http://localhost/'),
 		cookies: {
 			get: (name: string) => cookieStore.get(name),
-			set: (name: string, value: string) => cookieStore.set(name, value),
-			delete: (name: string) => cookieStore.delete(name),
+			set: (name: string, value: string, options?: Record<string, unknown>) => {
+				cookieStore.set(name, value);
+				if (options) cookieOptions.set(name, options);
+			},
+			delete: (name: string) => {
+				cookieStore.delete(name);
+				cookieOptions.delete(name);
+			},
 			getAll: () =>
 				Array.from(cookieStore.entries()).map(([name, value]) => ({ name, value })),
-			serialize: () => ''
+			serialize: () => '',
+			// テスト専用: 直近 set された options を取得するための拡張。
+			// production code 側からは触らないので型キャストで隠す。
+			__getOptions: (name: string) => cookieOptions.get(name)
 		},
 		getClientAddress: opts.getClientAddress ?? (() => '127.0.0.1'),
 		fetch: globalThis.fetch,

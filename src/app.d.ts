@@ -19,6 +19,11 @@ declare global {
 		interface Platform {
 			env: {
 				DB: D1Database;
+				// Cloudflare Turnstile（#91 セルフ unban）。
+				// SITE_KEY は public（フロントに渡す）、SECRET_KEY は server side のみ。
+				// 未設定時は widget を出さない（dev 環境フェイルセーフ）。
+				TURNSTILE_SITE_KEY?: string;
+				TURNSTILE_SECRET_KEY?: string;
 			};
 		}
 	}
