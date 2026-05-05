@@ -102,7 +102,7 @@ score = (points - 1) / (hours_since_post + 2) ^ 1.8
 - パスワード再入力 + ブラウザの `confirm()` 二重確認（CSR で `use:enhance` 経由）
 - 削除処理（`deleteAccount(db, userId)`）:
   - users 行は残す（username の永久ロックのため）。`deleted=1`, `deleted_at=now`
-  - 個人情報をクリア: `email='', about='', password_hash=''`
+  - 個人情報をクリア: `about='', password_hash=''`
   - 設定をデフォルトに戻す: `delay=0, noprocrast=0, maxvisit=20, minaway=180, showdead=0, last_visit=NULL`
   - 当該ユーザーの sessions を全削除（即時ログアウト）
   - D1 batch でアトミック実行
@@ -118,14 +118,6 @@ score = (points - 1) / (hours_since_post + 2) ^ 1.8
 - 本家HN FAQ #32「Can I delete my account?」相当だが、本家とは異なりセルフサービスで完結する
 - スキーマ追加 (`users.deleted`, `users.deleted_at`) は `db/schema.sql` に ALTER 文をコメントとして併記。本番反映手順は `docs/operations.md` の「#76 アカウント削除」を参照
 
-#### パスワードリセット
-
-- `/forgot` ページ: ユーザー名 + 登録メールアドレスで本人確認
-- メール送信は行わない。username + email の照合が通れば即座に新パスワードを設定可能
-- email 未登録のアカウントはリセット不可
-- ユーザー名の存在有無は曖昧にする（「Bad login.」で統一）
-- `/login` ページに "Forgot your password?" リンクあり
-
 ### ユーザー設定
 
 プロフィールページ（`/user/[id]`）で本人のみ編集可能。テーブルレイアウトのインラインフォーム（本家HN準拠）。
@@ -133,7 +125,6 @@ score = (points - 1) / (hours_since_post + 2) ^ 1.8
 | 設定 | 型 | デフォルト | 説明 |
 |---|---|---|---|
 | about | TEXT | '' | 自己紹介 |
-| email | TEXT | '' | パスワードリセット用（任意、本人のみ表示） |
 | showdead | yes/no | no | dead 状態の投稿・コメントを表示（モデレーション実装後に有効） |
 | noprocrast | yes/no | no | アクセス制限を有効にする |
 | maxvisit | INTEGER | 20 | noprocrast: 連続アクセス可能時間（分） |
@@ -166,6 +157,49 @@ score = (points - 1) / (hours_since_post + 2) ^ 1.8
 - 投稿: 投稿から2時間以内、本人のみ title と text を編集可能
 - コメント: 投稿から2時間以内、本人のみ text を編集可能
 - ストーリー編集時は type を再判定（Ask HN: / Show HN: プレフィックス）
+
+### hide 機能
+
+ストーリーをユーザー単位で非表示化する機能（本家HN準拠）。
+
+- ログイン中のユーザーが各ストーリーのメタ行 `hide` リンクをクリックすると、`hidden` テーブルに `(user_id, story_id)` を保存
+- 一覧ページではサーバー側で `getHiddenStoryIds(db, user_id)` を取得し、該当 story を `stories.filter((s) => !hiddenIds.has(s.id))` で除外
+- フロントエンドでは hide クリック後すぐに行が消える（`localHiddenIds` セットに追加して `isHidden(story.id)` で行を非表示）
+- `/user/[id]/hidden` で自分が hide した一覧を確認・un-hide 可能
+- API: `POST /api/hide`（toggle 式。再度クリックで un-hide。対象 story が存在しないと 404、未ログインは 401）
+
+#### 対象ページ（13 ページ）
+
+hide リンクとサーバー側除外ロジックを実装するページ:
+
+| パス | 役割 |
+|---|---|
+| `/` | ホームページ（rank 順） |
+| `/newest` | 新着 story 一覧（投稿日時降順） |
+| `/best` | 高得点 story 一覧（points 降順） |
+| `/active` | アクティブな議論一覧（最新コメント順） |
+| `/front` | 過去日付の rank 上位（`?day=YYYY-MM-DD`、その日の rank 順） |
+| `/ask` | Ask HN 一覧（rank 順） |
+| `/show` | Show HN 一覧（rank 順） |
+| `/asknew` | Ask HN 新着（投稿日時降順） |
+| `/shownew` | Show HN 新着（投稿日時降順） |
+| `/noobstories` | 新規ユーザー投稿一覧（投稿日時降順） |
+| `/from` | ドメイン別投稿一覧（投稿日時降順） |
+| `/polls` | 投票投稿一覧（投稿日時降順） |
+| `/search` | 検索結果（stories タブ、関連度・日時順） |
+
+加えて `/item/[id]` 詳細ページのメタ行にも hide リンクがあるが、単体表示のため一覧除外ロジックは不要（hide 後にリロードしても通常表示されたまま）。`/user/[id]/hidden` は hide 済み一覧を表示する管理ページで、除外ではなく逆に hidden のみを表示する。username 変更時は L96 の通り旧 URL 子ルート `hidden` も 301 リダイレクトで追従する。
+
+#### 新規 story-list ページ追加時のガイド
+
+新しい story 一覧ページを追加するときは、上記 12 ページと同じパターンを踏襲する:
+
+1. `+page.server.ts` で `getHiddenStoryIds(db, locals.user.id)` を取得
+2. ログイン中のユーザーには `stories.filter((s) => !hiddenIds.has(s.id))` で除外
+3. `+page.svelte` のメタ行に hide / un-hide トグルリンクを追加
+4. クリック後の即時消去のため `localHiddenIds` を保持
+
+将来的には `<StoryListItem />` 共通コンポーネント（#86）を抽出し、新規ページではそれを使うだけで自動的に hide が入るようにする。
 
 ### フラグ・モデレーション
 
@@ -262,20 +296,19 @@ score = ((points - 1) / (hours_since_post + 2)^1.8) / (flag_count + 1)^1.5
 - [x] favorites 機能（favorite/un-fav トグル + /user/[id]/favorites 一覧）
 - [x] hide 機能（ストーリー非表示 + /user/[id]/hidden 一覧 + 一覧からの除外）
 - [x] downvote 機能（コメント専用、karma 500 閾値、フェード表示）
-- [x] ユーザー設定（email, showdead, noprocrast, delay）
+- [x] ユーザー設定（showdead, noprocrast, delay）
 - [x] noprocrast アクセス制限（/noprocrast ブロックページ）
 - [x] コメント delay フィルタ（サーバーサイド）
 - [x] 検索機能（/search、ストーリー+コメントの LIKE 検索、フッター検索欄）
 - [x] スレッドクローズ（投稿から14日経過でコメント不可）
 - [x] レート制限（投稿10分間隔、コメント2分間隔）
-- [x] パスワードリセット（username + email 照合で即時リセット、メール送信なし）
 - [x] フラグ・モデレーション（karma>=30 でフラグ可能、5件で dead 自動化、vouch で復活）
 - [x] ランキング降格（flag 数で score にペナルティ）
 - [x] ユーザー名変更（セルフサービス、90日に1回、過去名は永久ロック、旧URLは301リダイレクト）
 
 ## v2 以降
 - ~~フラグ / モデレーション~~ → v1 で実装済み（flag/vouch、dead カラム、ランキング降格）
-- ~~パスワードリセット（email 利用）~~ → v1 で実装済み（メール送信なし方式）
+- ~~パスワードリセット~~ → email 認証が機能しないため廃止 (#90)
 - API 公開
 - 招待制 / カルマ制限
 - ダークモード

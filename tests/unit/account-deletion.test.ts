@@ -19,7 +19,6 @@ interface UserRecord {
 	id: number;
 	username: string;
 	password_hash: string;
-	email: string;
 	about: string;
 	delay: number;
 	noprocrast: number;
@@ -40,7 +39,6 @@ interface SessionRecord {
 function makeMockDB(initial?: { users?: Partial<UserRecord>[]; sessions?: SessionRecord[] }) {
 	const defaults: Omit<UserRecord, 'id' | 'username'> = {
 		password_hash: 'hash',
-		email: 'a@b.test',
 		about: 'hello',
 		delay: 5,
 		noprocrast: 1,
@@ -62,7 +60,7 @@ function makeMockDB(initial?: { users?: Partial<UserRecord>[]; sessions?: Sessio
 
 		// deleteAccount の UPDATE
 		if (
-			/^UPDATE users SET deleted = 1, deleted_at = \?, email = '', about = '', password_hash = '', delay = 0, noprocrast = 0, maxvisit = 20, minaway = 180, showdead = 0, last_visit = NULL WHERE id = \?$/i.test(
+			/^UPDATE users SET deleted = 1, deleted_at = \?, about = '', password_hash = '', delay = 0, noprocrast = 0, maxvisit = 20, minaway = 180, showdead = 0, last_visit = NULL WHERE id = \?$/i.test(
 				s
 			)
 		) {
@@ -72,7 +70,6 @@ function makeMockDB(initial?: { users?: Partial<UserRecord>[]; sessions?: Sessio
 			if (u) {
 				u.deleted = 1;
 				u.deleted_at = deletedAt;
-				u.email = '';
 				u.about = '';
 				u.password_hash = '';
 				u.delay = 0;
@@ -190,7 +187,6 @@ describe('deleteAccount', () => {
 		const u = users.find((x) => x.id === 1)!;
 		expect(u.deleted).toBe(1);
 		expect(u.deleted_at).toBeTruthy();
-		expect(u.email).toBe('');
 		expect(u.about).toBe('');
 		expect(u.password_hash).toBe('');
 		expect(u.delay).toBe(0);

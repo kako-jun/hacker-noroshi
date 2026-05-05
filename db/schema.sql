@@ -6,7 +6,6 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT NOT NULL,
   karma INTEGER NOT NULL DEFAULT 0,
   about TEXT DEFAULT '',
-  email TEXT DEFAULT '',
   delay INTEGER NOT NULL DEFAULT 0,
   noprocrast INTEGER NOT NULL DEFAULT 0,
   maxvisit INTEGER NOT NULL DEFAULT 20,
@@ -155,3 +154,13 @@ CREATE INDEX IF NOT EXISTS idx_ip_bans_expires ON ip_bans(expires_at);
 -- ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0;
 -- UPDATE users SET is_admin = 1 WHERE id = 1;
 -- CREATE TABLE ip_bans (...) -- 上記 CREATE TABLE 文を流す
+
+-- Migrations (#90 /forgot 削除 / email カラム廃止)
+-- email カラムは認証用途として機能しなかったため廃止する。
+-- D1 (SQLite) は DROP COLUMN を限定的にサポートする (3.35+)。
+-- 本番では1度だけ流す:
+-- ALTER TABLE users DROP COLUMN email;
+-- 古いランタイムで DROP COLUMN が使えない環境では、docs/operations.md の
+-- 「CHECK 制約変更が必要になった場合の汎用テーブル再作成手順」と同じ
+-- rename → 新 CREATE → INSERT SELECT → DROP 旧 パターンで email を除外して再作成する。
+-- 詳細は docs/operations.md 参照。

@@ -80,7 +80,6 @@ hacker-noroshi/
 | password_hash | TEXT | bcrypt |
 | karma | INTEGER | デフォルト 0 |
 | about | TEXT | 自己紹介（任意） |
-| email | TEXT | パスワードリセット用（任意） |
 | delay | INTEGER | コメント遅延（0-10分、デフォルト 0） |
 | noprocrast | INTEGER | アクセス制限（0=OFF, 1=ON） |
 | maxvisit | INTEGER | 連続アクセス可能時間（分、デフォルト 20） |
