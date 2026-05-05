@@ -262,6 +262,22 @@ score = ((points - 1) / (hours_since_post + 2)^1.8) / (flag_count + 1)^1.5
 - `#91` CAPTCHA セルフサービス unban
 - `#92` 自動 ban（フラグ過多・スパム検出等）
 
+#### セルフサービス unban (#91)
+
+共有 IP（職場・学校・公共 Wi-Fi）で巻き込まれた正当ユーザーの自助手段。
+
+- プロバイダ: **Cloudflare Turnstile**（Cloudflare Pages との親和性 + 無料 + reCAPTCHA より軽量）
+- 動作: `/ipban` ページで ban 中のときのみ Turnstile widget を表示する。
+  通過するとサーバー側で `https://challenges.cloudflare.com/turnstile/v0/siteverify` に
+  POST して検証し、`success: true` なら当該 IP の active な ban を全削除する。
+  完了後 `/` へ 303 redirect する。
+- ソフト制限: 24h 以内 3 回まで（cookie `unban_attempts` ベース）。
+  cookie 削除で回避可能なことは v1 範囲では許容する。永続的な対策は将来検討。
+- env: `TURNSTILE_SITE_KEY`（public, `[vars]`）と `TURNSTILE_SECRET_KEY`（secret, `wrangler pages secret put`）
+- フェイルセーフ: site key が未設定（dev / 未デプロイ）なら widget を出さない。
+  secret 未設定なら 500 を返す（管理側に連絡する旨のメッセージ）。
+- ban 中でない IP からの unban POST は 400（直接 POST 攻撃の防御）。
+
 ### 静的ページ
 
 - `/guidelines` — 投稿・コメントのガイドライン

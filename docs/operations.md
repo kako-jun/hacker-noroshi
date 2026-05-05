@@ -108,6 +108,29 @@ wrangler d1 execute hacker-noroshi-db --remote --command "CREATE INDEX IF NOT EX
 
 ローカル開発 DB にも `--local` で同じコマンドを流す。
 
+### #91 セルフサービス unban（本番反映手順）
+
+`/ipban` ページに Cloudflare Turnstile による セルフ unban 機能を追加した。
+本番反映には Turnstile widget の作成と secret の登録が必要。
+
+```bash
+# 1. Cloudflare dashboard で Turnstile widget を作成し、site key と secret key を取得
+#    https://dash.cloudflare.com/?to=/:account/turnstile
+#
+# 2. wrangler.toml の TURNSTILE_SITE_KEY を本番 site key に置換してコミット
+#    （site key は public なのでコミットしてよい）
+#
+# 3. secret を登録（Pages の本番環境）
+wrangler pages secret put TURNSTILE_SECRET_KEY
+#    プロンプトに secret key を貼り付ける
+#
+# 4. デプロイ
+git push  # CI 経由 or wrangler pages deploy
+```
+
+ローカル dev では site key を未設定にしておくと widget が表示されず、
+ban 表示はされるがセルフ unban フローはオフになる（フェイルセーフ）。
+
 ### #90 email カラム廃止（本番反映手順）
 
 `/forgot` を削除し、認証用途として機能しなかった email カラムを廃止する。
