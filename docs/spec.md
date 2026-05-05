@@ -175,28 +175,29 @@ score = (points - 1) / (hours_since_post + 2) ^ 1.8
 - 一覧ページではサーバー側で `getHiddenStoryIds(db, user_id)` を取得し、該当 story を `stories.filter((s) => !hiddenIds.has(s.id))` で除外
 - フロントエンドでは hide クリック後すぐに行が消える（`localHiddenIds` セットに追加して `isHidden(story.id)` で行を非表示）
 - `/user/[id]/hidden` で自分が hide した一覧を確認・un-hide 可能
-- API: `POST /api/hide`（toggle 式。再度クリックで un-hide）
+- API: `POST /api/hide`（toggle 式。再度クリックで un-hide。対象 story が存在しないと 404、未ログインは 401）
 
-#### 対象ページ（12 ページ）
+#### 対象ページ（13 ページ）
 
 hide リンクとサーバー側除外ロジックを実装するページ:
 
 | パス | 役割 |
 |---|---|
 | `/` | ホームページ（rank 順） |
-| `/newest` | 新着 story 一覧 |
-| `/best` | 高得点 story 一覧 |
-| `/active` | アクティブな議論一覧 |
-| `/front` | 過去日付の rank 上位 (front?day=YYYY-MM-DD) |
-| `/ask` | Ask HN 一覧 |
-| `/show` | Show HN 一覧 |
-| `/asknew` | Ask HN 新着 |
-| `/shownew` | Show HN 新着 |
-| `/noobstories` | 新規ユーザー投稿一覧 |
-| `/from` | ドメイン別投稿一覧 |
-| `/search` | 検索結果（stories タブ） |
+| `/newest` | 新着 story 一覧（投稿日時降順） |
+| `/best` | 高得点 story 一覧（points 降順） |
+| `/active` | アクティブな議論一覧（最新コメント順） |
+| `/front` | 過去日付の rank 上位（`?day=YYYY-MM-DD`、その日の rank 順） |
+| `/ask` | Ask HN 一覧（rank 順） |
+| `/show` | Show HN 一覧（rank 順） |
+| `/asknew` | Ask HN 新着（投稿日時降順） |
+| `/shownew` | Show HN 新着（投稿日時降順） |
+| `/noobstories` | 新規ユーザー投稿一覧（投稿日時降順） |
+| `/from` | ドメイン別投稿一覧（投稿日時降順） |
+| `/polls` | 投票投稿一覧（投稿日時降順） |
+| `/search` | 検索結果（stories タブ、関連度・日時順） |
 
-加えて `/item/[id]` 詳細ページのメタ行にも hide リンクがあるが、単体表示のため一覧除外ロジックは不要。`/user/[id]/hidden` は hide 済み一覧を表示する管理ページで、除外ではなく逆に hidden のみを表示する。
+加えて `/item/[id]` 詳細ページのメタ行にも hide リンクがあるが、単体表示のため一覧除外ロジックは不要（hide 後にリロードしても通常表示されたまま）。`/user/[id]/hidden` は hide 済み一覧を表示する管理ページで、除外ではなく逆に hidden のみを表示する。username 変更時は L96 の通り旧 URL 子ルート `hidden` も 301 リダイレクトで追従する。
 
 #### 新規 story-list ページ追加時のガイド
 
