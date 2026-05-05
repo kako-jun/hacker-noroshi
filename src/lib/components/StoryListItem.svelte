@@ -1,7 +1,7 @@
 <script lang="ts">
-	import { FLAG_KARMA_THRESHOLD } from '$lib/constants';
 	import { displayUsername } from '$lib/format';
 	import { timeAgo, extractDomain, isNewUser } from '$lib/ranking';
+	import { canFlagStory, shouldShowPollTag, type UserLike } from '$lib/storyActions';
 
 	interface StoryLike {
 		id: number;
@@ -19,18 +19,12 @@
 		user_deleted?: number | null;
 	}
 
-	interface UserLike {
-		id: number;
-		karma: number;
-	}
-
 	type Props = {
 		story: StoryLike;
 		rank?: number | null;
 		user: UserLike | null | undefined;
 		initialVoted: boolean;
 		initialFlagged: boolean;
-		initialFlagCount?: number;
 		/** /polls 用: url 無しでも常に [poll] タグを付ける */
 		forcePollTag?: boolean;
 		/** hide 成功時に親へ通知（親側で localHiddenIds を更新するため） */
@@ -43,7 +37,6 @@
 		user,
 		initialVoted,
 		initialFlagged,
-		initialFlagCount,
 		forcePollTag = false,
 		onhide
 	}: Props = $props();
@@ -59,12 +52,10 @@
 	let voted = $derived(localVoted ?? initialVoted);
 	let flagged = $derived(localFlagged ?? initialFlagged);
 	let points = $derived(localPoints ?? story.points);
-	let flagCount = $derived(localFlagCount ?? initialFlagCount ?? story.flag_count ?? 0);
+	let flagCount = $derived(localFlagCount ?? story.flag_count ?? 0);
 
-	let canFlag = $derived(
-		!!user && user.karma >= FLAG_KARMA_THRESHOLD && story.user_id !== user.id
-	);
-	let showPollTag = $derived(forcePollTag || story.type === 'poll');
+	let canFlag = $derived(canFlagStory(user, story));
+	let showPollTag = $derived(shouldShowPollTag(story, forcePollTag));
 
 	async function vote() {
 		if (!user) {
@@ -146,7 +137,7 @@
 				style={isNewUser(story.user_created_at) ? 'color: #3c963c;' : ''}
 				>{displayUsername({
 					username: story.username,
-					deleted: story.user_deleted as 0 | 1 | null | undefined
+					deleted: story.user_deleted === 1 ? 1 : story.user_deleted === 0 ? 0 : null
 				})}</a>
 			<a href="/item/{story.id}">{timeAgo(story.created_at)}</a> |
 			<a href="/item/{story.id}"
