@@ -1,5 +1,5 @@
 import type { Handle } from '@sveltejs/kit';
-import { getDB, getActiveBan, type IpBanRow } from '$lib/server/db';
+import { getDB, getActiveBan, cleanupOldLoginFailures, type IpBanRow } from '$lib/server/db';
 import { getSession } from '$lib/server/auth';
 import { nowIsoSeconds } from '$lib/format';
 import { redirect } from '@sveltejs/kit';
@@ -26,6 +26,13 @@ export const handle: Handle = async ({ event, resolve }) => {
 			const ip =
 				event.request.headers.get('CF-Connecting-IP') ?? event.getClientAddress();
 			activeBan = await getActiveBan(db, ip);
+
+			// 自動 ban 用ログイン失敗ログの確率的クリーンアップ（#92）。
+			// 1% の確率で 24h 超のログを物理削除する。リクエストパスを止めない fire-and-forget。
+			// テーブル肥大化を防ぐためのもの。失敗しても次回掃除されればよい。
+			if (Math.random() < 0.01) {
+				cleanupOldLoginFailures(db).catch(() => {});
+			}
 		} catch {
 			// DB 未バインド時（ビルド中など）や DB エラー時は ban チェックをスキップ。
 		}
