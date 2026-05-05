@@ -160,5 +160,7 @@ CREATE INDEX IF NOT EXISTS idx_ip_bans_expires ON ip_bans(expires_at);
 -- D1 (SQLite) は DROP COLUMN を限定的にサポートする (3.35+)。
 -- 本番では1度だけ流す:
 -- ALTER TABLE users DROP COLUMN email;
--- 古いランタイムで DROP COLUMN が使えない環境では table 再作成（CREATE TABLE ... AS SELECT 経由で email を除外）が必要。
+-- 古いランタイムで DROP COLUMN が使えない環境では、docs/operations.md の
+-- 「CHECK 制約変更が必要になった場合の汎用テーブル再作成手順」と同じ
+-- rename → 新 CREATE → INSERT SELECT → DROP 旧 パターンで email を除外して再作成する。
 -- 詳細は docs/operations.md 参照。
