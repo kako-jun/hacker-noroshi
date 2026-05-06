@@ -27,7 +27,7 @@ test.beforeAll(() => {
 for (const site of SITES) {
 	test(`${site.id} /polls full page`, async ({ page }) => {
 		await page.setViewportSize({ width: 1280, height: 720 });
-		await page.goto(`${site.baseURL}/polls`, { waitUntil: 'networkidle' });
+		await page.goto(`${site.baseURL}/polls`, { waitUntil: 'load' });
 		await page.screenshot({
 			path: path.join(OUT_DIR, `${site.id}-polls.png`),
 			fullPage: true
@@ -38,7 +38,7 @@ for (const site of SITES) {
 
 	test(`${site.id} /newest first story meta`, async ({ page }) => {
 		await page.setViewportSize({ width: 1280, height: 720 });
-		await page.goto(`${site.baseURL}/newest`, { waitUntil: 'networkidle' });
+		await page.goto(`${site.baseURL}/newest`, { waitUntil: 'load' });
 
 		// 本家HN は .athing + .subtext 構造、当方は .story-item + .story-meta 構造
 		// 両方の場合に対応するため body から first story 周辺を抽出する
