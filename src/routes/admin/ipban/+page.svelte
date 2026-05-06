@@ -22,30 +22,32 @@
 	<!-- SvelteKit form action は同一オリジンチェック付き -->
 	<form method="POST" action="?/ban">
 		<table style="border-collapse: collapse;">
-			<tr>
-				<td style="padding: 4pt 8pt 4pt 0;">IP:</td>
-				<td style="padding: 4pt 0;">
-					<input type="text" name="ip" value={form?.ip ?? ''} size="20" style="font-family: Verdana, Geneva, sans-serif; font-size: 10pt;" />
-				</td>
-			</tr>
-			<tr>
-				<td style="padding: 4pt 8pt 4pt 0;">理由:</td>
-				<td style="padding: 4pt 0;">
-					<input type="text" name="reason" value={form?.reason ?? ''} size="40" maxlength="1024" style="font-family: Verdana, Geneva, sans-serif; font-size: 10pt;" />
-				</td>
-			</tr>
-			<tr>
-				<td style="padding: 4pt 8pt 4pt 0;">有効期限 (時間):</td>
-				<td style="padding: 4pt 0;">
-					<input type="text" name="expiresIn" value={form?.expiresInRaw ?? ''} size="6" style="font-family: Verdana, Geneva, sans-serif; font-size: 10pt;" />
-					<span style="margin-left: 8pt;">空欄で無期限</span>
-				</td>
-			</tr>
-			<tr>
-				<td colspan="2" style="padding: 8pt 0;">
-					<button type="submit" style="font-family: Verdana, Geneva, sans-serif; font-size: 10pt;">ban する</button>
-				</td>
-			</tr>
+			<tbody>
+				<tr>
+					<td style="padding: 4pt 8pt 4pt 0;">IP:</td>
+					<td style="padding: 4pt 0;">
+						<input type="text" name="ip" value={form?.ip ?? ''} size="20" style="font-family: Verdana, Geneva, sans-serif; font-size: 10pt;" />
+					</td>
+				</tr>
+				<tr>
+					<td style="padding: 4pt 8pt 4pt 0;">理由:</td>
+					<td style="padding: 4pt 0;">
+						<input type="text" name="reason" value={form?.reason ?? ''} size="40" maxlength="1024" style="font-family: Verdana, Geneva, sans-serif; font-size: 10pt;" />
+					</td>
+				</tr>
+				<tr>
+					<td style="padding: 4pt 8pt 4pt 0;">有効期限 (時間):</td>
+					<td style="padding: 4pt 0;">
+						<input type="text" name="expiresIn" value={form?.expiresInRaw ?? ''} size="6" style="font-family: Verdana, Geneva, sans-serif; font-size: 10pt;" />
+						<span style="margin-left: 8pt;">空欄で無期限</span>
+					</td>
+				</tr>
+				<tr>
+					<td colspan="2" style="padding: 8pt 0;">
+						<button type="submit" style="font-family: Verdana, Geneva, sans-serif; font-size: 10pt;">ban する</button>
+					</td>
+				</tr>
+			</tbody>
 		</table>
 	</form>
 
