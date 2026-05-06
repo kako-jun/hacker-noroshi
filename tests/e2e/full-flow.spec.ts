@@ -27,6 +27,13 @@ test.setTimeout(120_000);
 /**
  * use:enhance のフォームを submit する小さなヘルパ。click 前に hydration を
  * 待ち、submit 後にコンテンツ変化（reload / invalidateAll）まで待つ。
+ *
+ * networkidle は SvelteKit の HMR WebSocket と相性が悪い局面もあるが、
+ * dev サーバー起動直後に submit するシナリオでは、ここで idle を待たないと
+ * server-side の DB 永続化と client 側の rerender がレースして
+ * 直後の `expect(...).toHaveValue(...)` が空文字を見るケースがあった
+ * （実機で flake 確認済み）。caller の expect だけでは救いきれないので
+ * 引き続き networkidle を待つ。
  */
 async function submitForm(page: Page, submitClick: () => Promise<void>) {
 	await page.waitForLoadState('networkidle');
@@ -78,13 +85,12 @@ test.describe.serial('A: 投稿者目線', () => {
 		await submitForm(page, () => editForm.locator('button[type="submit"]').click());
 		await expect(page.locator('.item-title', { hasText: newTitle })).toBeVisible();
 
-		// 4. コメント投稿 → 表示確認
+		// 4. コメント投稿 → 表示確認（expect の visible 待ちで idle 不要）
 		const commentText = `E2E A comment ${ts}`;
 		await postComment(page, commentText);
-		await page.waitForLoadState('networkidle');
 		await expect(
 			page.locator('.comment-text p', { hasText: commentText }).first()
-		).toBeVisible();
+		).toBeVisible({ timeout: 10_000 });
 
 		// 5. コメント編集 → 反映確認。
 		// 単一コメントしか無い前提で、最初の comment-item の edit リンクを使う。
@@ -99,14 +105,13 @@ test.describe.serial('A: 投稿者目線', () => {
 			page.locator('.comment-text p', { hasText: editedComment }).first()
 		).toBeVisible();
 
-		// 6. コメント削除 → [deleted] 表示
+		// 6. コメント削除 → [deleted] 表示（expect 側で待つので idle 不要）
 		page.once('dialog', (d) => d.accept());
 		await page
 			.locator('.comment-item')
 			.first()
 			.locator('form[action="?/deleteComment"] button[type="submit"]')
 			.click();
-		await page.waitForLoadState('networkidle');
 		await expect(
 			page.locator('.comment-text p', { hasText: '[deleted]' }).first()
 		).toBeVisible({ timeout: 15_000 });
@@ -155,13 +160,16 @@ test.describe.serial('A: 投稿者目線', () => {
 
 		// 10. ストーリー削除 → [deleted] 化確認
 		await page.goto(`/item/${storyId}`);
-		await page.waitForLoadState('networkidle');
+		// 削除ボタンが visible になるまで待ってから click（idle でなくても可）
+		const deleteStoryBtn = page.locator(
+			'form[action="?/deleteStory"] button[type="submit"]'
+		);
+		await expect(deleteStoryBtn).toBeVisible();
 		page.once('dialog', (d) => d.accept());
-		await page.locator('form[action="?/deleteStory"] button[type="submit"]').click();
-		await page.waitForLoadState('networkidle');
+		await deleteStoryBtn.click();
+		// 再 goto して [deleted] 表示を確認（expect で待機）
 		await page.goto(`/item/${storyId}`);
-		const bodyText = await page.locator('body').innerText();
-		expect(bodyText).toContain('[deleted]');
+		await expect(page.locator('body')).toContainText('[deleted]', { timeout: 10_000 });
 
 		// A-9. username 変更（#88: 旧 username の URL は新 username に redirect する）
 		// 90日制限は username_history が空（新規ユーザー）なら適用されないため、
@@ -609,8 +617,7 @@ test.describe.serial('C: モデレーション (IP ban)', () => {
 
 		// この時点で次のリクエストは /ipban にリダイレクトされるはず
 		await page.goto('/');
-		await page.waitForLoadState('networkidle');
-		expect(page.url()).toContain('/ipban');
+		await expect(page).toHaveURL(/\/ipban/, { timeout: 10_000 });
 
 		// /ipban が ban 情報を表示
 		await expect(page.locator('body')).toContainText(/ban されています/);
