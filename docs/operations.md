@@ -52,6 +52,42 @@ D1 データベース ID: `185871af-76c3-403c-81c8-aede8f8cd100`
 
 テストユーザーのパスワードは全て `test1234`。
 
+### テストユーザー一覧（#121 で拡充）
+
+| user | id | karma | created | 用途 |
+|---|---|---|---|---|
+| noroshi | 1 | 100 | 既定 | admin（is_admin=1）。/admin/* アクセス検証 |
+| tanaka | 2 | 42 | 既定 | flag 可（karma>=30）。hidden 3 件登録済 |
+| sato | 3 | 15 | 既定 | 一般ユーザー。favorites 3 件登録済 |
+| karma_high | 4 | 600 | -90 days | downvote 可（karma>=500）。downvote 履歴 5 件あり |
+| karma_mid | 5 | 50 | -60 days | flag 可（karma>=30、500未満で downvote 不可） |
+| karma_low | 6 | 1 | -10 days | 投票・flag 不可。低位投稿の author |
+| new_user | 7 | 2 | now | /noobstories で緑色表示される新規ユーザー |
+| old_user | 8 | 250 | -180 days | 古参ユーザー。複数の story / comment 投稿 |
+| deleted_acc | 9 | 5 | -30 days | deleted=1。[deleted] 表示・login 拒否の検証 |
+
+### seed の量（#121 後）
+
+- stories: 46 件 — story 27 / ask 5 / show 5 / poll 2 + dead 2 + 30日以上前 5
+- comments: 44 件 — 5 段の深ネスト 1 系統、高得点 (>=5) 多数、dead 2、フェード（points<=0）3
+- votes: 62 件 — story / comment / poll_option の up + karma_high の down 5
+- poll_options: 9 件（poll #45 に 5 / poll #46 に 4）
+- hidden: 3（tanaka）/ favorites: 3（sato）/ ip_bans: 1（expire 済み、active 無し）
+
+各タブ・各クエリ（/best, /noobstories, /front?day=, /from?site=github.com, /polls, showdead 等）が seed 投入直後から目視確認できる。
+
+### seed 再投入の注意
+
+`db:seed` は INSERT のみで冪等ではない。既に seed 済みの DB に対して再実行すると UNIQUE 制約で落ちる。クリーンに入れ直す場合は
+
+```bash
+wrangler d1 execute hacker-noroshi-db --local --command \
+  "DELETE FROM votes; DELETE FROM poll_options; DELETE FROM comments; DELETE FROM hidden; DELETE FROM favorites; DELETE FROM stories; DELETE FROM ip_bans; DELETE FROM ip_login_failures; DELETE FROM sessions; DELETE FROM flags; DELETE FROM username_history; DELETE FROM users; DELETE FROM sqlite_sequence;"
+npm run db:seed
+```
+
+の順で全テーブルと autoincrement をリセットしてから流す。AUTOINCREMENT を戻さないと poll_options が参照する story id (45/46) がずれる。
+
 ## DB マイグレーション
 
 D1 にはマイグレーション機構が無いので、`db/schema.sql` を編集した後、変更分の SQL を直接適用する。
