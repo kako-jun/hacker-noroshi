@@ -13,6 +13,10 @@
 	}
 </script>
 
+<div class="best-intro">
+	過去48時間で得点の高い投稿。<code>?h=24</code> のように時間数を変えられます。
+</div>
+
 <div class="story-list">
 	{#each data.stories as story, i (story.id)}
 		{#if !localHiddenIds.has(story.id)}
@@ -33,3 +37,14 @@
 		<a href="/best?p={data.page + 1}">More</a>
 	</div>
 {/if}
+
+<style>
+	.best-intro {
+		padding: 10px 0 0 40px;
+		font-size: 9pt;
+		color: #828282;
+	}
+	.best-intro code {
+		font-family: monospace;
+	}
+</style>
