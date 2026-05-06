@@ -32,9 +32,7 @@
 		'/lists': 'lists',
 		'/from': 'from',
 		'/search': 'search',
-		'/login': 'login',
-		'/signup': 'signup',
-		'/logout': 'logout',
+		// /login /signup /logout は header-right の認証リンクとテキストが重複するので topright を出さない
 		'/faq': 'faq',
 		'/guidelines': 'guidelines',
 		'/api-docs': 'api',

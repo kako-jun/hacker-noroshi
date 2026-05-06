@@ -7,77 +7,104 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const OUT_DIR = path.join(__dirname, 'screenshots');
 
-// 当方は本番 (https://hn.llll-ll.com) を叩く想定だが、本番が落ちている場合は
-// AUDIT_OURS_URL=http://localhost:5173 で dev server に向けることもできる
+// 当方は本番 (https://hn.llll-ll.com) を叩く想定。
+// AUDIT_OURS_URL=http://localhost:5173 で dev server に向けることもできる。
 const OURS_URL = process.env.AUDIT_OURS_URL ?? 'https://hn.llll-ll.com';
+const HN_BASE = 'https://news.ycombinator.com';
 
-const SITES = [
-	{ id: 'ours', baseURL: OURS_URL },
-	{ id: 'hn', baseURL: 'https://news.ycombinator.com' }
-] as const;
+// PC 幅 1280×720 で本家 HN と並べて視覚パリティを検証する。
+// 当方独自のパス (/admin/*, /ipban, /lists, /api-docs, /noprocrast, /search) は
+// 本家に対応が無い、または挙動が大きく異なるため除外。DESIGN.md 準拠は別 Issue (#107) で監査済み。
+const COMMON_PATHS = [
+	'/',
+	'/newest',
+	'/ask',
+	'/show',
+	'/best',
+	'/active',
+	'/newcomments',
+	'/front',
+	'/asknew',
+	'/shownew',
+	'/showhn',
+	'/bestcomments',
+	'/highlights',
+	'/noobstories',
+	'/noobcomments',
+	'/from',
+	'/login'
+];
+
+const HN_ITEM_ID = 1;
+const HN_USER = 'pg';
+const OURS_ITEM_ID = process.env.AUDIT_OURS_ITEM_ID ?? '1';
+const OURS_USER = process.env.AUDIT_OURS_USER ?? 'noroshi';
 
 function ensureOut() {
 	if (!fs.existsSync(OUT_DIR)) fs.mkdirSync(OUT_DIR, { recursive: true });
+}
+
+function pathToFile(p: string): string {
+	return p.replace(/^\//, '').replace(/[/?=&]/g, '_') || 'home';
 }
 
 test.beforeAll(() => {
 	ensureOut();
 });
 
+const SITES = [
+	{ id: 'ours', baseURL: OURS_URL },
+	{ id: 'hn', baseURL: HN_BASE }
+] as const;
+
 for (const site of SITES) {
-	test(`${site.id} /polls full page`, async ({ page }) => {
-		await page.setViewportSize({ width: 1280, height: 720 });
-		await page.goto(`${site.baseURL}/polls`, { waitUntil: 'load' });
-		await page.screenshot({
-			path: path.join(OUT_DIR, `${site.id}-polls.png`),
-			fullPage: true
+	for (const p of COMMON_PATHS) {
+		test(`pc ${site.id} ${p}`, async ({ page }) => {
+			await page.setViewportSize({ width: 1280, height: 720 });
+			const res = await page.goto(`${site.baseURL}${p}`, { waitUntil: 'load' });
+			const fileBase = `pc-${site.id}-${pathToFile(p)}`;
+			await page.screenshot({
+				path: path.join(OUT_DIR, `${fileBase}.png`),
+				fullPage: true
+			});
+			const html = await page.content();
+			fs.writeFileSync(path.join(OUT_DIR, `${fileBase}.html`), html);
+			const metrics = await page.evaluate(() => ({
+				scrollWidth: document.documentElement.scrollWidth,
+				clientWidth: document.documentElement.clientWidth,
+				bodyHeight: document.body.scrollHeight
+			}));
+			fs.writeFileSync(
+				path.join(OUT_DIR, `${fileBase}.report.json`),
+				JSON.stringify({ status: res?.status() ?? null, ...metrics }, null, 2)
+			);
+			console.log(
+				`[pc ${site.id} ${p}] status=${res?.status()} sw=${metrics.scrollWidth} cw=${metrics.clientWidth}`
+			);
 		});
-		const html = await page.content();
-		fs.writeFileSync(path.join(OUT_DIR, `${site.id}-polls.html`), html);
+	}
+
+	test(`pc ${site.id} /item`, async ({ page }) => {
+		await page.setViewportSize({ width: 1280, height: 720 });
+		const url =
+			site.id === 'hn'
+				? `${site.baseURL}/item?id=${HN_ITEM_ID}`
+				: `${site.baseURL}/item/${OURS_ITEM_ID}`;
+		await page.goto(url, { waitUntil: 'load' });
+		const fileBase = `pc-${site.id}-item`;
+		await page.screenshot({ path: path.join(OUT_DIR, `${fileBase}.png`), fullPage: true });
+		fs.writeFileSync(path.join(OUT_DIR, `${fileBase}.html`), await page.content());
 	});
 
-	test(`${site.id} /newest first story meta`, async ({ page }) => {
+	test(`pc ${site.id} /user`, async ({ page }) => {
 		await page.setViewportSize({ width: 1280, height: 720 });
-		await page.goto(`${site.baseURL}/newest`, { waitUntil: 'load' });
-
-		// 本家HN は .athing + .subtext 構造、当方は .story-item + .story-meta 構造
-		// 両方の場合に対応するため body から first story 周辺を抽出する
-		const fullHtml = await page.content();
-		fs.writeFileSync(path.join(OUT_DIR, `${site.id}-newest.html`), fullHtml);
-
-		// 当方: .story-item の最初の .story-meta
-		// 本家: .athing の直後の .subtext
-		const metaHtml = await page.evaluate(() => {
-			// 本家 HN 構造
-			const subtext = document.querySelector('.subtext');
-			if (subtext) {
-				const athing = subtext.closest('tr')?.previousElementSibling as HTMLElement | null;
-				return {
-					kind: 'hn',
-					athing: athing?.outerHTML ?? null,
-					subtext: subtext.outerHTML
-				};
-			}
-			// 当方 HN-noroshi 構造
-			const item = document.querySelector('.story-item');
-			if (item) {
-				return {
-					kind: 'ours',
-					item: item.outerHTML,
-					meta: item.querySelector('.story-meta')?.outerHTML ?? null
-				};
-			}
-			return { kind: 'unknown' };
-		});
-
-		fs.writeFileSync(
-			path.join(OUT_DIR, `${site.id}-newest-meta.json`),
-			JSON.stringify(metaHtml, null, 2)
-		);
-
-		await page.screenshot({
-			path: path.join(OUT_DIR, `${site.id}-newest.png`),
-			fullPage: false
-		});
+		const url =
+			site.id === 'hn'
+				? `${site.baseURL}/user?id=${HN_USER}`
+				: `${site.baseURL}/user/${OURS_USER}`;
+		await page.goto(url, { waitUntil: 'load' });
+		const fileBase = `pc-${site.id}-user`;
+		await page.screenshot({ path: path.join(OUT_DIR, `${fileBase}.png`), fullPage: true });
+		fs.writeFileSync(path.join(OUT_DIR, `${fileBase}.html`), await page.content());
 	});
 }
