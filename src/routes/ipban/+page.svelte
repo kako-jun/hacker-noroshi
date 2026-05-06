@@ -21,26 +21,26 @@
 	{/if}
 </svelte:head>
 
-<div style="padding: 20pt; font-family: Verdana, Geneva, sans-serif; font-size: 10pt; color: #000000;">
+<div class="hn-form">
 	{#if data.ban}
-		<table style="border-collapse: collapse;">
+		<table>
 			<tbody>
 				<tr>
-					<td style="padding: 4pt 0;">
+					<td>
 						<b>あなたの IP ({data.ip}) は ban されています。</b>
 					</td>
 				</tr>
 				<tr>
-					<td style="padding: 4pt 0;">理由: {data.ban.reason || '(理由未記入)'}</td>
+					<td>理由: {data.ban.reason || '(理由未記入)'}</td>
 				</tr>
 				<tr>
-					<td style="padding: 4pt 0;">ban された日時: {formatBannedAt(data.ban.banned_at)}</td>
+					<td>ban された日時: {formatBannedAt(data.ban.banned_at)}</td>
 				</tr>
 				<tr>
-					<td style="padding: 4pt 0;">解除予定: {formatExpires(data.ban.expires_at)}</td>
+					<td>解除予定: {formatExpires(data.ban.expires_at)}</td>
 				</tr>
 				<tr>
-					<td style="padding: 12pt 0 4pt 0;">
+					<td style="padding-top: 12pt;">
 						共有 IP の場合や心当たりがない場合は、管理者に連絡してください。
 					</td>
 				</tr>
@@ -49,17 +49,19 @@
 
 		{#if data.turnstileSiteKey}
 			<!-- #91: セルフサービス unban。Turnstile を通せば即時 unban する -->
-			<div style="margin-top: 24pt; padding-top: 12pt; border-top: 1px solid #cccccc;">
-				<h3 style="font-size: 11pt; margin: 0 0 8pt 0;">セルフサービス unban</h3>
-				<p style="margin: 4pt 0;">
+			<div class="ipban-section">
+				<p><b>セルフサービス unban</b></p>
+				<p>
 					以下の認証を通すと、即座に ban を解除できます。
 					<br />
 					（24時間以内に 3 回まで試行できます。）
 				</p>
 				{#if form?.unbanError}
-					<p style="color: #b00020; margin: 4pt 0;">{form.unbanError}</p>
+					<p style="color: #ff0000;">{form.unbanError}</p>
 				{/if}
-				<form method="POST" action="?/unban" style="margin-top: 8pt;">
+				<!-- Turnstile widget は Cloudflare 提供の外部 iframe。
+				     親要素は Verdana / pt 規約内に収め、widget 内部の見た目は触らない。 -->
+				<form method="POST" action="?/unban">
 					<div class="cf-turnstile" data-sitekey={data.turnstileSiteKey}></div>
 					<div style="margin-top: 8pt;">
 						<button type="submit">認証して unban する</button>
@@ -68,10 +70,8 @@
 			</div>
 		{:else}
 			<!-- #91: site key 未設定時（dev / REPLACE_ME）はセルフ unban を提供しない -->
-			<div style="margin-top: 24pt; padding-top: 12pt; border-top: 1px solid #cccccc;">
-				<p style="margin: 4pt 0;">
-					現在セルフサービス unban は無効です。管理者にご連絡ください。
-				</p>
+			<div class="ipban-section">
+				<p>現在セルフサービス unban は無効です。管理者にご連絡ください。</p>
 			</div>
 		{/if}
 	{:else}
@@ -79,3 +79,13 @@
 		<p><a href="/">トップへ戻る</a></p>
 	{/if}
 </div>
+
+<style>
+	/* セルフ unban セクションの仕切り。
+	   #828282（DESIGN.md パレット）で 1px 罫線、上に 24pt の余白。 */
+	.ipban-section {
+		margin-top: 24pt;
+		padding-top: 12pt;
+		border-top: 1px solid #828282;
+	}
+</style>
