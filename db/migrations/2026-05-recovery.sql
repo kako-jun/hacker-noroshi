@@ -1,15 +1,20 @@
--- 2026-05-06 本番復旧マイグレーション (#109)
+-- 2026-05-recovery.sql — 本番復旧マイグレーション (#109)
+--
+-- ステータス: 本番 (hacker-noroshi-db --remote) には 2026-05-06 適用済み。
+-- 再実行は不要。本ファイルは記録目的で git に残し、新規 D1 セットアップや
+-- 同種事故の再発時に未適用分を手早く流すための雛形として使う。
 --
 -- 直近の機能追加 (#76 アカウント削除 / #77 IP ban / #88 username 変更 /
 -- #74 poll / #92 自動 ban / #18 hide / favorites) で db/schema.sql は拡張されたが
 -- 本番 D1 への適用が抜けており、`getStories` クエリ等が「no such column / table」で
 -- 全 500 になっていた。本ファイルを冪等に流すと復旧する。
 --
--- 適用方法:
+-- 適用方法（未適用環境向け）:
 --   wrangler d1 execute hacker-noroshi-db --remote --file=db/migrations/2026-05-recovery.sql
 --
--- ALTER TABLE ADD COLUMN は冪等ではない（既存だとエラー）。本ファイルは未適用環境を
--- 想定している。一部適用済みで再実行する場合は、エラーを無視するか個別 SQL を抜粋して流す。
+-- 注意: Tier 1 の ALTER TABLE ADD COLUMN は冪等ではない（既存カラムだとエラー）。
+-- 一部適用済みで再実行する場合は、Tier 1 の 3 行を個別 SQL で抜粋して流すか、
+-- 「duplicate column」エラーを無視して進める。Tier 2 は CREATE ... IF NOT EXISTS で冪等。
 
 -- ============================================================
 -- Tier 1: users カラム追加（500 直接の主犯）
