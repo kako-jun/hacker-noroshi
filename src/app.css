@@ -103,6 +103,24 @@ a:hover {
 		overflow-wrap: anywhere;
 		word-break: break-word;
 	}
+
+	/* HN mobile: titles and subtext are larger for readability.
+	   Mirror news.css mobile @media rules:
+	     .title    { font-size: 11pt; line-height: 14pt }
+	     .subtext  { font-size: 9pt }
+	*/
+	.story-title-line,
+	.story-title-line a.story-title,
+	.item-detail .item-title,
+	.item-detail .item-title a {
+		font-size: 11pt;
+		line-height: 14pt;
+	}
+
+	.story-meta,
+	.item-detail .item-meta {
+		font-size: 9pt;
+	}
 }
 
 /* Header */
