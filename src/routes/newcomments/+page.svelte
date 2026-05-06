@@ -35,7 +35,7 @@
 				[commentId]: result.voteState
 			};
 		} else if (res.status === 403) {
-			const result = await res.json();
+			const result: { error?: string } = await res.json();
 			alert(result.error || 'Permission denied');
 		}
 	}
