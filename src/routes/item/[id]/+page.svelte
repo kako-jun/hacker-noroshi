@@ -240,7 +240,60 @@
 		return result;
 	}
 
-	let commentTree = $derived(flattenTree(buildCommentTree(data.comments)));
+	// 子孫の総数。`[+] N replies` 表示と「閉じてるとき子孫を非表示」の判定に使う。
+	function countDescendants(node: CommentNode): number {
+		let n = 0;
+		for (const c of node.children) {
+			n += 1 + countDescendants(c);
+		}
+		return n;
+	}
+
+	let commentRoots = $derived(buildCommentTree(data.comments));
+	let commentTree = $derived(flattenTree(commentRoots));
+	let descendantCounts = $derived(
+		Object.fromEntries(commentTree.map((c) => [c.id, countDescendants(c)])) as Record<number, number>
+	);
+
+	// DFS 順での「次のコメント」「現在ノードがぶら下がるルートID」を id ごとに引けるよう
+	// マップにしておく。HN 互換の `root | parent | next` リンク用。
+	let nextCommentId = $derived.by(() => {
+		const map: Record<number, number> = {};
+		for (let i = 0; i < commentTree.length - 1; i++) {
+			map[commentTree[i].id] = commentTree[i + 1].id;
+		}
+		return map;
+	});
+	let rootCommentId = $derived.by(() => {
+		const map: Record<number, number> = {};
+		function walk(node: CommentNode, rootId: number) {
+			map[node.id] = rootId;
+			for (const c of node.children) walk(c, rootId);
+		}
+		for (const r of commentRoots) walk(r, r.id);
+		return map;
+	});
+
+	// 各コメントの折りたたみ状態（true = 閉じている）。HN は全コメントで使えるので
+	// id をキーに $state で保持する。フロントエンド完結。
+	let collapsed = $state<Record<number, boolean>>({});
+
+	function toggleCollapsed(commentId: number) {
+		collapsed[commentId] = !collapsed[commentId];
+	}
+
+	function isHidden(comment: CommentNode): boolean {
+		// 自身は表示するが、祖先のいずれかが閉じていれば非表示。
+		// commentTree は flatten 済みなので、parent_id を辿ってチェックする。
+		let pid = comment.parent_id;
+		while (pid) {
+			if (collapsed[pid]) return true;
+			const parent = commentTree.find((c) => c.id === pid);
+			if (!parent) break;
+			pid = parent.parent_id;
+		}
+		return false;
+	}
 
 	async function voteStory() {
 		if (!data.user) {
@@ -450,7 +503,8 @@
 
 		<div class="comments-section" style="padding-left: 0;">
 			{#each commentTree as child}
-				<div class="comment-item" style="padding-left: {child.depth * 40}px;">
+				{#if !isHidden(child)}
+				<div class="comment-item" id="item-{child.id}" style="padding-left: {child.depth * 40}px;">
 					<div class="comment-head">
 						<span class="comment-vote">
 							<button
@@ -474,7 +528,28 @@
 						</span>
 						<a href="/user/{child.username}" style={isNewUser(child.user_created_at) ? 'color: #3c963c;' : ''}>{displayUsername({ username: child.username, deleted: child.user_deleted })}</a>
 						<a href="/item/{child.id}">{timeAgo(child.created_at)}</a>
+						{#if child.parent_id && child.parent_id !== comment.id}
+							| <a href="#item-{rootCommentId[child.id]}" style="color: #828282;">root</a>
+							| <a href="#item-{child.parent_id}" style="color: #828282;">parent</a>
+						{/if}
+						{#if nextCommentId[child.id]}
+							| <a href="#item-{nextCommentId[child.id]}" style="color: #828282;">next</a>
+						{/if}
+						<span class="comment-toggle">
+							{' '}<a
+								href="#toggle"
+								onclick={(e) => {
+									e.preventDefault();
+									toggleCollapsed(child.id);
+								}}
+								style="color: #828282;"
+							>{#if collapsed[child.id]}[+]{:else}[&ndash;]{/if}</a>
+							{#if collapsed[child.id] && descendantCounts[child.id] > 0}
+								<span style="color: #828282;"> ({descendantCounts[child.id]} {descendantCounts[child.id] === 1 ? 'reply' : 'replies'})</span>
+							{/if}
+						</span>
 					</div>
+					{#if !collapsed[child.id]}
 					{#if editingCommentId === child.id}
 						<div class="comment-form" style="padding-left: 0;">
 							<form method="POST" action="?/editComment" use:enhance={() => {
@@ -547,7 +622,9 @@
 							</div>
 						{/if}
 					{/if}
+					{/if}
 				</div>
+				{/if}
 			{/each}
 		</div>
 	</div>
@@ -704,7 +781,8 @@
 
 		<div class="comments-section" id="comments" style="padding-left: 0;">
 			{#each commentTree as comment}
-				<div class="comment-item" style="padding-left: {comment.depth * 40}px;">
+				{#if !isHidden(comment)}
+				<div class="comment-item" id="item-{comment.id}" style="padding-left: {comment.depth * 40}px;">
 					<div class="comment-head">
 						<span class="comment-vote">
 							<button
@@ -728,7 +806,28 @@
 						</span>
 						<a href="/user/{comment.username}" style={isNewUser(comment.user_created_at) ? 'color: #3c963c;' : ''}>{displayUsername({ username: comment.username, deleted: comment.user_deleted })}</a>
 						<a href="/item/{comment.id}">{timeAgo(comment.created_at)}</a>
+						{#if comment.parent_id}
+							| <a href="#item-{rootCommentId[comment.id]}" style="color: #828282;">root</a>
+							| <a href="#item-{comment.parent_id}" style="color: #828282;">parent</a>
+						{/if}
+						{#if nextCommentId[comment.id]}
+							| <a href="#item-{nextCommentId[comment.id]}" style="color: #828282;">next</a>
+						{/if}
+						<span class="comment-toggle">
+							{' '}<a
+								href="#toggle"
+								onclick={(e) => {
+									e.preventDefault();
+									toggleCollapsed(comment.id);
+								}}
+								style="color: #828282;"
+							>{#if collapsed[comment.id]}[+]{:else}[&ndash;]{/if}</a>
+							{#if collapsed[comment.id] && descendantCounts[comment.id] > 0}
+								<span style="color: #828282;"> ({descendantCounts[comment.id]} {descendantCounts[comment.id] === 1 ? 'reply' : 'replies'})</span>
+							{/if}
+						</span>
 					</div>
+					{#if !collapsed[comment.id]}
 					{#if editingCommentId === comment.id}
 						<div class="comment-form" style="padding-left: 0;">
 							<form method="POST" action="?/editComment" use:enhance={() => {
@@ -801,7 +900,9 @@
 							</div>
 						{/if}
 					{/if}
+					{/if}
 				</div>
+				{/if}
 			{/each}
 		</div>
 	</div>
