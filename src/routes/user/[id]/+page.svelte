@@ -117,7 +117,7 @@
 		<div style="margin-top: 14pt; padding-left: 50px;">
 			<p style="font-size: 9pt; margin: 0 0 4pt 0;"><b>Change username</b></p>
 			{#if form?.changeUsernameError}
-				<p style="font-size: 9pt; color: #ff6600; margin: 0 0 4pt 0;">{form.changeUsernameError}</p>
+				<p style="font-size: 9pt; color: #ff0000; margin: 0 0 4pt 0;">{form.changeUsernameError}</p>
 			{/if}
 			{#if data.nextUsernameChangeAt}
 				<p style="font-size: 9pt; color: #828282; margin: 0 0 4pt 0;">
@@ -150,7 +150,7 @@
 		<div style="margin-top: 14pt; padding-left: 50px;">
 			<p style="font-size: 9pt; margin: 0 0 4pt 0;"><b>Delete account</b></p>
 			{#if form?.deleteAccountError}
-				<p style="font-size: 9pt; color: #ff6600; margin: 0 0 4pt 0;">{form.deleteAccountError}</p>
+				<p style="font-size: 9pt; color: #ff0000; margin: 0 0 4pt 0;">{form.deleteAccountError}</p>
 			{/if}
 			<p style="font-size: 8pt; color: #828282; margin: 0 0 6pt 0;">
 				アカウントを削除すると元に戻せません。投稿とコメントは <code>[deleted]</code> としてスレッドに残ります。削除済みユーザー名は再取得できません。
