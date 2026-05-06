@@ -219,9 +219,28 @@ a:hover {
 	color: #000000;
 }
 
-.hn-header-right {
+/* 現在ページの nav リンクを太字に。HN は b タグで囲う形だが
+   ここでは aria-current="page" + .active で同等の見た目にする。 */
+.hn-header-nav a.active,
+.hn-header-nav a[aria-current='page'] {
+	font-weight: bold;
+}
+
+/* HN の右端 topright（asknew/noobstories/日付 等のページ名表示）。
+   常に margin-left: auto で右寄せ。空のときは margin だけ残るが幅0なので問題なし。 */
+.hn-header-pagename {
 	margin-left: auto;
 	white-space: nowrap;
+}
+
+.hn-header-pagename .topright {
+	color: #000000;
+	font-size: 10pt;
+}
+
+.hn-header-right {
+	white-space: nowrap;
+	margin-left: 8px;
 }
 
 .hn-header-right a {
