@@ -530,6 +530,9 @@ test.describe.serial('C: モデレーション (IP ban)', () => {
 	// 物理削除する。本番 DB ではなく wrangler の local D1 を直接叩く。
 	test.afterAll(async () => {
 		const { execFileSync } = await import('node:child_process');
+		// レビュー指摘: silent な try/catch は CI で次回 signup を全死させても
+		// 気づけない。失敗時はログに残して必ず気付けるようにする（test 結果には
+		// 影響させないが、stderr に warning を出す）。
 		try {
 			execFileSync(
 				'npx',
@@ -542,10 +545,10 @@ test.describe.serial('C: モデレーション (IP ban)', () => {
 					'--command',
 					'DELETE FROM ip_bans; DELETE FROM ip_login_failures;'
 				],
-				{ stdio: 'ignore', timeout: 30_000 }
+				{ cwd: process.cwd(), stdio: 'pipe', timeout: 30_000 }
 			);
-		} catch {
-			// 後始末失敗は test 結果に影響させない
+		} catch (e) {
+			console.warn('[afterAll] ip_bans / ip_login_failures cleanup failed', e);
 		}
 	});
 
