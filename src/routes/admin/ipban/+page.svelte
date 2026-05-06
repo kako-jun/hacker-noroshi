@@ -15,7 +15,7 @@
 		<p style="color: #ff0000;">{form.error}</p>
 	{/if}
 	{#if form?.success}
-		<p style="color: #828282;">処理しました。</p>
+		<p>処理しました。</p>
 	{/if}
 
 	<p><b>新規 ban</b></p>
@@ -26,19 +26,19 @@
 				<tr>
 					<td>IP:</td>
 					<td>
-						<input type="text" name="ip" value={form?.ip ?? ''} size="20" />
+						<input type="text" name="ip" value={form?.ip ?? ''} />
 					</td>
 				</tr>
 				<tr>
 					<td>理由:</td>
 					<td>
-						<input type="text" name="reason" value={form?.reason ?? ''} size="40" maxlength="1024" />
+						<input type="text" name="reason" value={form?.reason ?? ''} maxlength="1024" />
 					</td>
 				</tr>
 				<tr>
 					<td>有効期限 (時間):</td>
 					<td>
-						<input type="text" name="expiresIn" value={form?.expiresInRaw ?? ''} size="6" />
+						<input type="text" name="expiresIn" value={form?.expiresInRaw ?? ''} />
 						<span> 空欄で無期限</span>
 					</td>
 				</tr>
