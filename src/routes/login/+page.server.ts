@@ -11,20 +11,12 @@ import {
 } from '$lib/server/db';
 import { verifyPassword, hashPassword, createSession } from '$lib/server/auth';
 import { fail, redirect } from '@sveltejs/kit';
-
-/**
- * `?next=` 経由のオープンリダイレクトを防ぐ。
- * 受け入れるのは「`/` で始まり `//` で始まらない相対パス」のみ。
- * 該当しなければ `/` にフォールバックする。
- */
-function safeNext(raw: string | null | undefined): string {
-	if (!raw) return '/';
-	if (!raw.startsWith('/')) return '/';
-	if (raw.startsWith('//')) return '/';
-	return raw;
-}
+import { safeNext } from '$lib/safe-next';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
+	// data.next は safeNext を通った値のみ。バックスラッシュ・プロトコル相対・
+	// 制御文字・絶対 URL は全て '/' に正規化されるので、フォーム再描画で
+	// hidden input に書き戻しても安全。
 	const next = safeNext(url.searchParams.get('next'));
 	if (locals.user) {
 		throw redirect(302, next);
