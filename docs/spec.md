@@ -158,6 +158,19 @@ score = (points - 1) / (hours_since_post + 2) ^ 1.8
 - コメント: 投稿から2時間以内、本人のみ text を編集可能
 - ストーリー編集時は type を再判定（Ask HN: / Show HN: プレフィックス）
 
+### Story-list メタ行 (#114)
+
+13 ページ共通 `StoryListItem.svelte` のメタ行は本家 HN と並びを揃える:
+
+```
+{points} point(s) by {user} {timeAgo} | hide | [past] | {discuss|N comment(s)} | [un-]flag
+```
+
+- `hide` は未ログイン時も表示し、クリックすると `/login` にリダイレクト（本家 HN と同じ挙動）
+- `past` は URL 付きストーリーのみ。`/from?site={domain}` で同ドメインの過去投稿一覧へ
+- コメント数 0 件のときは `discuss`、1 件以上は `{N} comment(s)` に切替
+- `flag` はログイン中で karma 閾値を満たすときだけ表示（`canFlag`）
+
 ### hide 機能
 
 ストーリーをユーザー単位で非表示化する機能（本家HN準拠）。
