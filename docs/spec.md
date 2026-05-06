@@ -199,7 +199,24 @@ hide リンクとサーバー側除外ロジックを実装するページ:
 3. `+page.svelte` のメタ行に hide / un-hide トグルリンクを追加
 4. クリック後の即時消去のため `localHiddenIds` を保持
 
-将来的には `<StoryListItem />` 共通コンポーネント（#86）を抽出し、新規ページではそれを使うだけで自動的に hide が入るようにする。
+`<StoryListItem />` 共通コンポーネント（#86）を抽出済み。新規ページはこれを使うだけで自動的に hide が入る。
+
+#### StoryListItem 抽出後の DOM 同一性（#86, #106 で検証）
+
+抽出前の `+page.svelte` 等にハードコードされていた `.story-item` レンダリング DOM と、抽出後の `<StoryListItem />` レンダリング DOM はクラス名・タグ階層・テキストノードの並びが完全に一致する（`/`,  `/newest`, `/best`, `/active`, `/front`, `/ask`, `/show`, `/asknew`, `/shownew`, `/noobstories`, `/from`, `/polls`, `/search` の全 13 ページが対象）。具体的には次の構造:
+
+```
+<div class="story-item">
+  <span class="story-rank">{rank}.</span>      <!-- /search 等で rank=null のときは省略 -->
+  <span class="story-vote"><button class="upvote" /></span>
+  <div class="story-content">
+    <div class="story-title-line">{title} {domain} {[poll]} {[flagged]} {[dead]}</div>
+    <div class="story-meta">{points} by {user} {age} | {N comments} | {hide?} | {flag?}</div>
+  </div>
+</div>
+```
+
+抽出時に変わったのは「楽観的更新の state を親側から行ごとに分散」「`canFlag` / `[poll]` 判定を `$lib/storyActions.ts` の純粋関数化」のみで、CSS / DOM は同等。`/polls` の `forcePollTag` と `/search` の `rank` 省略は元々ページ側にあった分岐をそのまま prop 化したもの。
 
 ### フラグ・モデレーション
 
