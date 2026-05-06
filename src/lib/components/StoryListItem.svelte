@@ -140,18 +140,26 @@
 					deleted: story.user_deleted === 1 ? 1 : story.user_deleted === 0 ? 0 : null
 				})}</a>
 			<a href="/item/{story.id}">{timeAgo(story.created_at)}</a> |
-			<a href="/item/{story.id}"
-				>{story.comment_count} comment{story.comment_count !== 1 ? 's' : ''}</a
-			>
 			{#if user}
-				| <a
+				<a
 					href="#hide"
 					onclick={(e) => {
 						e.preventDefault();
 						hide();
 					}}>hide</a
 				>
+			{:else}
+				<a href="/login">hide</a>
 			{/if}
+			{#if story.url}
+				| <a href="/from?site={extractDomain(story.url)}">past</a>
+			{/if}
+			|
+			<a href="/item/{story.id}"
+				>{story.comment_count === 0
+					? 'discuss'
+					: `${story.comment_count} comment${story.comment_count !== 1 ? 's' : ''}`}</a
+			>
 			{#if canFlag}
 				| <a
 					href="#flag"
