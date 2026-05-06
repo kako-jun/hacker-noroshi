@@ -51,7 +51,7 @@ Links: `#000000` (unvisited), `#828282` (visited). Hover: underline only.
 | ------------- | ----- | ------ | ------------------ |
 | Logo/site name | 10pt | bold   | HN `.pagetop b.hnname` に一致 |
 | Body default  | 10pt  | normal |                    |
-| Item text     | 9pt   | normal | Line-height 14pt   |
+| Item text     | 9pt   | normal | Line-height: ブラウザ既定 (1.2)。本家 HN news.css も未指定 |
 | Form inputs   | 10pt  | normal | Monospace（HN `input` に一致） |
 | Buttons/small | 8pt   | normal |                    |
 | Metadata      | 7pt   | normal | Timestamps, meta   |
@@ -74,9 +74,10 @@ Base font size is `10pt` on html/body. Everything is in `pt`, not `rem` or `px`.
 - Layout: flex, baseline alignment
 - Rank: `min-width: 30px`, right-aligned, `#828282`
 - Upvote: `▲` (Unicode `&#9650;`), `10x10px`, default `#9a9a9a`, hover/voted `#ff6600`
-- Title: `10pt`, line-height `14pt`
+- Title: `10pt`、line-height はブラウザ既定（HN news.css も未指定）。`@media (max-width: 750px)` では `11pt`/`14pt` に拡大（HN mobile @media に一致）
+- Meta line height: ブラウザ既定。`@media (max-width: 750px)` では meta も `9pt` に拡大
 - Domain tag: `8pt`, `#828282`, `margin-left: 5px`
-- Meta line: `7pt`, `#828282`
+- Meta line: `7pt`, `#828282`（mobile では `9pt`、HN mobile に一致）
 
 ### Comments
 
@@ -84,7 +85,7 @@ Base font size is `10pt` on html/body. Everything is in `pt`, not `rem` or `px`.
 - Head: `8pt`, `#828282` (HN `.comhead` に一致)
 - Upvote: `▲` (`&#9650;`), `8pt`, default `#9a9a9a`, hover/voted `#ff6600`
 - Downvote: `▼` (`&#9660;`), `8pt`, default `#9a9a9a`, hover/voted `#ff6600`（karma >= 500 のみ表示）
-- Text: `9pt`, `#000000`, line-height `14pt`
+- Text: `9pt`, `#000000`, line-height はブラウザ既定（HN news.css も未指定）
 - Faded text: `#828282`（points < 1 のコメント）
 - Reply link: `7pt`, `#828282`, underline
 
