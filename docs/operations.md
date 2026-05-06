@@ -56,6 +56,16 @@ D1 データベース ID: `185871af-76c3-403c-81c8-aede8f8cd100`
 
 D1 にはマイグレーション機構が無いので、`db/schema.sql` を編集した後、変更分の SQL を直接適用する。
 
+スキーマ変更を伴う PR は `db/migrations/<日付>-<topic>.sql` を併せて追加し、`docs/operations.md` の本セクションにコマンド単位で記録する。複数のマイグレーションが未適用のまま積み上がった場合の一括復旧は `db/migrations/2026-05-recovery.sql` を参照。
+
+### 一括復旧（2026-05-06 適用 / #109）
+
+直近の機能追加 (#76 / #77 / #88 / #74 / #92 / #18 / favorites) で本番 D1 に未適用の DDL が積み上がり、`SELECT u.deleted as user_deleted` 等で全 500 になっていた。下記コマンドで一括復旧する（冪等な部分のみ。`ALTER TABLE ADD COLUMN` は未適用環境向け）。
+
+```bash
+wrangler d1 execute hacker-noroshi-db --remote --file=db/migrations/2026-05-recovery.sql
+```
+
 ### #17 フラグ・モデレーション（2026-04 適用）
 
 ```bash
