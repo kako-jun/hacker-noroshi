@@ -11,12 +11,17 @@ import {
 } from '$lib/server/db';
 import { verifyPassword, hashPassword, createSession } from '$lib/server/auth';
 import { fail, redirect } from '@sveltejs/kit';
+import { safeNext } from '$lib/safe-next';
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, url }) => {
+	// data.next は safeNext を通った値のみ。バックスラッシュ・プロトコル相対・
+	// 制御文字・絶対 URL は全て '/' に正規化されるので、フォーム再描画で
+	// hidden input に書き戻しても安全。
+	const next = safeNext(url.searchParams.get('next'));
 	if (locals.user) {
-		throw redirect(302, '/');
+		throw redirect(302, next);
 	}
-	return {};
+	return { next };
 };
 
 // 自動 ban 閾値（#92）。閾値・継続時間は両方ここで一元管理する。
@@ -106,6 +111,7 @@ export const actions: Actions = {
 		const formData = await request.formData();
 		const username = (formData.get('username') as string)?.trim();
 		const password = formData.get('password') as string;
+		const next = safeNext(formData.get('next') as string | null);
 
 		if (!username || !password) {
 			// バリデーションエラーは攻撃ではないため失敗ログに記録しない（#92）
@@ -143,7 +149,7 @@ export const actions: Actions = {
 			maxAge: 30 * 24 * 60 * 60
 		});
 
-		throw redirect(302, '/');
+		throw redirect(302, next);
 	},
 
 	signup: async ({ request, platform, cookies }) => {
@@ -151,6 +157,7 @@ export const actions: Actions = {
 		const formData = await request.formData();
 		const username = (formData.get('username') as string)?.trim();
 		const password = formData.get('password') as string;
+		const next = safeNext(formData.get('next') as string | null);
 
 		if (!username || !password) {
 			return fail(400, { signupError: 'Username and password are required', signupUsername: username });
@@ -188,6 +195,6 @@ export const actions: Actions = {
 			maxAge: 30 * 24 * 60 * 60
 		});
 
-		throw redirect(302, '/');
+		throw redirect(302, next);
 	}
 };

@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from '$app/state';
 	import { displayUsername } from '$lib/format';
 	import { timeAgo, extractDomain, isNewUser } from '$lib/ranking';
 	import { canFlagStory, shouldShowPollTag, type UserLike } from '$lib/storyActions';
@@ -57,9 +58,15 @@
 	let canFlag = $derived(canFlagStory(user, story));
 	let showPollTag = $derived(shouldShowPollTag(story, forcePollTag));
 
+	// 未ログインで vote/flag/hide を踏んだ際にログイン後に戻ってくる先（#116）。
+	// /login の safeNext で相対パス検証されるので、そのまま encode して渡せばよい。
+	let loginHref = $derived(
+		`/login?next=${encodeURIComponent(page.url.pathname + page.url.search)}`
+	);
+
 	async function vote() {
 		if (!user) {
-			window.location.href = '/login';
+			window.location.href = loginHref;
 			return;
 		}
 		const res = await fetch('/api/vote', {
@@ -76,7 +83,7 @@
 
 	async function flag() {
 		if (!user) {
-			window.location.href = '/login';
+			window.location.href = loginHref;
 			return;
 		}
 		const res = await fetch('/api/flag', {
@@ -149,7 +156,7 @@
 					}}>hide</a
 				>
 			{:else}
-				<a href="/login">hide</a>
+				<a href={loginHref}>hide</a>
 			{/if}
 			{#if story.url}
 				| <a href="/from?site={extractDomain(story.url)}">past</a>
