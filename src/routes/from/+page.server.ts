@@ -1,4 +1,3 @@
-import { redirect } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 import { getDB, getStoriesByDomain, getVotedStoryIds, getHiddenStoryIds, getFlaggedItemIds } from '$lib/server/db';
 import { extractDomain } from '$lib/ranking';
@@ -8,7 +7,15 @@ export const load: PageServerLoad = async ({ url, platform, locals }) => {
 	const rawSite = url.searchParams.get('site') ?? '';
 	const site = rawSite.trim().toLowerCase().replace(/^www\./, '');
 	if (!site) {
-		throw redirect(303, '/');
+		// HN 同様、引数なしでは空ページを返す
+		return {
+			site: null,
+			stories: [],
+			page: 1,
+			hasMore: false,
+			votedIds: [],
+			flaggedIds: []
+		};
 	}
 	const page = parseInt(url.searchParams.get('p') || '1', 10);
 

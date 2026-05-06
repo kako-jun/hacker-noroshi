@@ -9,6 +9,7 @@
 	let localHiddenIds = $state<Set<number>>(new Set());
 	let localVoteStates = $state<Record<number, 'up' | 'down' | null> | null>(null);
 	let localCommentPoints = $state<Record<number, number>>({});
+	let collapsed = $state<Record<number, boolean>>({});
 
 	function isHidden(id: number): boolean {
 		return localHiddenIds.has(id);
@@ -130,7 +131,13 @@
 						| <a href="/item/{comment.parent_id ?? comment.story_id}" style="color: #828282;">parent</a>
 						| <a href="/item/{comment.id}" style="color: #828282;">context</a>
 						| on: <a href="/item/{comment.story_id}">{comment.story_title}</a>
+						{' '}<a
+							href="#toggle"
+							onclick={(e) => { e.preventDefault(); collapsed[comment.id] = !collapsed[comment.id]; }}
+							style="color: #828282;"
+						>{#if collapsed[comment.id]}[+]{:else}[&ndash;]{/if}</a>
 					</div>
+					{#if !collapsed[comment.id]}
 					<div class="comment-text" class:faded={getCommentPoints(comment) < 1} style="padding-left: 14px;">
 						{#each comment.text.split('\n') as paragraph}
 							{#if paragraph.trim()}
@@ -138,6 +145,7 @@
 							{/if}
 						{/each}
 					</div>
+					{/if}
 				</div>
 			{/each}
 		</div>

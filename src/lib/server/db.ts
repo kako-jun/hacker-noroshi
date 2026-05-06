@@ -855,6 +855,67 @@ export async function getBestComments(
 	return filtered.slice(0, limit);
 }
 
+// /highlights 用: 「目立った会話」を点数 + スレッド盛り上がりで近似する。
+// 条件: コメント点数 >= 5 かつ 所属ストーリーのコメント数 >= 3。
+// /bestcomments （単純な高得点順）と差別化するための専用クエリ。
+export async function getHighlightedComments(
+	db: D1Database,
+	options: {
+		minPoints?: number;
+		minStoryCommentCount?: number;
+		page?: number;
+		limit?: number;
+		currentUserId?: number;
+		showdead?: boolean;
+	} = {}
+): Promise<(CommentRow & { story_title: string })[]> {
+	const {
+		minPoints = 5,
+		minStoryCommentCount = 3,
+		page = 1,
+		limit = 30,
+		currentUserId,
+		showdead = false
+	} = options;
+	const fetchLimit = limit * 3;
+	const offset = (page - 1) * limit;
+	const conds: string[] = ['c.points >= ?'];
+	const params: (string | number)[] = [minPoints];
+	if (!showdead) {
+		conds.push('c.dead = 0');
+		conds.push('s.dead = 0');
+	}
+	// 相関サブクエリ (SELECT COUNT(*) ...) は N+1 になるため stories.comment_count を使う。
+	// stories.comment_count は dead 含むカウントだが、minStoryCommentCount=3 程度の閾値なら誤差は許容範囲。
+	conds.push('s.comment_count >= ?');
+	params.push(minStoryCommentCount);
+	const whereClause = `WHERE ${conds.join(' AND ')}`;
+
+	const sql = `
+		SELECT c.*, u.username, u.created_at as user_created_at, u.deleted as user_deleted, u.delay as author_delay, s.title as story_title, ${COMMENT_FLAG_COUNT_SQL}
+		FROM comments c
+		JOIN users u ON c.user_id = u.id
+		JOIN stories s ON c.story_id = s.id
+		${whereClause}
+		ORDER BY c.points DESC, c.created_at DESC
+		LIMIT ? OFFSET ?
+	`;
+	params.push(fetchLimit, offset);
+	const result = await db
+		.prepare(sql)
+		.bind(...params)
+		.all<CommentRow & { story_title: string; author_delay: number }>();
+
+	const now = Date.now();
+	const filtered = result.results.filter((c) => {
+		if (c.user_id === currentUserId) return true;
+		if (c.author_delay <= 0) return true;
+		const visibleAt = new Date(c.created_at).getTime() + c.author_delay * 60 * 1000;
+		return now >= visibleAt;
+	});
+	return filtered.slice(0, limit);
+}
+
 // 新規ユーザー判定は呼び出し側が thresholdMs を指定する。/noobstories では TWO_WEEKS_MS（14日）を渡す。
 // `isNewUser()` のグリーン表示と一貫させるため、しきい値は両者で揃えること。
 export async function getStoriesByNewUsers(

@@ -28,10 +28,15 @@ const PATHS = [
 	'/best',
 	'/active',
 	'/newcomments',
-	'/lists',
 	'/front',
-	'/guidelines',
-	'/faq',
+	'/asknew',
+	'/shownew',
+	'/showhn',
+	'/bestcomments',
+	'/highlights',
+	'/noobstories',
+	'/noobcomments',
+	'/from',
 	'/login'
 ] as const;
 

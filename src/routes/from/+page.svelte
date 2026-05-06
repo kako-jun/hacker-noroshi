@@ -13,31 +13,35 @@
 	}
 </script>
 
-<div class="from-header">Submissions from {data.site}:</div>
+{#if data.site === null}
+	<div class="from-empty">ドメインを指定してください: <code>?site=example.com</code></div>
+{:else}
+	<div class="from-header">Submissions from {data.site}:</div>
 
-{#if data.stories.length === 0}
-	<div class="from-empty">No submissions from {data.site}</div>
-{/if}
+	{#if data.stories.length === 0}
+		<div class="from-empty">No submissions from {data.site}</div>
+	{/if}
 
-<div class="story-list">
-	{#each data.stories as story, i (story.id)}
-		{#if !localHiddenIds.has(story.id)}
-			<StoryListItem
-				{story}
-				rank={(data.page - 1) * 30 + i + 1}
-				user={data.user}
-				initialVoted={votedIds.has(story.id)}
-				initialFlagged={flaggedIds.has(story.id)}
-				{onhide}
-			/>
-		{/if}
-	{/each}
-</div>
-
-{#if data.hasMore}
-	<div class="more-link">
-		<a href="/from?site={data.site}&p={data.page + 1}">More</a>
+	<div class="story-list">
+		{#each data.stories as story, i (story.id)}
+			{#if !localHiddenIds.has(story.id)}
+				<StoryListItem
+					{story}
+					rank={(data.page - 1) * 30 + i + 1}
+					user={data.user}
+					initialVoted={votedIds.has(story.id)}
+					initialFlagged={flaggedIds.has(story.id)}
+					{onhide}
+				/>
+			{/if}
+		{/each}
 	</div>
+
+	{#if data.hasMore}
+		<div class="more-link">
+			<a href="/from?site={data.site}&p={data.page + 1}">More</a>
+		</div>
+	{/if}
 {/if}
 
 <style>
@@ -51,5 +55,9 @@
 		padding: 10pt 0 10pt 6pt;
 		font-size: 10pt;
 		color: #828282;
+	}
+
+	.from-empty code {
+		font-family: monospace;
 	}
 </style>

@@ -42,12 +42,13 @@
 </script>
 
 <div class="front-nav">
-	{formatDay(data.day)} (UTC) より前に戻る:
-	<a href="/front?day={shiftDay(data.day, -1)}">1日</a>,
-	<a href="/front?day={shiftMonth(data.day, -1)}">1ヶ月</a>,
-	<a href="/front?day={shiftYear(data.day, -1)}">1年</a>。
-	先に進む:
-	<a href="/front?day={shiftDay(data.day, 1)}">1日</a>。
+	<div class="front-nav-line">{formatDay(data.day)} (UTC) のストーリー。</div>
+	<div class="front-nav-line">
+		<a href="/front?day={shiftDay(data.day, -1)}">1日前</a> /
+		<a href="/front?day={shiftMonth(data.day, -1)}">1ヶ月前</a> /
+		<a href="/front?day={shiftYear(data.day, -1)}">1年前</a> へ。
+		<a href="/front?day={shiftDay(data.day, 1)}">1日後</a> へ。
+	</div>
 </div>
 
 {#if data.stories.length === 0}
@@ -80,6 +81,10 @@
 		padding: 6pt 0 6pt 6pt;
 		font-size: 9pt;
 		color: #000000;
+	}
+
+	.front-nav-line {
+		padding: 1pt 0;
 	}
 
 	.front-nav a {

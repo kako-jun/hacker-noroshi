@@ -8,6 +8,16 @@
 		return date.toISOString().split('T')[0];
 	}
 
+	function formatCreated(dateString: string): string {
+		const date = new Date(dateString);
+		return date.toLocaleDateString('en-US', {
+			year: 'numeric',
+			month: 'long',
+			day: 'numeric',
+			timeZone: 'UTC'
+		});
+	}
+
 	function formatNextChange(dateString: string | null | undefined): string {
 		if (!dateString) return '';
 		return new Date(dateString).toISOString().split('T')[0];
@@ -31,7 +41,7 @@
 					</tr>
 					<tr>
 						<td style="vertical-align: top; text-align: right; padding-right: 4px;">created:</td>
-						<td><a href="/front?day={formatDate(data.profile.created_at)}">{formatDate(data.profile.created_at)}</a></td>
+						<td><a href="/front?day={formatDate(data.profile.created_at)}">{formatCreated(data.profile.created_at)}</a></td>
 					</tr>
 					<tr>
 						<td style="vertical-align: top; text-align: right; padding-right: 4px;">karma:</td>
@@ -97,7 +107,7 @@
 				</tr>
 				<tr>
 					<td style="vertical-align: top; text-align: right; padding-right: 4px;">created:</td>
-					<td><a href="/front?day={formatDate(data.profile.created_at)}">{formatDate(data.profile.created_at)}</a></td>
+					<td><a href="/front?day={formatDate(data.profile.created_at)}">{formatCreated(data.profile.created_at)}</a></td>
 				</tr>
 				<tr>
 					<td style="vertical-align: top; text-align: right; padding-right: 4px;">karma:</td>
