@@ -5,6 +5,8 @@
 	let { data } = $props();
 	let localVoteStates = $state<Record<number, 'up' | 'down' | null> | null>(null);
 	let localPoints = $state<Record<number, number>>({});
+	// HN 互換: 各コメントを `[–]`/`[+]` で折りたたむフロント完結トグル
+	let collapsed = $state<Record<number, boolean>>({});
 
 	function getVoteState(commentId: number): 'up' | 'down' | null {
 		if (localVoteStates && commentId in localVoteStates) {
@@ -74,7 +76,13 @@
 				| <a href="/item/{comment.parent_id ?? comment.story_id}" style="color: #828282;">parent</a>
 				| <a href="/item/{comment.id}" style="color: #828282;">context</a>
 				| on: <a href="/item/{comment.story_id}">{comment.story_title}</a>
+				{' '}<a
+					href="#toggle"
+					onclick={(e) => { e.preventDefault(); collapsed[comment.id] = !collapsed[comment.id]; }}
+					style="color: #828282;"
+				>{#if collapsed[comment.id]}[+]{:else}[&ndash;]{/if}</a>
 			</div>
+			{#if !collapsed[comment.id]}
 			<div class="comment-text" class:faded={getPoints(comment) < 1} style="padding-left: 14px;">
 				{#each comment.text.split('\n') as paragraph}
 					{#if paragraph.trim()}
@@ -82,6 +90,7 @@
 					{/if}
 				{/each}
 			</div>
+			{/if}
 		</div>
 	{/each}
 </div>
