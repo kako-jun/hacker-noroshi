@@ -103,6 +103,24 @@ a:hover {
 		overflow-wrap: anywhere;
 		word-break: break-word;
 	}
+
+	/* HN mobile: titles and subtext are larger for readability.
+	   Mirror news.css mobile @media rules:
+	     .title    { font-size: 11pt; line-height: 14pt }
+	     .subtext  { font-size: 9pt }
+	*/
+	.story-title-line,
+	.story-title-line a.story-title,
+	.item-detail .item-title,
+	.item-detail .item-title a {
+		font-size: 11pt;
+		line-height: 14pt;
+	}
+
+	.story-meta,
+	.item-detail .item-meta {
+		font-size: 9pt;
+	}
 }
 
 /* Header */
@@ -245,7 +263,6 @@ a:hover {
 
 .story-title-line {
 	font-size: 10pt;
-	line-height: 14pt;
 }
 
 .story-title-line a.story-title {
@@ -271,7 +288,6 @@ a:hover {
 .story-meta {
 	font-size: 7pt;
 	color: #828282;
-	line-height: 12pt;
 }
 
 .story-meta a {
@@ -356,7 +372,6 @@ a:hover {
 	font-size: 9pt;
 	color: #000000;
 	margin-top: 8px;
-	line-height: 14pt;
 }
 
 .item-detail .item-text p {
@@ -450,7 +465,6 @@ a:hover {
 	font-size: 9pt;
 	color: #000000;
 	margin-top: 3px;
-	line-height: 14pt;
 	overflow-wrap: break-word;
 }
 
