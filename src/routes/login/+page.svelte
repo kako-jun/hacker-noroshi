@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 
-	let { form } = $props();
+	let { data, form } = $props();
 </script>
 
 <svelte:head>
@@ -16,6 +16,7 @@
 	<br /><br />
 
 	<form method="POST" action="?/login" use:enhance>
+		<input type="hidden" name="next" value={data.next} />
 		<table>
 			<tbody>
 				<tr>
@@ -41,6 +42,7 @@
 	<br /><br />
 
 	<form method="POST" action="?/signup" use:enhance>
+		<input type="hidden" name="next" value={data.next} />
 		<table>
 			<tbody>
 				<tr>
