@@ -429,7 +429,7 @@
 			</div>
 		{/if}
 
-		{#if form?.error && form?.errorFor === 'comment'}
+		{#if form && 'errorFor' in form && form.errorFor === 'comment' && form.error}
 			<div style="padding-left: 14px; color: #ff0000; font-size: 9pt; margin-bottom: 4px;">{form.error}</div>
 		{/if}
 		{#if data.user && isThreadOpen(data.parentStory.created_at)}
@@ -441,7 +441,7 @@
 					};
 				}}>
 					<input type="hidden" name="parent_id" value={comment.id} />
-					<textarea name="text" rows="6" cols="60">{form?.errorFor === 'comment' ? form?.text ?? '' : ''}</textarea>
+					<textarea name="text" rows="6" cols="60">{form && 'errorFor' in form && form.errorFor === 'comment' && 'text' in form ? form.text ?? '' : ''}</textarea>
 					<br />
 					<button type="submit">reply</button>
 				</form>
@@ -684,7 +684,7 @@
 			</div>
 		{/if}
 
-		{#if form?.error && form?.errorFor === 'comment'}
+		{#if form && 'errorFor' in form && form.errorFor === 'comment' && form.error}
 			<div style="padding-left: 18px; color: #ff0000; font-size: 9pt; margin-bottom: 4px;">{form.error}</div>
 		{/if}
 		{#if data.user && isThreadOpen(data.story.created_at)}
@@ -695,7 +695,7 @@
 						await invalidateAll();
 					};
 				}}>
-					<textarea name="text" rows="6" cols="60">{form?.errorFor === 'comment' ? form?.text ?? '' : ''}</textarea>
+					<textarea name="text" rows="6" cols="60">{form && 'errorFor' in form && form.errorFor === 'comment' && 'text' in form ? form.text ?? '' : ''}</textarea>
 					<br />
 					<button type="submit">add comment</button>
 				</form>
