@@ -17,19 +17,14 @@
 
 	<form method="POST" action="?/login" use:enhance>
 		<input type="hidden" name="next" value={data.next} />
-		<table>
-			<tbody>
-				<tr>
-					<td>username:</td>
-					<td><input type="text" name="username" value={form?.loginUsername ?? ''} autocomplete="username" autocorrect="off" spellcheck="false" autocapitalize="off" autofocus /></td>
-				</tr>
-				<tr>
-					<td>password:</td>
-					<td><input type="password" name="password" autocomplete="current-password" /></td>
-				</tr>
-			</tbody>
-		</table>
-		<br />
+		<div class="login-row">
+			username:
+			<input type="text" name="username" value={form?.loginUsername ?? ''} autocomplete="username" autocorrect="off" spellcheck="false" autocapitalize="off" autofocus />
+		</div>
+		<div class="login-row">
+			password:
+			<input type="password" name="password" autocomplete="current-password" />
+		</div>
 		<button type="submit">login</button>
 	</form>
 
@@ -43,19 +38,14 @@
 
 	<form method="POST" action="?/signup" use:enhance>
 		<input type="hidden" name="next" value={data.next} />
-		<table>
-			<tbody>
-				<tr>
-					<td>username:</td>
-					<td><input type="text" name="username" value={form?.signupUsername ?? ''} autocomplete="username" autocorrect="off" spellcheck="false" autocapitalize="off" /></td>
-				</tr>
-				<tr>
-					<td>password:</td>
-					<td><input type="password" name="password" autocomplete="new-password" /></td>
-				</tr>
-			</tbody>
-		</table>
-		<br />
+		<div class="login-row">
+			username:
+			<input type="text" name="username" value={form?.signupUsername ?? ''} autocomplete="username" autocorrect="off" spellcheck="false" autocapitalize="off" />
+		</div>
+		<div class="login-row">
+			password:
+			<input type="password" name="password" autocomplete="new-password" />
+		</div>
 		<button type="submit">create account</button>
 	</form>
 
@@ -64,3 +54,19 @@
 		Passwords should be at least 8 characters.
 	</div>
 </div>
+
+<style>
+	.login-row {
+		margin-bottom: 8pt;
+	}
+	.login-row input {
+		width: 220px;
+		margin-left: 4px;
+	}
+	@media (max-width: 750px) {
+		.login-row input {
+			width: 100%;
+			max-width: 220px;
+		}
+	}
+</style>
