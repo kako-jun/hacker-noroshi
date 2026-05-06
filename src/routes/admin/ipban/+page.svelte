@@ -6,45 +6,46 @@
 	<title>admin / IP ban | ハッカーのろし</title>
 </svelte:head>
 
-<div style="padding: 20pt; font-family: Verdana, Geneva, sans-serif; font-size: 10pt; color: #000000;">
+<div class="hn-form">
 	<p><b>IP ban 管理</b></p>
 
 	{#if form?.banError}
-		<p style="color: #cc0000;">{form.banError}</p>
+		<p style="color: #ff0000;">{form.banError}</p>
 	{:else if form?.error}
-		<p style="color: #cc0000;">{form.error}</p>
+		<p style="color: #ff0000;">{form.error}</p>
 	{/if}
 	{#if form?.success}
-		<p style="color: #008800;">処理しました。</p>
+		<p>処理しました。</p>
 	{/if}
 
 	<p><b>新規 ban</b></p>
 	<!-- SvelteKit form action は同一オリジンチェック付き -->
 	<form method="POST" action="?/ban">
-		<table style="border-collapse: collapse;">
+		<table>
 			<tbody>
 				<tr>
-					<td style="padding: 4pt 8pt 4pt 0;">IP:</td>
-					<td style="padding: 4pt 0;">
-						<input type="text" name="ip" value={form?.ip ?? ''} size="20" style="font-family: Verdana, Geneva, sans-serif; font-size: 10pt;" />
+					<td>IP:</td>
+					<td>
+						<input type="text" name="ip" value={form?.ip ?? ''} />
 					</td>
 				</tr>
 				<tr>
-					<td style="padding: 4pt 8pt 4pt 0;">理由:</td>
-					<td style="padding: 4pt 0;">
-						<input type="text" name="reason" value={form?.reason ?? ''} size="40" maxlength="1024" style="font-family: Verdana, Geneva, sans-serif; font-size: 10pt;" />
+					<td>理由:</td>
+					<td>
+						<input type="text" name="reason" value={form?.reason ?? ''} maxlength="1024" />
 					</td>
 				</tr>
 				<tr>
-					<td style="padding: 4pt 8pt 4pt 0;">有効期限 (時間):</td>
-					<td style="padding: 4pt 0;">
-						<input type="text" name="expiresIn" value={form?.expiresInRaw ?? ''} size="6" style="font-family: Verdana, Geneva, sans-serif; font-size: 10pt;" />
-						<span style="margin-left: 8pt;">空欄で無期限</span>
+					<td>有効期限 (時間):</td>
+					<td>
+						<input type="text" name="expiresIn" value={form?.expiresInRaw ?? ''} />
+						<span> 空欄で無期限</span>
 					</td>
 				</tr>
 				<tr>
-					<td colspan="2" style="padding: 8pt 0;">
-						<button type="submit" style="font-family: Verdana, Geneva, sans-serif; font-size: 10pt;">ban する</button>
+					<td></td>
+					<td>
+						<button type="submit">ban する</button>
 					</td>
 				</tr>
 			</tbody>
@@ -55,27 +56,27 @@
 	{#if data.bans.length === 0}
 		<p>active な ban はありません。</p>
 	{:else}
-		<table style="border-collapse: collapse; border: 1pt solid #cccccc;">
+		<table class="ipban-list">
 			<thead>
-				<tr style="background-color: #f0f0f0;">
-					<th style="padding: 4pt 8pt; text-align: left; border: 1pt solid #cccccc;">IP</th>
-					<th style="padding: 4pt 8pt; text-align: left; border: 1pt solid #cccccc;">理由</th>
-					<th style="padding: 4pt 8pt; text-align: left; border: 1pt solid #cccccc;">ban 日時</th>
-					<th style="padding: 4pt 8pt; text-align: left; border: 1pt solid #cccccc;">解除予定</th>
-					<th style="padding: 4pt 8pt; text-align: left; border: 1pt solid #cccccc;">操作</th>
+				<tr>
+					<th>IP</th>
+					<th>理由</th>
+					<th>ban 日時</th>
+					<th>解除予定</th>
+					<th>操作</th>
 				</tr>
 			</thead>
 			<tbody>
 				{#each data.bans as ban (ban.id)}
 					<tr>
-						<td style="padding: 4pt 8pt; border: 1pt solid #cccccc;">{ban.ip}</td>
-						<td style="padding: 4pt 8pt; border: 1pt solid #cccccc;">{ban.reason || '-'}</td>
-						<td style="padding: 4pt 8pt; border: 1pt solid #cccccc;">{ban.banned_at}</td>
-						<td style="padding: 4pt 8pt; border: 1pt solid #cccccc;">{ban.expires_at ?? '無期限'}</td>
-						<td style="padding: 4pt 8pt; border: 1pt solid #cccccc;">
-							<form method="POST" action="?/unban" style="display: inline;">
+						<td>{ban.ip}</td>
+						<td>{ban.reason || '-'}</td>
+						<td>{ban.banned_at}</td>
+						<td>{ban.expires_at ?? '無期限'}</td>
+						<td>
+							<form method="POST" action="?/unban" class="inline-form">
 								<input type="hidden" name="id" value={ban.id} />
-								<button type="submit" style="font-family: Verdana, Geneva, sans-serif; font-size: 9pt;">unban</button>
+								<button type="submit">unban</button>
 							</form>
 						</td>
 					</tr>
@@ -84,3 +85,30 @@
 		</table>
 	{/if}
 </div>
+
+<style>
+	/* 独自画面の ban 一覧テーブル。DESIGN.md の在パレット色のみで、
+	   行を区切る最小限の装飾（border-bottom）に留める。 */
+	.ipban-list {
+		border-collapse: collapse;
+		font-size: 9pt;
+		margin-top: 4pt;
+	}
+
+	.ipban-list th,
+	.ipban-list td {
+		text-align: left;
+		padding: 2pt 8pt 2pt 0;
+		vertical-align: top;
+	}
+
+	.ipban-list th {
+		color: #828282;
+		font-weight: normal;
+		border-bottom: 1px solid #828282;
+	}
+
+	.ipban-list td {
+		color: #000000;
+	}
+</style>
