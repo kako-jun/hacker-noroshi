@@ -73,3 +73,34 @@ export async function postComment(page: Page, text: string): Promise<void> {
 	await form.locator('textarea[name="text"]').fill(text);
 	await form.locator('button[type="submit"]').click();
 }
+
+/**
+ * Reply to an existing comment (nest depth 2). Clicks the comment's "reply" link
+ * to open the inline reply form, fills text, and submits. Assumes already at
+ * /item/{storyId} and that the target comment is rendered.
+ */
+export async function replyToComment(
+	page: Page,
+	commentLocator: ReturnType<Page['locator']>,
+	text: string
+): Promise<void> {
+	// 単数 comment の reply リンクをクリック → form 出現を待つ
+	await commentLocator.locator('.comment-reply a', { hasText: /^reply$/ }).first().click();
+	const replyForm = commentLocator.locator('form[action="?/comment"]').first();
+	await replyForm.locator('textarea[name="text"]').fill(text);
+	await replyForm.locator('button[type="submit"]').click();
+}
+
+/**
+ * Click "delete account" with the password and accept the JS confirm dialog.
+ * Must already be at /user/{username}. Returns when navigation completed.
+ */
+export async function deleteAccount(page: Page, password: string): Promise<void> {
+	page.once('dialog', (d) => d.accept());
+	const form = page.locator('form[action="?/deleteAccount"]');
+	await form.locator('input[name="password"]').fill(password);
+	await Promise.all([
+		page.waitForURL('/', { timeout: 15_000 }).catch(() => {}),
+		form.locator('button[type="submit"]').click()
+	]);
+}
