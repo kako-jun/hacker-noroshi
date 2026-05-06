@@ -121,6 +121,28 @@ a:hover {
 	.item-detail .item-meta {
 		font-size: 9pt;
 	}
+
+	/* HN mobile: votearrow is scaled 1.3x for touch targets.
+	   Mirrors news.css mobile @media:
+	     .votearrow { transform: scale(1.3); margin-right: 6px; } */
+	.story-vote .upvote,
+	.comment-head .upvote,
+	.comment-head .downvote {
+		transform: scale(1.3);
+		margin-right: 6px;
+	}
+
+	/* /user の about セルは mobile では幅 100% にしてはみ出さないように */
+	.user-profile td {
+		max-width: 100%;
+	}
+
+	.user-profile textarea,
+	.user-profile input[type='text'] {
+		width: 100%;
+		max-width: 100%;
+		box-sizing: border-box;
+	}
 }
 
 /* Header */

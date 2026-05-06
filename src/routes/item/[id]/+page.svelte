@@ -398,7 +398,7 @@
 			{/if}
 		</div>
 		{#if editingCommentId === comment.id}
-			<div class="comment-form" style="padding-left: 14px;">
+			<div class="comment-form" style="padding-left: 0;">
 				<form method="POST" action="?/editComment" use:enhance={() => {
 					return async ({ update }) => {
 						editingCommentId = null;
@@ -420,7 +420,7 @@
 				</form>
 			</div>
 		{:else}
-			<div class="comment-text" class:faded={targetCommentPoints < 1} style="padding-left: 14px;">
+			<div class="comment-text" class:faded={targetCommentPoints < 1} style="padding-left: 0;">
 				{#each comment.text.split('\n') as paragraph}
 					{#if paragraph.trim()}
 						<p>{@html formatText(paragraph)}</p>
@@ -430,10 +430,10 @@
 		{/if}
 
 		{#if form && 'errorFor' in form && form.errorFor === 'comment' && form.error}
-			<div style="padding-left: 14px; color: #ff0000; font-size: 9pt; margin-bottom: 4px;">{form.error}</div>
+			<div style="padding-left: 0; color: #ff0000; font-size: 9pt; margin-bottom: 4px;">{form.error}</div>
 		{/if}
 		{#if data.user && isThreadOpen(data.parentStory.created_at)}
-			<div class="comment-form" style="padding-left: 14px;">
+			<div class="comment-form" style="padding-left: 0;">
 				<form method="POST" action="?/comment" use:enhance={() => {
 					return async ({ update }) => {
 						await update();
@@ -476,7 +476,7 @@
 						<a href="/item/{child.id}">{timeAgo(child.created_at)}</a>
 					</div>
 					{#if editingCommentId === child.id}
-						<div class="comment-form" style="padding-left: 14px;">
+						<div class="comment-form" style="padding-left: 0;">
 							<form method="POST" action="?/editComment" use:enhance={() => {
 								return async ({ update }) => {
 									editingCommentId = null;
@@ -498,7 +498,7 @@
 							</form>
 						</div>
 					{:else}
-						<div class="comment-text" class:faded={getCommentPoints(child) < 1} style="padding-left: 14px;">
+						<div class="comment-text" class:faded={getCommentPoints(child) < 1} style="padding-left: 0;">
 							{#each child.text.split('\n') as paragraph}
 								{#if paragraph.trim()}
 									<p>{@html formatText(paragraph)}</p>
@@ -507,7 +507,7 @@
 						</div>
 					{/if}
 					{#if data.user}
-						<div class="comment-reply" style="padding-left: 14px;">
+						<div class="comment-reply" style="padding-left: 0;">
 							{#if isThreadOpen(data.parentStory.created_at)}
 								<a
 									href="#reply"
@@ -531,7 +531,7 @@
 							{/if}
 						</div>
 						{#if isThreadOpen(data.parentStory.created_at) && replyTo === child.id}
-							<div class="comment-form" style="padding-left: 14px;">
+							<div class="comment-form" style="padding-left: 0;">
 								<form method="POST" action="?/comment" use:enhance={() => {
 									return async ({ update }) => {
 										replyTo = null;
@@ -730,7 +730,7 @@
 						<a href="/item/{comment.id}">{timeAgo(comment.created_at)}</a>
 					</div>
 					{#if editingCommentId === comment.id}
-						<div class="comment-form" style="padding-left: 14px;">
+						<div class="comment-form" style="padding-left: 0;">
 							<form method="POST" action="?/editComment" use:enhance={() => {
 								return async ({ update }) => {
 									editingCommentId = null;
@@ -752,7 +752,7 @@
 							</form>
 						</div>
 					{:else}
-						<div class="comment-text" class:faded={getCommentPoints(comment) < 1} style="padding-left: 14px;">
+						<div class="comment-text" class:faded={getCommentPoints(comment) < 1} style="padding-left: 0;">
 							{#each comment.text.split('\n') as paragraph}
 								{#if paragraph.trim()}
 									<p>{@html formatText(paragraph)}</p>
@@ -761,7 +761,7 @@
 						</div>
 					{/if}
 					{#if data.user}
-						<div class="comment-reply" style="padding-left: 14px;">
+						<div class="comment-reply" style="padding-left: 0;">
 							{#if isThreadOpen(data.story.created_at)}
 								<a
 									href="#reply"
@@ -785,7 +785,7 @@
 							{/if}
 						</div>
 						{#if isThreadOpen(data.story.created_at) && replyTo === comment.id}
-							<div class="comment-form" style="padding-left: 14px;">
+							<div class="comment-form" style="padding-left: 0;">
 								<form method="POST" action="?/comment" use:enhance={() => {
 									return async ({ update }) => {
 										replyTo = null;
