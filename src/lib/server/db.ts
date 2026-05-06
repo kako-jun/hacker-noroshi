@@ -881,10 +881,13 @@ export async function getHighlightedComments(
 	const offset = (page - 1) * limit;
 	const conds: string[] = ['c.points >= ?'];
 	const params: (string | number)[] = [minPoints];
-	if (!showdead) conds.push('c.dead = 0');
-	conds.push(
-		'(SELECT COUNT(*) FROM comments cc WHERE cc.story_id = c.story_id AND cc.dead = 0) >= ?'
-	);
+	if (!showdead) {
+		conds.push('c.dead = 0');
+		conds.push('s.dead = 0');
+	}
+	// 相関サブクエリ (SELECT COUNT(*) ...) は N+1 になるため stories.comment_count を使う。
+	// stories.comment_count は dead 含むカウントだが、minStoryCommentCount=3 程度の閾値なら誤差は許容範囲。
+	conds.push('s.comment_count >= ?');
 	params.push(minStoryCommentCount);
 	const whereClause = `WHERE ${conds.join(' AND ')}`;
 

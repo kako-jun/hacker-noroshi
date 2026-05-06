@@ -17,14 +17,14 @@
 
 	<form method="POST" action="?/login" use:enhance>
 		<input type="hidden" name="next" value={data.next} />
-		<div class="login-row">
+		<label class="login-row">
 			username:
 			<input type="text" name="username" value={form?.loginUsername ?? ''} autocomplete="username" autocorrect="off" spellcheck="false" autocapitalize="off" autofocus />
-		</div>
-		<div class="login-row">
+		</label>
+		<label class="login-row">
 			password:
 			<input type="password" name="password" autocomplete="current-password" />
-		</div>
+		</label>
 		<button type="submit">login</button>
 	</form>
 
@@ -38,14 +38,14 @@
 
 	<form method="POST" action="?/signup" use:enhance>
 		<input type="hidden" name="next" value={data.next} />
-		<div class="login-row">
+		<label class="login-row">
 			username:
 			<input type="text" name="username" value={form?.signupUsername ?? ''} autocomplete="username" autocorrect="off" spellcheck="false" autocapitalize="off" />
-		</div>
-		<div class="login-row">
+		</label>
+		<label class="login-row">
 			password:
 			<input type="password" name="password" autocomplete="new-password" />
-		</div>
+		</label>
 		<button type="submit">create account</button>
 	</form>
 
@@ -57,6 +57,7 @@
 
 <style>
 	.login-row {
+		display: block;
 		margin-bottom: 8pt;
 	}
 	.login-row input {

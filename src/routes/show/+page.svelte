@@ -14,7 +14,7 @@
 </script>
 
 <div class="show-intro" style="padding: 10px 0 0 40px; font-size: 9pt; color: #828282;">
-	投稿前に <a href="/showhn">Show HN ルール</a> をお読みください。<a href="/show?p=newest">最新の Show HN</a> も眺めてみるとよいでしょう。<a href="/launches">最新の Launch HN</a> もあります。
+	投稿前に <a href="/showhn">Show HN ルール</a> をお読みください。<a href="/shownew">最新の Show HN</a> も眺めてみるとよいでしょう。
 </div>
 
 <div class="story-list">

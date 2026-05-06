@@ -21,7 +21,7 @@
 		'/noobstories': 'noobstories',
 		'/noobcomments': 'noobcomments',
 		'/shownew': 'shownew',
-		'/showhn': 'show',
+		'/showhn': 'showhn',
 		'/bestcomments': 'bestcomments',
 		'/best': 'best',
 		'/active': 'active',

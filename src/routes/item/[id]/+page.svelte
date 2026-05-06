@@ -282,13 +282,17 @@
 		collapsed[commentId] = !collapsed[commentId];
 	}
 
+	// id → CommentNode の Map を 1 回だけ構築して isHidden 内の祖先 lookup を O(1) にする。
+	// 以前は commentTree.find() を毎回走らせており O(N×depth×N) で大規模スレッドで重かった。
+	let commentById = $derived(new Map(commentTree.map((c) => [c.id, c])));
+
 	function isHidden(comment: CommentNode): boolean {
 		// 自身は表示するが、祖先のいずれかが閉じていれば非表示。
-		// commentTree は flatten 済みなので、parent_id を辿ってチェックする。
+		// parent_id を辿って collapsed 状態を確認する。
 		let pid = comment.parent_id;
 		while (pid) {
 			if (collapsed[pid]) return true;
-			const parent = commentTree.find((c) => c.id === pid);
+			const parent = commentById.get(pid);
 			if (!parent) break;
 			pid = parent.parent_id;
 		}
