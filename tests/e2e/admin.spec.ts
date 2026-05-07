@@ -23,10 +23,7 @@ test.describe('admin /admin/ipban', () => {
 		expect(res?.status()).toBe(403);
 	});
 
-	// TODO: page.fill で値が入っているはずなのに "IP を入力してください" で失敗する。
-	// Playwright の fill タイミングと SvelteKit form の hydration race の可能性。
-	// 別 Issue #126 で再現と修正を追跡。
-	test.skip('admin で /admin/ipban → 200 + ban フォーム → ban → unban', async ({ page }) => {
+	test('admin で /admin/ipban → 200 + ban フォーム → ban → unban', async ({ page }) => {
 		const adminUser = await signupNewUser(page);
 		promoteToAdmin(adminUser);
 		// セッション側の is_admin はサーバー時に SELECT し直されるので reload で十分。
@@ -35,15 +32,28 @@ test.describe('admin /admin/ipban', () => {
 		expect(res?.status()).toBe(200);
 		await expect(page.locator('text=新規 ban')).toBeVisible();
 
+		// #126: SvelteKit のハイドレーションで input value が `value={form?.ip ?? ''}`
+		// 経由でリセットされるため、ban 送信ボタンが enabled になり、Svelte runtime が
+		// イベントを処理できる状態を待ってから fill する。
+		const banButton = page.locator('button:has-text("ban する")');
+		await expect(banButton).toBeEnabled();
+
 		// 手動で 1.2.3.4 を ban
 		const targetIp = '1.2.3.4';
-		const reason = `e2e #122 ${Date.now()}`;
-		await page.fill('input[name="ip"]', targetIp);
-		await page.fill('input[name="reason"]', reason);
-		// 1 時間 ban
-		await page.fill('input[name="expiresIn"]', '1');
-		await page.click('button:has-text("ban する")');
-		await page.waitForLoadState('networkidle');
+		const reason = `e2e #126 ${Date.now()}`;
+		const ipInput = page.locator('input[name="ip"]');
+		const reasonInput = page.locator('input[name="reason"]');
+		const expiresInput = page.locator('input[name="expiresIn"]');
+		await ipInput.fill(targetIp);
+		await reasonInput.fill(reason);
+		await expiresInput.fill('1');
+		// fill 後に DOM 値が保持されているか確認（hydration race の検出）。
+		// Svelte が `value={form?.ip ?? ''}` で再描画して空に戻したら ここで気付く。
+		expect(await ipInput.inputValue()).toBe(targetIp);
+		expect(await reasonInput.inputValue()).toBe(reason);
+		expect(await expiresInput.inputValue()).toBe('1');
+
+		await banButton.click();
 		// banError が出ていないことを先に確認
 		const errorVisible = await page.locator('p[style*="ff0000"]').isVisible().catch(() => false);
 		if (errorVisible) {
@@ -60,7 +70,6 @@ test.describe('admin /admin/ipban', () => {
 			.locator('.ipban-list tr')
 			.filter({ has: page.locator(`td:has-text("${targetIp}")`) });
 		await row.locator('button:has-text("unban")').click();
-		await page.waitForLoadState('networkidle');
 		// 消える
 		await expect(page.locator(`.ipban-list td:has-text("${targetIp}")`)).toHaveCount(0);
 	});
