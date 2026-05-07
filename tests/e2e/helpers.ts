@@ -1,4 +1,5 @@
 import type { Page } from '@playwright/test';
+import { execFileSync } from 'node:child_process';
 
 /**
  * Generate a unique-ish username (3-15 chars, alnum/underscore/hyphen).
@@ -103,4 +104,96 @@ export async function deleteAccount(page: Page, password: string): Promise<void>
 		page.waitForURL('/', { timeout: 15_000 }).catch(() => {}),
 		form.locator('button[type="submit"]').click()
 	]);
+}
+
+/**
+ * Issue #122 helpers.
+ *
+ * 既存 seed (db/seed.sql) で用意されたユーザー（noroshi / tanaka / sato /
+ * karma_high / karma_mid / karma_low / new_user / old_user / deleted_acc）で
+ * /login の loginForm を踏んでログインする。`/` への遷移を待つ。
+ *
+ * 失敗（Bad login など）した場合は呼び元に判定させたいので URL 移動を強制しない。
+ */
+export async function loginAs(
+	page: Page,
+	username: string,
+	password = 'test1234'
+): Promise<void> {
+	await page.goto('/logout').catch(() => {});
+	await page.goto('/login');
+	await page.waitForLoadState('networkidle');
+	const loginForm = page.locator('form[action="?/login"]');
+	await loginForm.locator('input[name="username"]').fill(username);
+	await loginForm.locator('input[name="password"]').fill(password);
+	await Promise.all([
+		page.waitForURL('/', { timeout: 15_000 }).catch(() => {}),
+		loginForm.locator('button[type="submit"]').click()
+	]);
+}
+
+/**
+ * `wrangler d1 execute hacker-noroshi-db --local --command 'SQL'` を実行する。
+ * テストから直接 D1 を叩くためのユーティリティ。
+ */
+export function runD1(command: string): void {
+	execFileSync(
+		'npx',
+		['wrangler', 'd1', 'execute', 'hacker-noroshi-db', '--local', '--command', command],
+		{ cwd: process.cwd(), stdio: 'pipe', timeout: 30_000 }
+	);
+}
+
+/**
+ * 指定 story の created_at を hoursAgo 時間前に書き換える。編集ウィンドウ
+ * 境界（2 時間）テスト用。
+ */
+export function setStoryCreatedAt(storyId: number, hoursAgo: number): void {
+	runD1(
+		`UPDATE stories SET created_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-${hoursAgo} hours') WHERE id = ${storyId}`
+	);
+}
+
+/**
+ * 指定 comment の created_at を hoursAgo 時間前に書き換える。編集ウィンドウ
+ * 境界テスト用。
+ */
+export function setCommentCreatedAt(commentId: number, hoursAgo: number): void {
+	runD1(
+		`UPDATE comments SET created_at = strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-${hoursAgo} hours') WHERE id = ${commentId}`
+	);
+}
+
+/**
+ * 既存ユーザーの karma を直接書き換える。#122 E2E で karma 階層別の権限分岐
+ * (flag: karma>=30 / downvote: karma>=500) を確認するために使う。
+ *
+ * NOTE: seed.sql の bcrypt password_hash は `salt:sha256hex` 形式の verifyPassword
+ * と非互換 (#125) で seed user の login が事実上 Bad login になる。そのため
+ * #122 では signupNewUser で新規作成 → updateUserKarma で karma を引き上げ、
+ * という流れに切り替えている。
+ */
+export function updateUserKarma(username: string, karma: number): void {
+	const escaped = username.replace(/'/g, "''");
+	runD1(`UPDATE users SET karma = ${karma} WHERE username = '${escaped}'`);
+}
+
+/**
+ * 既存ユーザーを admin に昇格させる（#125 回避のため signupNewUser 経由）。
+ */
+export function promoteToAdmin(username: string): void {
+	const escaped = username.replace(/'/g, "''");
+	runD1(`UPDATE users SET is_admin = 1 WHERE username = '${escaped}'`);
+}
+
+/**
+ * IP ban 系テストの後始末。`ip_bans` と `ip_login_failures` を全消去する。
+ * afterAll で必ず呼び出して後続 spec を ban で巻き込まないようにする。
+ */
+export function cleanIpBans(): void {
+	try {
+		runD1('DELETE FROM ip_bans; DELETE FROM ip_login_failures;');
+	} catch (e) {
+		console.warn('[cleanIpBans] failed', e);
+	}
 }
