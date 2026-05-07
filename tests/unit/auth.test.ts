@@ -38,4 +38,14 @@ describe('hashPassword / verifyPassword', () => {
 		const { verifyPassword } = await import('../../src/lib/server/auth');
 		expect(await verifyPassword('any', 'no-colon-here')).toBe(false);
 	});
+
+	// #125: db/seed.sql の固定 hash が "test1234" を verify できることを確認する。
+	// 実装側 (auth.ts) を変えると seed が壊れるリグレッション検出。
+	it('verifies seed.sql password_hash for "test1234"', async () => {
+		const { verifyPassword } = await import('../../src/lib/server/auth');
+		const seedHash =
+			'ddac7a274f5441e1aec447627cccb77e:a7979be7b679ea8949bcf2d340270c78d45ca18e5184da73ff30c3b1d0d89adf';
+		expect(await verifyPassword('test1234', seedHash)).toBe(true);
+		expect(await verifyPassword('wrong', seedHash)).toBe(false);
+	});
 });
