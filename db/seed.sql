@@ -1,6 +1,6 @@
 -- Seed data for local development
--- password is "test1234" for all users (bcrypt hash)
--- $2a$10$K4GzQqBq9LZlh9OvBOE6eOqv7GYFv9HZVq3YR6R0HjKq5AXq5GQSy
+-- password is "test1234" for all users. hash format: src/lib/server/auth.ts (salt32hex:sha256hex)
+-- ddac7a274f5441e1aec447627cccb77e:a7979be7b679ea8949bcf2d340270c78d45ca18e5184da73ff30c3b1d0d89adf
 --
 -- Issue #121: 各タブ・各クエリパラメータ・権限分岐を seed 一発で網羅できるように拡充。
 -- 既存 user id 1-3 / story id 1-6 は維持（既存テストや手動検証手順との互換性のため）。
@@ -11,21 +11,21 @@
 --            6=karma_low, 7=new_user, 8=old_user, 9=deleted_acc
 -- ────────────────────────────────────────────────────────────────────
 INSERT INTO users (username, password_hash, karma, about, is_admin) VALUES
-  ('noroshi', '$2a$10$K4GzQqBq9LZlh9OvBOE6eOqv7GYFv9HZVq3YR6R0HjKq5AXq5GQSy', 100, 'ハッカーのろし管理人', 1),
-  ('tanaka', '$2a$10$K4GzQqBq9LZlh9OvBOE6eOqv7GYFv9HZVq3YR6R0HjKq5AXq5GQSy', 42, 'Rustが好き', 0),
-  ('sato', '$2a$10$K4GzQqBq9LZlh9OvBOE6eOqv7GYFv9HZVq3YR6R0HjKq5AXq5GQSy', 15, 'フロントエンド開発者', 0);
+  ('noroshi', 'ddac7a274f5441e1aec447627cccb77e:a7979be7b679ea8949bcf2d340270c78d45ca18e5184da73ff30c3b1d0d89adf', 100, 'ハッカーのろし管理人', 1),
+  ('tanaka', 'ddac7a274f5441e1aec447627cccb77e:a7979be7b679ea8949bcf2d340270c78d45ca18e5184da73ff30c3b1d0d89adf', 42, 'Rustが好き', 0),
+  ('sato', 'ddac7a274f5441e1aec447627cccb77e:a7979be7b679ea8949bcf2d340270c78d45ca18e5184da73ff30c3b1d0d89adf', 15, 'フロントエンド開発者', 0);
 
 -- karma 階層・期間別ユーザー
 INSERT INTO users (username, password_hash, karma, about, is_admin, created_at) VALUES
-  ('karma_high', '$2a$10$K4GzQqBq9LZlh9OvBOE6eOqv7GYFv9HZVq3YR6R0HjKq5AXq5GQSy', 600, 'downvote 可（karma>=500）', 0, strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-90 days')),
-  ('karma_mid', '$2a$10$K4GzQqBq9LZlh9OvBOE6eOqv7GYFv9HZVq3YR6R0HjKq5AXq5GQSy', 50, 'flag 可（karma>=30、500未満）', 0, strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-60 days')),
-  ('karma_low', '$2a$10$K4GzQqBq9LZlh9OvBOE6eOqv7GYFv9HZVq3YR6R0HjKq5AXq5GQSy', 1, 'まだ権限なし', 0, strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-10 days')),
-  ('new_user', '$2a$10$K4GzQqBq9LZlh9OvBOE6eOqv7GYFv9HZVq3YR6R0HjKq5AXq5GQSy', 2, 'はじめまして', 0, strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
-  ('old_user', '$2a$10$K4GzQqBq9LZlh9OvBOE6eOqv7GYFv9HZVq3YR6R0HjKq5AXq5GQSy', 250, '6ヶ月前に登録', 0, strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-180 days'));
+  ('karma_high', 'ddac7a274f5441e1aec447627cccb77e:a7979be7b679ea8949bcf2d340270c78d45ca18e5184da73ff30c3b1d0d89adf', 600, 'downvote 可（karma>=500）', 0, strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-90 days')),
+  ('karma_mid', 'ddac7a274f5441e1aec447627cccb77e:a7979be7b679ea8949bcf2d340270c78d45ca18e5184da73ff30c3b1d0d89adf', 50, 'flag 可（karma>=30、500未満）', 0, strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-60 days')),
+  ('karma_low', 'ddac7a274f5441e1aec447627cccb77e:a7979be7b679ea8949bcf2d340270c78d45ca18e5184da73ff30c3b1d0d89adf', 1, 'まだ権限なし', 0, strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-10 days')),
+  ('new_user', 'ddac7a274f5441e1aec447627cccb77e:a7979be7b679ea8949bcf2d340270c78d45ca18e5184da73ff30c3b1d0d89adf', 2, 'はじめまして', 0, strftime('%Y-%m-%dT%H:%M:%SZ', 'now')),
+  ('old_user', 'ddac7a274f5441e1aec447627cccb77e:a7979be7b679ea8949bcf2d340270c78d45ca18e5184da73ff30c3b1d0d89adf', 250, '6ヶ月前に登録', 0, strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-180 days'));
 
 -- 削除済みアカウント（[deleted] 表示確認用）
 INSERT INTO users (username, password_hash, karma, about, is_admin, deleted, deleted_at, created_at) VALUES
-  ('deleted_acc', '$2a$10$K4GzQqBq9LZlh9OvBOE6eOqv7GYFv9HZVq3YR6R0HjKq5AXq5GQSy', 5, '', 0, 1, strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-3 days'), strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-30 days'));
+  ('deleted_acc', 'ddac7a274f5441e1aec447627cccb77e:a7979be7b679ea8949bcf2d340270c78d45ca18e5184da73ff30c3b1d0d89adf', 5, '', 0, 1, strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-3 days'), strftime('%Y-%m-%dT%H:%M:%SZ', 'now', '-30 days'));
 
 -- ────────────────────────────────────────────────────────────────────
 -- stories（既存 6 + 新規 35 = 41）
