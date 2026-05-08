@@ -119,7 +119,7 @@ Minimal, functional:
 - Comment nesting: `40px` per level
 - Form indent: `40px` left padding
 - Item/comment text inner padding: `18px`
-  - 適用クラス: `.item-text` / `.comment-text` / `.comment-reply` / `.comment-form` / `.comment-error`
+  - 適用クラス: `.item-meta` / `.item-text` / `.comment-text` / `.comment-reply` / `.comment-form` / `.comment-error`
   - 目的: タイトル本文・ストーリー本文・コメント本文の x を揃える（本家 HN の階段パターン）。タイトル行の vote arrow + マージン分の幅に相当
   - これらの class が出る箇所では原則 inline `padding-left` を打たず、CSS 集約に任せる
 - Footer: `margin-top: 10px`

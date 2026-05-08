@@ -9,15 +9,24 @@ import { signupNewUser, submitStory, findStoryIdByTitle, postComment } from './h
  * の階段パターン（タイトル本文 / ストーリー本文 / コメント本文の x が揃う）
  * を破っていた。
  *
- * 修正は `padding-left: 18px` を `app.css` の `.item-text` / `.comment-text`
- * / `.comment-form` / `.comment-reply` / `.comment-error` クラスに集約。
+ * 修正は `padding-left: 18px` を `app.css` の `.item-meta` / `.item-text` /
+ * `.comment-text` / `.comment-form` / `.comment-reply` / `.comment-error`
+ * クラスに集約。
  *
  * 「Issue 番号で固定された seed の ID」に依存せず、必要なストーリー / コメントを
  * 各テスト内で signup → submit → comment と組み立てる。
  */
 
+/** 要素の「コンテンツ開始 x」を返す（box.x に padding-left を足したもの）。
+ *  HN の階段揃えの基準は「テキストが描画される x」なので、box の左端ではなく
+ *  パディング後の位置を比較しないと、`.item-meta` のように padding を持つ要素と
+ *  `.item-title` のように padding を持たない要素を直接比較できない。 */
 async function readX(page: Page, selector: string): Promise<number> {
-	return page.locator(selector).first().evaluate((el) => Math.round(el.getBoundingClientRect().x));
+	return page.locator(selector).first().evaluate((el) => {
+		const r = el.getBoundingClientRect();
+		const pad = parseFloat(getComputedStyle(el).paddingLeft) || 0;
+		return Math.round(r.x + pad);
+	});
 }
 
 async function setupStoryWithComment(page: Page, opts: { title: string; ask?: boolean }): Promise<number> {
@@ -38,14 +47,18 @@ async function setupStoryWithComment(page: Page, opts: { title: string; ask?: bo
 }
 
 test.describe('Issue #130: /item/[id] 内の本文テキストの x 揃え', () => {
-	test('Mode B (story view): タイトル / 本文 / コメント本文 の x が揃う', async ({ page }) => {
+	test('Mode B (story view): タイトル / meta / 本文 / コメント本文 の x が揃う', async ({ page }) => {
 		const title = `Ask: x align ${Date.now()}`;
 		await setupStoryWithComment(page, { title, ask: true });
 
 		const titleX = await readX(page, '.item-title');
+		const metaX = await readX(page, '.item-meta');
 		const itemTextX = await readX(page, '.item-text p');
 		const commentTextX = await readX(page, '.comment-text p');
 
+		// meta は flex 外で `.item-detail` 直下に置かれるため、padding が無いと
+		// title 行より 18px 左に張り出すリグレッションが起きる。assert に含める
+		expect(Math.abs(metaX - titleX)).toBeLessThanOrEqual(2);
 		expect(Math.abs(itemTextX - titleX)).toBeLessThanOrEqual(2);
 		expect(Math.abs(commentTextX - titleX)).toBeLessThanOrEqual(2);
 	});
@@ -81,7 +94,7 @@ test.describe('Issue #130: /item/[id] 内の本文テキストの x 揃え', () 
 		await page.waitForSelector('.comment-item .comment-form textarea');
 
 		const replyTextareaX = await readX(page, '.comment-item .comment-form textarea');
-		expect(Math.abs(replyTextareaX - commentTextX)).toBeLessThanOrEqual(4);
+		expect(Math.abs(replyTextareaX - commentTextX)).toBeLessThanOrEqual(1);
 	});
 
 	test('Mode B: edit クリックで開いた textarea が comment-text と同じ x', async ({ page }) => {
@@ -94,7 +107,18 @@ test.describe('Issue #130: /item/[id] 内の本文テキストの x 揃え', () 
 		await page.waitForSelector('.comment-item .comment-form textarea');
 
 		const editTextareaX = await readX(page, '.comment-item .comment-form textarea');
-		expect(Math.abs(editTextareaX - commentTextX)).toBeLessThanOrEqual(4);
+		expect(Math.abs(editTextareaX - commentTextX)).toBeLessThanOrEqual(1);
+	});
+
+	test('listing pages の comment-text も padding-left: 18px に統一されている', async ({ page }) => {
+		// /newcomments は seed のコメントを使うので signup 不要
+		await page.goto('/newcomments');
+		await page.waitForSelector('.comment-text');
+
+		const pad = await page.locator('.comment-text').first().evaluate(
+			(el) => getComputedStyle(el).paddingLeft
+		);
+		expect(pad).toBe('18px');
 	});
 
 	test('CSS クラス側で padding-left: 18px が定義されている (回帰防止)', async ({ page }) => {
