@@ -403,6 +403,7 @@ a:hover {
 	font-size: 7pt;
 	color: #828282;
 	margin-top: 2px;
+	padding-left: 18px;
 }
 
 .item-detail .item-meta a {
@@ -413,6 +414,7 @@ a:hover {
 	font-size: 9pt;
 	color: #000000;
 	margin-top: 8px;
+	padding-left: 18px;
 }
 
 .item-detail .item-text p {
@@ -424,6 +426,7 @@ a:hover {
 .comment-form {
 	margin-top: 15px;
 	margin-bottom: 15px;
+	padding-left: 18px;
 }
 
 .comment-form textarea {
@@ -507,6 +510,7 @@ a:hover {
 	color: #000000;
 	margin-top: 3px;
 	overflow-wrap: break-word;
+	padding-left: 18px;
 }
 
 .comment-text.faded {
@@ -533,6 +537,17 @@ a:hover {
 .comment-reply {
 	font-size: 7pt;
 	margin-top: 3px;
+	padding-left: 18px;
+}
+
+/* インラインフォーム送信時のエラー表示。`.comment-form` と同じ x に揃えるため
+   独立して 18px を持つ（`.comment-form` とは兄弟配置で、子孫ではないので二重に
+   は効かない）。 */
+.comment-error {
+	padding-left: 18px;
+	color: #ff0000;
+	font-size: 9pt;
+	margin-bottom: 4px;
 }
 
 .comment-reply a {
