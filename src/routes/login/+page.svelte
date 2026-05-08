@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { tooltipJa } from '$lib/i18n';
 
 	let { data, form } = $props();
 </script>
@@ -25,7 +26,7 @@
 			password:
 			<input type="password" name="password" autocomplete="current-password" />
 		</label>
-		<button type="submit">login</button>
+		<button type="submit" title={tooltipJa('login')}>login</button>
 	</form>
 
 	<br /><br />
@@ -46,7 +47,7 @@
 			password:
 			<input type="password" name="password" autocomplete="new-password" />
 		</label>
-		<button type="submit">create account</button>
+		<button type="submit" title={tooltipJa('create account')}>create account</button>
 	</form>
 
 	<div class="form-note">

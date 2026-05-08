@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { tooltipJa } from '$lib/i18n';
 
 	let { form } = $props();
 </script>
@@ -30,7 +31,7 @@
 				</tr>
 				<tr>
 					<td></td>
-					<td><button type="submit">submit</button></td>
+					<td><button type="submit" title={tooltipJa('submit')}>submit</button></td>
 				</tr>
 			</tbody>
 		</table>

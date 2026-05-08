@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { FLAG_KARMA_THRESHOLD } from '$lib/constants';
+	import { tooltipJa } from '$lib/i18n';
 	import { displayUsername } from '$lib/format';
 	import { timeAgo, extractDomain, isNewUser } from '$lib/ranking';
 
@@ -126,6 +127,6 @@
 
 {#if data.submissions.length === 30}
 	<div class="more-link">
-		<a href="/user/{data.username}/submissions?p={data.page + 1}">More</a>
+		<a href="/user/{data.username}/submissions?p={data.page + 1}" title={tooltipJa('More')}>More</a>
 	</div>
 {/if}

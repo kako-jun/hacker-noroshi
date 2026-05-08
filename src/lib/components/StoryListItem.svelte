@@ -3,6 +3,7 @@
 	import { displayUsername } from '$lib/format';
 	import { timeAgo, extractDomain, isNewUser } from '$lib/ranking';
 	import { canFlagStory, shouldShowPollTag, type UserLike } from '$lib/storyActions';
+	import { tooltipJa } from '$lib/i18n';
 
 	interface StoryLike {
 		id: number;
@@ -150,16 +151,17 @@
 			{#if user}
 				<a
 					href="#hide"
+					title={tooltipJa('hide')}
 					onclick={(e) => {
 						e.preventDefault();
 						hide();
 					}}>hide</a
 				>
 			{:else}
-				<a href={loginHref}>hide</a>
+				<a href={loginHref} title={tooltipJa('hide')}>hide</a>
 			{/if}
 			{#if story.url}
-				| <a href="/from?site={extractDomain(story.url)}">past</a>
+				| <a href="/from?site={extractDomain(story.url)}" title={tooltipJa('past')}>past</a>
 			{/if}
 			|
 			<a href="/item/{story.id}"
@@ -170,6 +172,7 @@
 			{#if canFlag}
 				| <a
 					href="#flag"
+					title={tooltipJa(flagged ? 'un-flag' : 'flag')}
 					onclick={(e) => {
 						e.preventDefault();
 						flag();

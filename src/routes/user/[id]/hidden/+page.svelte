@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { FLAG_KARMA_THRESHOLD } from '$lib/constants';
+	import { tooltipJa } from '$lib/i18n';
 	import { displayUsername } from '$lib/format';
 	import { timeAgo, extractDomain, isNewUser } from '$lib/ranking';
 
@@ -137,9 +138,9 @@
 					<a href="/item/{story.id}"
 						>{story.comment_count} comment{story.comment_count !== 1 ? 's' : ''}</a
 					>
-					| <a href="#unhide" onclick={(e) => { e.preventDefault(); unhide(story.id); }}>un-hide</a>
+					| <a href="#unhide" title={tooltipJa('un-hide')} onclick={(e) => { e.preventDefault(); unhide(story.id); }}>un-hide</a>
 					{#if canFlag(story)}
-						| <a href="#flag" onclick={(e) => { e.preventDefault(); flag(story.id); }}>{getFlaggedIds().has(story.id) ? 'un-flag' : 'flag'}</a>
+						| <a href="#flag" title={tooltipJa(getFlaggedIds().has(story.id) ? 'un-flag' : 'flag')} onclick={(e) => { e.preventDefault(); flag(story.id); }}>{getFlaggedIds().has(story.id) ? 'un-flag' : 'flag'}</a>
 					{/if}
 				</div>
 			</div>
@@ -150,6 +151,6 @@
 
 {#if data.hidden.length === 30}
 	<div class="more-link">
-		<a href="/user/{data.username}/hidden?p={data.page + 1}">More</a>
+		<a href="/user/{data.username}/hidden?p={data.page + 1}" title={tooltipJa('More')}>More</a>
 	</div>
 {/if}

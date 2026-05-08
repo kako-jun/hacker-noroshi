@@ -1,5 +1,6 @@
 <script lang="ts">
 	import StoryListItem from '$lib/components/StoryListItem.svelte';
+	import { tooltipJa } from '$lib/i18n';
 
 	let { data } = $props();
 	let votedIds = $derived(new Set<number>(data.votedIds));
@@ -34,6 +35,6 @@
 
 {#if data.hasMore}
 	<div class="more-link">
-		<a href="/asknew?p={data.page + 1}">More</a>
+		<a href="/asknew?p={data.page + 1}" title={tooltipJa('More')}>More</a>
 	</div>
 {/if}

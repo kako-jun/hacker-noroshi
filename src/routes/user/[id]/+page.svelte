@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { tooltipJa } from '$lib/i18n';
 
 	let { data, form } = $props();
 
@@ -92,7 +93,7 @@
 					<tr>
 						<td></td>
 						<td>
-							<button type="submit" style="font-family: Verdana, Geneva, sans-serif; font-size: 8pt;">update</button>
+							<button type="submit" title={tooltipJa('update')} style="font-family: Verdana, Geneva, sans-serif; font-size: 8pt;">update</button>
 						</td>
 					</tr>
 				</tbody>
