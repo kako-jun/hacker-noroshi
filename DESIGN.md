@@ -58,6 +58,19 @@ Links: `#000000` (unvisited), `#828282` (visited). Hover: underline only.
 
 Base font size is `10pt` on html/body. Everything is in `pt`, not `rem` or `px`.
 
+### English Label Tooltip (Issue #133)
+
+本家 HN の雰囲気を保つため、ヘッダー nav (`new` / `past` / `comments` / `ask` / `show` / `submit`)、
+フッター (`Guidelines` / `FAQ` / `Lists` / `API` / `GitHub` / `Search`)、topright のページ名、
+そして item ページ等の英語アクションリンク (`edit` / `delete` / `hide` / `flag` / `vouch` /
+`favorite` / `parent` / `root` / `next` / `reply` / `cancel` / `update` / `add comment` 他) は
+**英語表記のまま** にしておき、ホバー時の `title` 属性で日本語訳を表示する。
+
+- 本体テキストは英語のまま — 見た目（色・フォント・レイアウト）は変えない
+- 訳辞書は `src/lib/i18n.ts` の `TOOLTIP_JA` に集約。`tooltipJa(label)` で参照する
+- 動的 label（`5 days ago` 等の time-ago、`145 points` 等の数値混合、`5 comments` 等の
+  plural ラベル）は本仕組みの対象外
+
 ## 4. Component Stylings
 
 ### Header

@@ -349,6 +349,24 @@ score = ((points - 1) / (hours_since_post + 2)^1.8) / (flag_count + 1)^1.5
 - `/faq` — よくある質問
 - `/showhn` — Show HN 専用ルール
 
+### 英語 label の日本語 tooltip (#133)
+
+本家 HN との見た目互換のため、UI ラベルは英語のままにし、ホバー時の `title` 属性で
+日本語訳を表示する。対象は以下:
+
+- ヘッダー nav: `new` / `past` / `comments` / `ask` / `show` / `submit`
+- ヘッダー右: `login` / `logout`
+- フッター: `Guidelines` / `FAQ` / `Lists` / `API` / `GitHub` / `Search`
+- topright ページ名（`asknew` / `noobstories` / `bestcomments` / `best` / `active` /
+  `highlights` / `newpoll` / `polls` / `leaders` / `lists` / `from` / `search` / `faq` /
+  `guidelines` / `api` / `admin` / `ipban` 他）
+- アクションリンク: `edit` / `delete` / `hide` / `un-hide` / `flag` / `un-flag` / `vouch` /
+  `favorite` / `un-fav` / `parent` / `root` / `context` / `next` / `prev` / `reply` /
+  `more` (`More`) / `cancel` / `update` / `add comment`
+
+訳辞書は `src/lib/i18n.ts` の `TOOLTIP_JA` に集約。テキスト本体・色・フォント・レイアウトは
+変更せず、`title` 属性のみを追加する。動的 label（time-ago、数値混合、plural）は対象外。
+
 ## v1 スコープ
 
 - [x] 投稿の作成・表示・一覧
