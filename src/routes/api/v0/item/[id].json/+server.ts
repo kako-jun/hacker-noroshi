@@ -52,13 +52,12 @@ async function getCommentKids(db: D1Database, commentId: number): Promise<number
 
 export const GET: RequestHandler = async ({ params, platform }) => {
 	const idStr = params.id;
-	if (!idStr || !/^\d+$/.test(idStr)) {
+	// 正の整数のみ通す（先頭 0 / 0 / 負数 / 非数字を弾く）。本家 HN と同じく
+	// 不正入力は 404 で返す（400 にはしない: HN クライアント実装と同じ動き）。
+	if (!idStr || !/^[1-9]\d*$/.test(idStr)) {
 		return notFound();
 	}
 	const id = Number(idStr);
-	if (!Number.isFinite(id) || id <= 0) {
-		return notFound();
-	}
 
 	try {
 		const db = getDB(platform);

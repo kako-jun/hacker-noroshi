@@ -15,6 +15,7 @@
 import { test, expect } from '@playwright/test';
 import { execFileSync } from 'node:child_process';
 import { signupNewUser, submitStory, findStoryIdByTitle, postComment } from './helpers';
+import { CACHE_LISTING, CACHE_ITEM, CACHE_USER } from '../../src/lib/server/api';
 
 // stories.id と comments.id は別 AUTOINCREMENT のため衝突しうる。
 // /item/[id] と /api/v0/item/[id] は story を優先する仕様 (#131 実装と既存 /item ルートで一致)。
@@ -40,7 +41,7 @@ test.describe('public API v0 (#131)', () => {
 		request
 	}) => {
 		// 何かしら data が入っている状態にしておく
-		const username = await signupNewUser(page);
+		await signupNewUser(page);
 		const title = `api-v0 listing ${Date.now()}`;
 		await submitStory(page, { title, text: 'listing fixture' });
 		await page.goto('/newest');
@@ -68,8 +69,8 @@ test.describe('public API v0 (#131)', () => {
 			expect(cors, `${path} CORS`).toBe('*');
 
 			const cache = res.headers()['cache-control'] ?? '';
-			expect(cache, `${path} cache`).toContain('max-age=10');
-			expect(cache, `${path} s-maxage`).toContain('s-maxage=60');
+			expect(cache, `${path} cache`).toContain(`max-age=${CACHE_LISTING.maxAge}`);
+			expect(cache, `${path} s-maxage`).toContain(`s-maxage=${CACHE_LISTING.sMaxAge}`);
 
 			const body = await res.json();
 			expect(Array.isArray(body), `${path} array`).toBe(true);
@@ -83,9 +84,6 @@ test.describe('public API v0 (#131)', () => {
 		await page.goto('/newest');
 		const id = await findStoryIdByTitle(page, title);
 		expect(newest, 'newstories contains submitted id').toContain(id);
-
-		// signup の戻り値も明示参照（unused 警告回避）
-		expect(username).toBeTruthy();
 	});
 
 	test('item endpoint returns story / comment shapes; missing id is 404', async ({
@@ -129,7 +127,8 @@ test.describe('public API v0 (#131)', () => {
 		expect(storyRes.status()).toBe(200);
 		expect(storyRes.headers()['content-type'] ?? '').toContain('application/json');
 		expect(storyRes.headers()['access-control-allow-origin']).toBe('*');
-		expect(storyRes.headers()['cache-control'] ?? '').toContain('max-age=30');
+		expect(storyRes.headers()['cache-control'] ?? '').toContain(`max-age=${CACHE_ITEM.maxAge}`);
+		expect(storyRes.headers()['cache-control'] ?? '').toContain(`s-maxage=${CACHE_ITEM.sMaxAge}`);
 		const storyJson = (await storyRes.json()) as Record<string, unknown>;
 		expect(storyJson.id).toBe(storyId);
 		expect(storyJson.type).toBe('story');
@@ -181,7 +180,8 @@ test.describe('public API v0 (#131)', () => {
 		expect(ok.status()).toBe(200);
 		expect(ok.headers()['content-type'] ?? '').toContain('application/json');
 		expect(ok.headers()['access-control-allow-origin']).toBe('*');
-		expect(ok.headers()['cache-control'] ?? '').toContain('max-age=60');
+		expect(ok.headers()['cache-control'] ?? '').toContain(`max-age=${CACHE_USER.maxAge}`);
+		expect(ok.headers()['cache-control'] ?? '').toContain(`s-maxage=${CACHE_USER.sMaxAge}`);
 		const body = (await ok.json()) as Record<string, unknown>;
 		expect(body.id).toBe(username);
 		expect(typeof body.created).toBe('number');

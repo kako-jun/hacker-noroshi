@@ -15,6 +15,8 @@ import type { CommentRow, StoryRow, UserRow } from './db';
 
 // ISO-8601 文字列（"2026-01-01T00:00:00Z" 形式 / D1 が返す形式）を Unix 秒に変換する。
 // 不正な値や null/undefined のときは 0 を返す（API レスポンスから除外しない方針）。
+// 実運用では DB の created_at は NOT NULL DEFAULT で常に値が入っているため、
+// 0 が返るのはテーブル外データを通したときの保険的な分岐。
 export function isoToUnix(iso: string | null | undefined): number {
 	if (!iso) return 0;
 	const ms = new Date(iso).getTime();
@@ -61,28 +63,36 @@ export function internalError(): Response {
 	return jsonResponse({ error: 'internal' }, { status: 500 });
 }
 
-// HN 互換の story item オブジェクト。`type: "story"` または `"job"` / `"poll"` が入る。
+// 投稿者削除済み (user_deleted=1) の表示名。サイト UI の `displayUsername` と
+// 揃えて API でも "[deleted]" を返し、元の username を露出させない。
+const DELETED_BY = '[deleted]';
+
+// HN 互換の story item オブジェクト。`type` は stories.type をそのまま返す
+// （schema 上 'story' / 'ask' / 'show' / 'poll' の 4 種、HN の 'job' は無し）。
 // HN には `kids` (immediate children id), `descendants` (total comment count) がある。
 export interface ApiStory {
 	id: number;
-	type: string; // 'story' | 'job' | 'poll' 等。stories.type をそのまま返す
-	by: string; // username (deleted=1 のときも username 行は残るので返せる)
+	type: string;
+	by: string; // 投稿者削除時は "[deleted]"
 	time: number; // Unix 秒
 	title: string;
 	url: string | null;
 	text: string | null;
-	score: number; // points
-	descendants: number; // comment_count
-	kids: number[]; // immediate child comment id (浅い 1 階層)
+	score: number;
+	descendants: number;
+	kids: number[];
 	dead: boolean;
-	deleted: boolean; // 投稿者削除済み (user_deleted=1) を deleted 扱いにする
+	// 投稿者のアカウント削除を示す独自フィールド。HN の `deleted` (投稿そのもの削除) とは
+	// 意味が異なる。詳細は /api-docs の Differences from HN を参照。
+	deleted: boolean;
 }
 
 export function serializeStory(row: StoryRow, kids: number[]): ApiStory {
+	const deleted = row.user_deleted === 1;
 	return {
 		id: row.id,
 		type: row.type,
-		by: row.username,
+		by: deleted ? DELETED_BY : row.username,
 		time: isoToUnix(row.created_at),
 		title: row.title,
 		url: row.url ?? null,
@@ -91,7 +101,7 @@ export function serializeStory(row: StoryRow, kids: number[]): ApiStory {
 		descendants: row.comment_count,
 		kids,
 		dead: row.dead === 1,
-		deleted: row.user_deleted === 1
+		deleted
 	};
 }
 
@@ -102,18 +112,19 @@ export interface ApiComment {
 	by: string;
 	time: number;
 	text: string;
-	parent: number; // 親 comment id または親 story id
-	score: number; // points
+	parent: number;
+	score: number;
 	kids: number[];
 	dead: boolean;
 	deleted: boolean;
 }
 
 export function serializeComment(row: CommentRow, kids: number[]): ApiComment {
+	const deleted = row.user_deleted === 1;
 	return {
 		id: row.id,
 		type: 'comment',
-		by: row.username,
+		by: deleted ? DELETED_BY : row.username,
 		time: isoToUnix(row.created_at),
 		text: row.text,
 		// HN の `parent` は「直接の親」。トップレベルなら story id、ネストなら親 comment id。
@@ -121,7 +132,7 @@ export function serializeComment(row: CommentRow, kids: number[]): ApiComment {
 		score: row.points,
 		kids,
 		dead: row.dead === 1,
-		deleted: row.user_deleted === 1
+		deleted
 	};
 }
 
@@ -145,6 +156,9 @@ export function serializeUser(row: UserRow): ApiUser {
 }
 
 // CORS preflight 用の OPTIONS ハンドラ。各 +server.ts から再エクスポートする。
+// `Allow-Origin: *` + `Allow-Credentials` 無し前提（読み取り API、Cookie 不要）。
+// 将来 POST を追加するときは Allow-Methods を更新するだけでなく credentialed
+// リクエストの扱いも見直すこと。
 export function corsPreflight(): Response {
 	return new Response(null, {
 		status: 204,
@@ -164,3 +178,18 @@ export const API_LISTING_LIMIT = 60;
 export const CACHE_LISTING = { maxAge: 10, sMaxAge: 60 } as const;
 export const CACHE_ITEM = { maxAge: 30, sMaxAge: 300 } as const;
 export const CACHE_USER = { maxAge: 60, sMaxAge: 300 } as const;
+
+// listing 6 エンドポイントの共通実装。`fetchIds` は dead を含めない id 配列を
+// 返すこと（API 仕様）。エラーは 500、成功は CACHE_LISTING で返す。
+export async function listingResponse(
+	logTag: string,
+	fetchIds: () => Promise<number[]>
+): Promise<Response> {
+	try {
+		const ids = await fetchIds();
+		return jsonResponse(ids, CACHE_LISTING);
+	} catch (err) {
+		console.error(`[${logTag}]`, err);
+		return internalError();
+	}
+}
