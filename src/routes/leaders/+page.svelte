@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { isNewUser } from '$lib/ranking';
+	import { tooltipJa } from "$lib/i18n";
 
 	let { data } = $props();
 </script>
@@ -33,7 +34,7 @@
 
 {#if data.hasMore}
 	<div class="more-link">
-		<a href="/leaders?p={data.page + 1}">More</a>
+		<a href="/leaders?p={data.page + 1}" title={tooltipJa('More')}>More</a>
 	</div>
 {/if}
 

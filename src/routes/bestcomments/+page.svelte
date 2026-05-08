@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { timeAgo, isNewUser } from '$lib/ranking';
+	import { tooltipJa } from "$lib/i18n";
 	import { formatText, displayUsername } from '$lib/format';
 
 	let { data } = $props();
@@ -73,8 +74,8 @@
 				{getPoints(comment)} point{getPoints(comment) !== 1 ? 's' : ''} by
 				<a href="/user/{comment.username}" style={isNewUser(comment.user_created_at) ? 'color: #3c963c;' : ''}>{displayUsername({ username: comment.username, deleted: comment.user_deleted })}</a>
 				<a href="/item/{comment.id}">{timeAgo(comment.created_at)}</a>
-				| <a href="/item/{comment.parent_id ?? comment.story_id}" style="color: #828282;">parent</a>
-				| <a href="/item/{comment.id}" style="color: #828282;">context</a>
+				| <a href="/item/{comment.parent_id ?? comment.story_id}" title={tooltipJa('parent')} style="color: #828282;">parent</a>
+				| <a href="/item/{comment.id}" title={tooltipJa('context')} style="color: #828282;">context</a>
 				| on: <a href="/item/{comment.story_id}">{comment.story_title}</a>
 				{' '}<a
 					href="#toggle"
@@ -97,6 +98,6 @@
 
 {#if data.hasMore}
 	<div class="more-link">
-		<a href="/bestcomments?p={data.page + 1}">More</a>
+		<a href="/bestcomments?p={data.page + 1}" title={tooltipJa('More')}>More</a>
 	</div>
 {/if}
