@@ -7,7 +7,7 @@
 | フレームワーク | SvelteKit (Svelte 5) |
 | デプロイ | Cloudflare Pages + Workers |
 | DB | Cloudflare D1 (SQLite) |
-| 認証 | 自前（bcrypt + セッション Cookie） |
+| 認証 | 自前（salt + sha256 ハッシュ + セッション Cookie。実装は `src/lib/server/auth.ts`） |
 | スタイル | 素の CSS（フレームワーク不使用） |
 
 ## ディレクトリ構成
@@ -48,11 +48,25 @@ hacker-noroshi/
 │   │       ├── favorite/     # お気に入り API
 │   │       ├── hide/         # 非表示 API
 │   │       ├── flag/         # フラグ API（karma>=30、5件で dead）
-│   │       └── vouch/        # Vouch API（dead 復活、flags 削除）
+│   │       ├── vouch/        # Vouch API（dead 復活、flags 削除）
+│   │       └── v0/           # 公開 API v0（HN 互換、未認証、#131）
+│   │           # 各 *.json はディレクトリで、配下に +server.ts を持つ。
+│   │           # SvelteKit の規約により URL は末尾 /.json となる。
+│   │           ├── topstories.json/    # フロントページ id 配列
+│   │           ├── newstories.json/    # 新着 id 配列
+│   │           ├── beststories.json/   # 高得点 id 配列
+│   │           ├── askstories.json/    # ask id 配列
+│   │           ├── showstories.json/   # show id 配列
+│   │           ├── activestories.json/ # active id 配列（HN 拡張）
+│   │           ├── item/[id].json/     # story / comment 詳細
+│   │           └── user/[username].json/ # ユーザープロフィール
 │   ├── lib/
 │   │   ├── server/
 │   │   │   ├── db.ts         # D1 データアクセス関数
-│   │   │   └── auth.ts       # パスワードハッシュ・セッション管理
+│   │   │   ├── auth.ts       # パスワードハッシュ・セッション管理
+│   │   │   ├── admin.ts      # 管理者向けユーティリティ
+│   │   │   ├── api.ts        # 公開 API v0 共通レスポンス + serializer (#131)
+│   │   │   └── userRoute.ts  # ユーザールートの共通ロジック
 │   │   ├── format.ts         # テキストフォーマット（URL自動リンク、*イタリック*）
 │   │   └── ranking.ts        # timeAgo, extractDomain 等のユーティリティ
 │   ├── app.css               # グローバル CSS
@@ -77,7 +91,7 @@ hacker-noroshi/
 |---|---|---|
 | id | INTEGER PK | autoincrement |
 | username | TEXT UNIQUE | 3-15文字、英数字+アンダースコア+ハイフン |
-| password_hash | TEXT | bcrypt |
+| password_hash | TEXT | `salt32hex:sha256hex` 形式（src/lib/server/auth.ts） |
 | karma | INTEGER | デフォルト 0 |
 | about | TEXT | 自己紹介（任意） |
 | delay | INTEGER | コメント遅延（0-10分、デフォルト 0） |
@@ -271,13 +285,21 @@ env: `TURNSTILE_SITE_KEY`（public）と `TURNSTILE_SECRET_KEY`（secret）。
 | `/noprocrast` | noprocrast ブロックページ（残り時間表示） |
 | `/search` | 検索（?q=キーワード&type=all\|stories\|comments&p=ページ） |
 | `/from` | ドメイン別投稿一覧（?site=example.com、/item の past リンクから遷移） |
-| `/api-docs` | APIドキュメント（準備中） |
+| `/api-docs` | 公開 API のドキュメント（実装済みエンドポイント一覧、フィールドリファレンス、CORS / Cache 方針） |
 | `/rss` | RSS 2.0 フィード（トップページのストーリー30件） |
 | `/api/vote` | 投票 API エンドポイント |
 | `/api/favorite` | お気に入り API エンドポイント |
 | `/api/hide` | 非表示 API エンドポイント |
 | `/api/flag` | フラグ API エンドポイント（karma>=30、トグル、5件で dead 自動化） |
 | `/api/vouch` | Vouch API エンドポイント（dead アイテムを復活、関連 flags を全削除） |
+| `/api/v0/topstories.json` | 公開 API: フロントページ id 配列（HN 互換） |
+| `/api/v0/newstories.json` | 公開 API: 新着 id 配列 |
+| `/api/v0/beststories.json` | 公開 API: 高得点 id 配列 |
+| `/api/v0/askstories.json` | 公開 API: ask id 配列 |
+| `/api/v0/showstories.json` | 公開 API: show id 配列 |
+| `/api/v0/activestories.json` | 公開 API: active id 配列（HN 拡張） |
+| `/api/v0/item/[id].json` | 公開 API: story / comment 詳細（kids は immediate children） |
+| `/api/v0/user/[username].json` | 公開 API: ユーザープロフィール（lightweight、submitted 含まず） |
 
 ## DB アクセス関数 (src/lib/server/db.ts)
 
