@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { FLAG_KARMA_THRESHOLD } from '$lib/constants';
-	import { tooltipJa } from "$lib/i18n";
+	import { tooltipJa } from '$lib/i18n';
 	import { displayUsername } from '$lib/format';
 	import { timeAgo, extractDomain, isNewUser } from '$lib/ranking';
 

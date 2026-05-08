@@ -15,6 +15,7 @@ export const TOOLTIP_JA = {
 	// ヘッダー右 / 認証
 	login: 'ログイン',
 	logout: 'ログアウト',
+	'create account': 'アカウント作成',
 
 	// フッター
 	Guidelines: 'ガイドライン',
@@ -60,9 +61,11 @@ export const TOOLTIP_JA = {
 	root: 'スレッドの先頭へ',
 	context: '前後の文脈を見る',
 	next: '次へ',
+	// prev は本家 HN レイアウトでは現状描画されないが、将来コメント間移動を
+	// 追加した際に流用できるよう辞書だけ先取りで持つ。tooltipJa('prev') が
+	// 呼ばれていない状態が正常。
 	prev: '前へ',
 	reply: '返信',
-	more: '次のページ',
 	More: '次のページ',
 	cancel: 'キャンセル',
 	update: '更新',

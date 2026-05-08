@@ -569,9 +569,9 @@
 								<input type="hidden" name="comment_id" value={child.id} />
 								<textarea name="text" rows="4" cols="60">{child.text}</textarea>
 								<br />
-								<button type="submit">update</button>
+								<button type="submit" title={tooltipJa('update')}>update</button>
 								<a
-									href="#cancel"
+									href="#cancel" title={tooltipJa('cancel')}
 									onclick={(e) => {
 										e.preventDefault();
 										editingCommentId = null;
@@ -853,9 +853,9 @@
 								<input type="hidden" name="comment_id" value={comment.id} />
 								<textarea name="text" rows="4" cols="60">{comment.text}</textarea>
 								<br />
-								<button type="submit">update</button>
+								<button type="submit" title={tooltipJa('update')}>update</button>
 								<a
-									href="#cancel"
+									href="#cancel" title={tooltipJa('cancel')}
 									onclick={(e) => {
 										e.preventDefault();
 										editingCommentId = null;

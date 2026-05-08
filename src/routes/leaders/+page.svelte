@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { isNewUser } from '$lib/ranking';
-	import { tooltipJa } from "$lib/i18n";
+	import { tooltipJa } from '$lib/i18n';
 
 	let { data } = $props();
 </script>

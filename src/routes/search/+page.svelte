@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { timeAgo, isNewUser } from '$lib/ranking';
-	import { tooltipJa } from "$lib/i18n";
+	import { tooltipJa } from '$lib/i18n';
 	import { formatText, displayUsername } from '$lib/format';
 	import StoryListItem from '$lib/components/StoryListItem.svelte';
 

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import StoryListItem from '$lib/components/StoryListItem.svelte';
-	import { tooltipJa } from "$lib/i18n";
+	import { tooltipJa } from '$lib/i18n';
 
 	let { data } = $props();
 	let votedIds = $derived(new Set<number>(data.votedIds));
