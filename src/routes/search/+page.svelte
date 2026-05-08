@@ -138,7 +138,7 @@
 						>{#if collapsed[comment.id]}[+]{:else}[&ndash;]{/if}</a>
 					</div>
 					{#if !collapsed[comment.id]}
-					<div class="comment-text" class:faded={getCommentPoints(comment) < 1} style="padding-left: 14px;">
+					<div class="comment-text" class:faded={getCommentPoints(comment) < 1}>
 						{#each comment.text.split('\n') as paragraph}
 							{#if paragraph.trim()}
 								<p>{@html formatText(paragraph)}</p>
