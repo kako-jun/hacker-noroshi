@@ -22,7 +22,7 @@ https://hn.llll-ll.com
 - poll（投票）の投稿（`/newpoll`、選択肢 2-10 個、トグル投票）
 - 編集（投稿・コメント、投稿後 2 時間ウィンドウ）
 - 削除（タイトルが `[deleted]` になり本文が消える）
-- レート制限（投稿 10 分間隔等）
+- レート制限（ストーリー投稿は 10 分間隔等）
 
 ### コメント
 
@@ -67,8 +67,8 @@ https://hn.llll-ll.com
 
 ### 公開 API（#131、v1 で追加）
 
-- `/api/v0/topstories.json` 等 6 listings
-- `/api/v0/item/{id}.json`、`/api/v0/user/{username}.json`
+- listings 6 種: `/api/v0/{topstories,newstories,beststories,askstories,showstories,activestories}.json`
+- 詳細: `/api/v0/item/{id}.json`、`/api/v0/user/{username}.json`
 - 未認証、CORS `*`、[HackerNews/API](https://github.com/HackerNews/API) 互換
 - 詳細: `/api-docs` ページ
 
@@ -76,8 +76,9 @@ https://hn.llll-ll.com
 
 - RSS フィード（`/rss`）
 - Turnstile（bot 対策、login / signup / submit）
-- admin / IP ban、セルフサービス unban
-- noprocrast
+- 管理者画面 / IP ban
+- IP ban のセルフ unban（Turnstile 経由）
+- noprocrast（集中モード — 設定時間内はアクセスを制限）
 
 ## 技術スタック
 

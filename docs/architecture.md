@@ -50,6 +50,8 @@ hacker-noroshi/
 │   │       ├── flag/         # フラグ API（karma>=30、5件で dead）
 │   │       ├── vouch/        # Vouch API（dead 復活、flags 削除）
 │   │       └── v0/           # 公開 API v0（HN 互換、未認証、#131）
+│   │           # 各 *.json はディレクトリで、配下に +server.ts を持つ。
+│   │           # SvelteKit の規約により URL は末尾 /.json となる。
 │   │           ├── topstories.json/    # フロントページ id 配列
 │   │           ├── newstories.json/    # 新着 id 配列
 │   │           ├── beststories.json/   # 高得点 id 配列
@@ -89,7 +91,7 @@ hacker-noroshi/
 |---|---|---|
 | id | INTEGER PK | autoincrement |
 | username | TEXT UNIQUE | 3-15文字、英数字+アンダースコア+ハイフン |
-| password_hash | TEXT | bcrypt |
+| password_hash | TEXT | `salt32hex:sha256hex` 形式（src/lib/server/auth.ts） |
 | karma | INTEGER | デフォルト 0 |
 | about | TEXT | 自己紹介（任意） |
 | delay | INTEGER | コメント遅延（0-10分、デフォルト 0） |
