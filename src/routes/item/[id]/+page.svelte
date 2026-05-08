@@ -4,6 +4,7 @@
 	import { timeAgo, extractDomain, isNewUser, isThreadOpen } from '$lib/ranking';
 	import { formatText, displayUsername } from '$lib/format';
 	import { invalidateAll } from '$app/navigation';
+	import { tooltipJa } from '$lib/i18n';
 
 	let { data, form } = $props();
 	let localStoryVoted = $state<boolean | null>(null);
@@ -432,9 +433,9 @@
 			<a href="/user/{comment.username}" style={isNewUser(comment.user_created_at) ? 'color: #3c963c;' : ''}>{displayUsername({ username: comment.username, deleted: comment.user_deleted })}</a>
 			<a href="/item/{comment.id}">{timeAgo(comment.created_at)}</a>
 			{#if comment.parent_id}
-				| <a href="/item/{comment.parent_id}" style="color: #828282;">parent</a>
+				| <a href="/item/{comment.parent_id}" title={tooltipJa('parent')} style="color: #828282;">parent</a>
 			{:else}
-				| <a href="/item/{parentStory.id}" style="color: #828282;">parent</a>
+				| <a href="/item/{parentStory.id}" title={tooltipJa('parent')} style="color: #828282;">parent</a>
 			{/if}
 			| on: <a href="/item/{parentStory.id}">{parentStory.title}</a>
 			{#if (comment.flag_count ?? 0) > 0} <span class="story-tag">[flagged]</span>{/if}
@@ -442,16 +443,17 @@
 			{#if canEdit(comment.created_at, comment.user_id)}
 				| <a
 					href="#edit"
+					title={tooltipJa('edit')}
 					onclick={(e) => {
 						e.preventDefault();
 						editingCommentId = comment.id;
 					}}>edit</a>
 			{/if}
 			{#if canFlagItem(comment.user_id)}
-				| <a href="#flag" onclick={(e) => { e.preventDefault(); flagTargetComment(); }}>{targetCommentFlagged ? 'un-flag' : 'flag'}</a>
+				| <a href="#flag" title={tooltipJa(targetCommentFlagged ? 'un-flag' : 'flag')} onclick={(e) => { e.preventDefault(); flagTargetComment(); }}>{targetCommentFlagged ? 'un-flag' : 'flag'}</a>
 			{/if}
 			{#if canFlagItem(comment.user_id) && targetCommentDead === 1}
-				| <a href="#vouch" onclick={(e) => { e.preventDefault(); vouchTargetComment(); }}>vouch</a>
+				| <a href="#vouch" title={tooltipJa('vouch')} onclick={(e) => { e.preventDefault(); vouchTargetComment(); }}>vouch</a>
 			{/if}
 		</div>
 		{#if editingCommentId === comment.id}
@@ -466,9 +468,10 @@
 					<input type="hidden" name="comment_id" value={comment.id} />
 					<textarea name="text" rows="4" cols="60">{comment.text}</textarea>
 					<br />
-					<button type="submit">update</button>
+					<button type="submit" title={tooltipJa('update')}>update</button>
 					<a
 						href="#cancel"
+						title={tooltipJa('cancel')}
 						onclick={(e) => {
 							e.preventDefault();
 							editingCommentId = null;
@@ -500,7 +503,7 @@
 					<input type="hidden" name="parent_id" value={comment.id} />
 					<textarea name="text" rows="6" cols="60">{form && 'errorFor' in form && form.errorFor === 'comment' && 'text' in form ? form.text ?? '' : ''}</textarea>
 					<br />
-					<button type="submit">reply</button>
+					<button type="submit" title={tooltipJa('reply')}>reply</button>
 				</form>
 			</div>
 		{/if}
@@ -533,11 +536,11 @@
 						<a href="/user/{child.username}" style={isNewUser(child.user_created_at) ? 'color: #3c963c;' : ''}>{displayUsername({ username: child.username, deleted: child.user_deleted })}</a>
 						<a href="/item/{child.id}">{timeAgo(child.created_at)}</a>
 						{#if child.parent_id && child.parent_id !== comment.id}
-							| <a href="#item-{rootCommentId[child.id]}" style="color: #828282;">root</a>
-							| <a href="#item-{child.parent_id}" style="color: #828282;">parent</a>
+							| <a href="#item-{rootCommentId[child.id]}" title={tooltipJa('root')} style="color: #828282;">root</a>
+							| <a href="#item-{child.parent_id}" title={tooltipJa('parent')} style="color: #828282;">parent</a>
 						{/if}
 						{#if nextCommentId[child.id]}
-							| <a href="#item-{nextCommentId[child.id]}" style="color: #828282;">next</a>
+							| <a href="#item-{nextCommentId[child.id]}" title={tooltipJa('next')} style="color: #828282;">next</a>
 						{/if}
 						<span class="comment-toggle">
 							{' '}<a
@@ -590,6 +593,7 @@
 							{#if isThreadOpen(data.parentStory.created_at)}
 								<a
 									href="#reply"
+									title={tooltipJa('reply')}
 									onclick={(e) => {
 										e.preventDefault();
 										toggleReply(child.id);
@@ -599,13 +603,14 @@
 							{#if canEdit(child.created_at, child.user_id)}
 								{#if isThreadOpen(data.parentStory.created_at)}|{/if} <a
 									href="#edit"
+									title={tooltipJa('edit')}
 									onclick={(e) => {
 										e.preventDefault();
 										editingCommentId = child.id;
 									}}>edit</a>
 								| <form method="POST" action="?/deleteComment" class="inline-form" use:enhance={confirmDelete('Delete this comment? Text will be replaced with [deleted].')}>
 									<input type="hidden" name="comment_id" value={child.id} />
-									<button type="submit" class="link-button">delete</button>
+									<button type="submit" class="link-button" title={tooltipJa('delete')}>delete</button>
 								</form>
 							{/if}
 						</div>
@@ -621,7 +626,7 @@
 									<input type="hidden" name="parent_id" value={child.id} />
 									<textarea name="text" rows="4" cols="60"></textarea>
 									<br />
-									<button type="submit">reply</button>
+									<button type="submit" title={tooltipJa('reply')}>reply</button>
 								</form>
 							</div>
 						{/if}
@@ -665,38 +670,41 @@
 			{#if canEdit(data.story.created_at, data.story.user_id)}
 				| <a
 					href="#edit"
+					title={tooltipJa('edit')}
 					onclick={(e) => {
 						e.preventDefault();
 						editingStory = true;
 					}}>edit</a>
 				| <form method="POST" action="?/deleteStory" class="inline-form" use:enhance={confirmDelete('Delete this story? Text will be replaced with [deleted].')}>
-					<button type="submit" class="link-button">delete</button>
+					<button type="submit" class="link-button" title={tooltipJa('delete')}>delete</button>
 				</form>
 			{/if}
 			{#if data.user}
 				| <a
 					href="#hide"
+					title={tooltipJa(storyHidden ? 'un-hide' : 'hide')}
 					onclick={(e) => {
 						e.preventDefault();
 						toggleHideStory();
 					}}>{storyHidden ? 'un-hide' : 'hide'}</a>
 			{/if}
 			{#if data.story.url}
-				| <a href="/from?site={extractDomain(data.story.url)}">past</a>
+				| <a href="/from?site={extractDomain(data.story.url)}" title={tooltipJa('past')}>past</a>
 			{/if}
 			{#if data.user}
 				| <a
 					href="#favorite"
+					title={tooltipJa(storyFavorited ? 'un-fav' : 'favorite')}
 					onclick={(e) => {
 						e.preventDefault();
 						toggleFavorite();
 					}}>{storyFavorited ? 'un-fav' : 'favorite'}</a>
 			{/if}
 			{#if canFlagItem(data.story.user_id)}
-				| <a href="#flag" onclick={(e) => { e.preventDefault(); flagStory(); }}>{storyFlagged ? 'un-flag' : 'flag'}</a>
+				| <a href="#flag" title={tooltipJa(storyFlagged ? 'un-flag' : 'flag')} onclick={(e) => { e.preventDefault(); flagStory(); }}>{storyFlagged ? 'un-flag' : 'flag'}</a>
 			{/if}
 			{#if canFlagItem(data.story.user_id) && storyDead === 1}
-				| <a href="#vouch" onclick={(e) => { e.preventDefault(); vouchStory(); }}>vouch</a>
+				| <a href="#vouch" title={tooltipJa('vouch')} onclick={(e) => { e.preventDefault(); vouchStory(); }}>vouch</a>
 			{/if}
 			| <a href="#comments">{data.comments.length} comment{data.comments.length !== 1 ? "s" : ""}</a>
 		</div>
@@ -722,9 +730,10 @@
 							</tr>
 						</tbody>
 					</table>
-					<button type="submit">update</button>
+					<button type="submit" title={tooltipJa('update')}>update</button>
 					<a
 						href="#cancel"
+						title={tooltipJa('cancel')}
 						onclick={(e) => {
 							e.preventDefault();
 							editingStory = false;
@@ -778,7 +787,7 @@
 				}}>
 					<textarea name="text" rows="6" cols="60">{form && 'errorFor' in form && form.errorFor === 'comment' && 'text' in form ? form.text ?? '' : ''}</textarea>
 					<br />
-					<button type="submit">add comment</button>
+					<button type="submit" title={tooltipJa('add comment')}>add comment</button>
 				</form>
 			</div>
 		{/if}
@@ -811,11 +820,11 @@
 						<a href="/user/{comment.username}" style={isNewUser(comment.user_created_at) ? 'color: #3c963c;' : ''}>{displayUsername({ username: comment.username, deleted: comment.user_deleted })}</a>
 						<a href="/item/{comment.id}">{timeAgo(comment.created_at)}</a>
 						{#if comment.parent_id}
-							| <a href="#item-{rootCommentId[comment.id]}" style="color: #828282;">root</a>
-							| <a href="#item-{comment.parent_id}" style="color: #828282;">parent</a>
+							| <a href="#item-{rootCommentId[comment.id]}" title={tooltipJa('root')} style="color: #828282;">root</a>
+							| <a href="#item-{comment.parent_id}" title={tooltipJa('parent')} style="color: #828282;">parent</a>
 						{/if}
 						{#if nextCommentId[comment.id]}
-							| <a href="#item-{nextCommentId[comment.id]}" style="color: #828282;">next</a>
+							| <a href="#item-{nextCommentId[comment.id]}" title={tooltipJa('next')} style="color: #828282;">next</a>
 						{/if}
 						<span class="comment-toggle">
 							{' '}<a
@@ -868,6 +877,7 @@
 							{#if isThreadOpen(data.story.created_at)}
 								<a
 									href="#reply"
+									title={tooltipJa('reply')}
 									onclick={(e) => {
 										e.preventDefault();
 										toggleReply(comment.id);
@@ -877,13 +887,14 @@
 							{#if canEdit(comment.created_at, comment.user_id)}
 								{#if isThreadOpen(data.story.created_at)}|{/if} <a
 									href="#edit"
+									title={tooltipJa('edit')}
 									onclick={(e) => {
 										e.preventDefault();
 										editingCommentId = comment.id;
 									}}>edit</a>
 								| <form method="POST" action="?/deleteComment" class="inline-form" use:enhance={confirmDelete('Delete this comment? Text will be replaced with [deleted].')}>
 									<input type="hidden" name="comment_id" value={comment.id} />
-									<button type="submit" class="link-button">delete</button>
+									<button type="submit" class="link-button" title={tooltipJa('delete')}>delete</button>
 								</form>
 							{/if}
 						</div>
@@ -899,7 +910,7 @@
 									<input type="hidden" name="parent_id" value={comment.id} />
 									<textarea name="text" rows="4" cols="60"></textarea>
 									<br />
-									<button type="submit">reply</button>
+									<button type="submit" title={tooltipJa('reply')}>reply</button>
 								</form>
 							</div>
 						{/if}
