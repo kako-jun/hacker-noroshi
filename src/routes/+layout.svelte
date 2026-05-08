@@ -1,6 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import { page } from '$app/state';
+	import { tooltipJa } from '$lib/i18n';
 
 	let { data, children } = $props();
 
@@ -70,6 +71,7 @@
 					{/if}
 					<a
 						href={item.href}
+						title={tooltipJa(item.label)}
 						class:active={isActive(item.href, page.url.pathname)}
 						aria-current={isActive(item.href, page.url.pathname) ? 'page' : undefined}>{item.label}</a
 					>
@@ -78,15 +80,15 @@
 		</div>
 		<div class="hn-header-pagename">
 			{#if currentTopright(page.url.pathname)}
-				<span class="topright">{currentTopright(page.url.pathname)}</span>
+				<span class="topright" title={tooltipJa(currentTopright(page.url.pathname))}>{currentTopright(page.url.pathname)}</span>
 			{/if}
 		</div>
 		<div class="hn-header-right">
 			{#if data.user}
 				<a href="/user/{data.user.username}">{data.user.username}</a> ({data.user.karma}) |
-				<a href="/logout">logout</a>
+				<a href="/logout" title={tooltipJa('logout')}>logout</a>
 			{:else}
-				<a href="/login">login</a>
+				<a href="/login" title={tooltipJa('login')}>login</a>
 			{/if}
 		</div>
 	</header>
@@ -96,9 +98,9 @@
 	</main>
 
 	<footer class="hn-footer">
-		<a href="/guidelines">Guidelines</a> | <a href="/faq">FAQ</a> | <a href="/lists">Lists</a> |
-		<a href="/api-docs">API</a> | <a href="https://github.com/kako-jun/hacker-noroshi">GitHub</a> |
-		<a href="/search">Search</a>
+		<a href="/guidelines" title={tooltipJa('Guidelines')}>Guidelines</a> | <a href="/faq" title={tooltipJa('FAQ')}>FAQ</a> | <a href="/lists" title={tooltipJa('Lists')}>Lists</a> |
+		<a href="/api-docs" title={tooltipJa('API')}>API</a> | <a href="https://github.com/kako-jun/hacker-noroshi" title={tooltipJa('GitHub')}>GitHub</a> |
+		<a href="/search" title={tooltipJa('Search')}>Search</a>
 		<form action="/search" method="get" class="hn-footer-search">
 			Search: <input type="text" name="q" />
 		</form>
