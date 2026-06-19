@@ -1,19 +1,14 @@
 import { test, expect } from '@playwright/test';
-import { signupNewUser } from './helpers';
+import { signupNewUser, submitStory } from './helpers';
 
 test('hide a story removes it from /newest and shows it on /user/[id]/hidden', async ({
 	page
 }) => {
-	// User A submits a story.
+	// User A submits a story. submitStory ヘルパは hydration 待ち込みで、ネイティブ submit による
+	// JSON 表示で navigation が止まる既知の flake を避ける（インライン submit はそれが無く稀に落ちた）。
 	const titleA = `E2E Hide Story ${Date.now()}`;
 	await signupNewUser(page);
-	await page.goto('/submit');
-	await page.fill('input[name="title"]', titleA);
-	await page.fill('textarea[name="text"]', 'hide test body');
-	await Promise.all([
-		page.waitForURL((url) => !url.pathname.startsWith('/submit')),
-		page.click('button[type="submit"]')
-	]);
+	await submitStory(page, { title: titleA, text: 'hide test body' });
 
 	// Logout, then User B signs up
 	await page.goto('/logout');

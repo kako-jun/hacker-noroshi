@@ -378,3 +378,7 @@ score = ((points - 1) / (hours_since_post + 2)^1.8) / (flag_count + 1)^1.5
 - `showdead = true`: dead アイテムも返す。フロントエンドで `class:faded` により薄表示
 
 各 +page.server.ts の load 関数で `locals.user?.showdead === 1` を渡す。
+
+## listing の共通レンダラ（StoryList）
+
+ストーリー一覧を並べる各ページ（`/`, `/newest`, `/ask`, `/show`, `/best`, `/active`, `/polls`, `/from`, `/asknew`, `/noobstories`, `/shownew`, `/front`, `/search` の投稿部）は、`src/lib/components/StoryList.svelte` を使う。クライアント側の一覧状態（hide の楽観更新 `localHiddenIds` + `onhide`、`votedIds`/`flaggedIds` の Set 化、rank 計算、More リンク、アシストの先頭行ヒント `assistFirst`）をこのラッパに集約し、各ページは load 結果と `moreHref` を渡すだけにする（doctrine #3 webbed UI 重複の解消・#147）。`StoryList` の中で `StoryListItem` を行ごとに描画する。サーバー側で既に hidden な ID は `serverHiddenIds`（polls 等）で渡す。`rankStart={null}` で順位番号を出さない（`/search`）。
