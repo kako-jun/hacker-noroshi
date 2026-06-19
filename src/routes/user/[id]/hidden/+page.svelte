@@ -1,4 +1,6 @@
 <script lang="ts">
+	// このページは submissions/favorites と違い StoryList/StoryListItem に寄せていない（#151）。
+	// hidden を「除外せず表示」し各行に hide でなく un-hide を出す逆セマンティクスで、canonical row に嵌まらないため。
 	import { FLAG_KARMA_THRESHOLD } from '$lib/constants';
 	import { tooltipJa } from '$lib/i18n';
 	import { displayUsername } from '$lib/format';

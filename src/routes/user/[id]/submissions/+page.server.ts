@@ -1,5 +1,11 @@
 import type { PageServerLoad } from './$types';
-import { getDB, getStoriesByUserId, getVotedStoryIds, getFlaggedItemIds } from '$lib/server/db';
+import {
+	getDB,
+	getStoriesByUserId,
+	getVotedStoryIds,
+	getFlaggedItemIds,
+	getHiddenStoryIds
+} from '$lib/server/db';
 import { resolveUserOrRedirect } from '$lib/server/userRoute';
 
 export const load: PageServerLoad = async ({ params, url, platform, locals }) => {
@@ -14,17 +20,22 @@ export const load: PageServerLoad = async ({ params, url, platform, locals }) =>
 
 	let votedIds: Set<number> = new Set();
 	let flaggedIds: Set<number> = new Set();
+	let visible = submissions;
 	if (locals.user) {
-		[votedIds, flaggedIds] = await Promise.all([
+		let hiddenIds: Set<number>;
+		[votedIds, flaggedIds, hiddenIds] = await Promise.all([
 			getVotedStoryIds(db, locals.user.id, submissions.map((s) => s.id)),
-			getFlaggedItemIds(db, locals.user.id, submissions.map((s) => s.id), 'story')
+			getFlaggedItemIds(db, locals.user.id, submissions.map((s) => s.id), 'story'),
+			getHiddenStoryIds(db, locals.user.id)
 		]);
+		// canonical row の hide を永続させる（list ページ同様サーバー側で除外。さもないと hide してもリロードで復活する・#152 レビュー）。
+		visible = submissions.filter((s) => !hiddenIds.has(s.id));
 	}
 
 	return {
 		userDeleted: user.deleted,
 		username: user.username,
-		submissions,
+		submissions: visible,
 		votedIds: Array.from(votedIds),
 		flaggedIds: Array.from(flaggedIds),
 		page
