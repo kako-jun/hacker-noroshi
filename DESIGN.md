@@ -69,15 +69,15 @@ The visual system stays HN-faithful; only display strings change.
 - Locale must not fork behavior. English and Japanese labels map to the same routes, actions, and story types.
 - Dynamic text such as time-ago remains controlled by its formatter unless that formatter is explicitly localized.
 
-### Assistance Layer (Issues #139, #140)
+### Assistance Layer — Assist Mode (Issues #139, #140)
 
-Hacker Noroshi may add operation-assist and practice-assist UI that Hacker News itself does not have. This layer must be visually separate from the HN-faithful core page.
+Hacker Noroshi adds an operation-assist layer ("assist mode") that Hacker News itself does not have. Its job is to teach the HN flow so Japanese users can practice toward the real (English) Hacker News. It must be visually separate from the HN-faithful core and fully removable.
 
-- Do not use HN orange (`#ff6600`) as the assist accent.
-- Define one dedicated assist color when the tour/tips UI is implemented, and reuse it consistently.
-- Floating overlays and glass-like translucent panels are allowed only for assistance UI.
-- Core HN UI still follows the no-shadow, no-gradient, no-transition rules.
-- When an assist tip is dismissed, the underlying HN-like page must look unchanged.
+- **Persistent toggle, not a tour.** A switch fixed at the bottom-right (scroll-following) turns assist mode on/off at any time; state persists in an `assist` cookie. No one-time tour, no dismiss-×, no progress tracking. SSR renders the on/off state from the cookie (no flash); the client toggles instantly and re-writes the cookie.
+- **When on**, each screen shows a top explainer of what the screen is, and form controls get nearby hints (what to write / what a button does). **When off**, the plain HN page is fully restored — assist elements are gated by a `.assist-on` ancestor class and hidden otherwise; nothing else changes.
+- **Visual = FF「初心者の館」message window**: solid blue gradient background, white border, white text, a modest drop shadow. Do NOT use HN orange (`#ff6600`). Do NOT use fake glass / `backdrop-filter` (meaningless over the flat cream page) or AI-cliché colored left-accent bars.
+- **Bilingual, practice-oriented copy.** Lead with the localized label the user actually sees, then teach the HN English term in parentheses — e.g. 質問（本家では「Ask」）, 作ったもの（Show）, 新着（new）. English mode already uses the HN terms. Copy lives in `src/lib/assist.ts` (ja/en), same definition-data style as `i18n.ts`.
+- This is the explicit exception to the core no-shadow / no-gradient / no-transition rules; the exception applies only to the assist layer. The locale switch and all controls must keep locale-independent heights (`line-height` is pinned so JA/EN do not change row/button heights).
 
 ## 4. Component Stylings
 
