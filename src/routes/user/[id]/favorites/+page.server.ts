@@ -1,5 +1,11 @@
 import type { PageServerLoad } from './$types';
-import { getDB, getFavoriteStoriesByUserId, getVotedStoryIds, getFlaggedItemIds } from '$lib/server/db';
+import {
+	getDB,
+	getFavoriteStoriesByUserId,
+	getVotedStoryIds,
+	getFlaggedItemIds,
+	getHiddenStoryIds
+} from '$lib/server/db';
 import { resolveUserOrRedirect } from '$lib/server/userRoute';
 
 export const load: PageServerLoad = async ({ params, url, platform, locals }) => {
@@ -18,17 +24,22 @@ export const load: PageServerLoad = async ({ params, url, platform, locals }) =>
 
 	let votedIds: Set<number> = new Set();
 	let flaggedIds: Set<number> = new Set();
+	let visible = favorites;
 	if (locals.user) {
-		[votedIds, flaggedIds] = await Promise.all([
+		let hiddenIds: Set<number>;
+		[votedIds, flaggedIds, hiddenIds] = await Promise.all([
 			getVotedStoryIds(db, locals.user.id, favorites.map((s) => s.id)),
-			getFlaggedItemIds(db, locals.user.id, favorites.map((s) => s.id), 'story')
+			getFlaggedItemIds(db, locals.user.id, favorites.map((s) => s.id), 'story'),
+			getHiddenStoryIds(db, locals.user.id)
 		]);
+		// canonical row の hide を永続させる（さもないと hide してもリロードで復活する・#152 レビュー）。
+		visible = favorites.filter((s) => !hiddenIds.has(s.id));
 	}
 
 	return {
 		userDeleted: user.deleted,
 		username: user.username,
-		favorites,
+		favorites: visible,
 		votedIds: Array.from(votedIds),
 		flaggedIds: Array.from(flaggedIds),
 		page
