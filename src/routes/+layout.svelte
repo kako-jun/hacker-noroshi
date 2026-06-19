@@ -124,7 +124,12 @@
 			<a href={localeToggleHref(data.locale, page.url.pathname, page.url.search)}>{l('lang')}</a> |
 			{#if data.user}
 				<a href="/user/{data.user.username}">{data.user.username}</a> ({data.user.karma}) |
-				<a href="/logout" title={tip('logout')}>{l('logout')}</a>
+				<!-- フル遷移でログアウトする（data-sveltekit-reload）。SPA だと /logout の load が session を消しても
+				     layout の cookie 読みは依存追跡外で再実行されず、ヘッダが「ログイン中」のまま残る（リロードまで）。
+				     さらに body の preload-data="hover" で hover すると /logout load が先読みされ session が消える事故も防ぐ。 -->
+				<a href="/logout" title={tip('logout')} data-sveltekit-reload data-sveltekit-preload-data="off"
+					>{l('logout')}</a
+				>
 			{:else}
 				<a href="/login" title={tip('login')}>{l('login')}</a>
 			{/if}
