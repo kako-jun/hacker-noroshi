@@ -34,8 +34,8 @@
 	}: Props = $props();
 
 	let votedSet = $derived(new Set<number>(votedIds));
-	let flaggedSet = $derived(new Set<number>(flaggedIds ?? []));
-	let serverHiddenSet = $derived(new Set<number>(serverHiddenIds ?? []));
+	let flaggedSet = $derived(new Set<number>(flaggedIds));
+	let serverHiddenSet = $derived(new Set<number>(serverHiddenIds));
 
 	// hide はクライアントで楽観的に行う。サーバー由来の hidden と合算して判定する。
 	let localHiddenIds = $state<Set<number>>(new Set());

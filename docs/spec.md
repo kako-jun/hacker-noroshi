@@ -181,7 +181,7 @@ score = (points - 1) / (hours_since_post + 2) ^ 1.8
 
 - ログイン中のユーザーが各ストーリーのメタ行 `hide` リンクをクリックすると、`hidden` テーブルに `(user_id, story_id)` を保存
 - 一覧ページではサーバー側で `getHiddenStoryIds(db, user_id)` を取得し、該当 story を `stories.filter((s) => !hiddenIds.has(s.id))` で除外
-- フロントエンドでは hide クリック後すぐに行が消える（`localHiddenIds` セットに追加して `isHidden(story.id)` で行を非表示）
+- フロントエンドでは hide クリック後すぐに行が消える（共通ラッパ `StoryList` が `localHiddenIds` に追加して該当行を非表示にする・#147）
 - `/user/[id]/hidden` で自分が hide した一覧を確認・un-hide 可能
 - API: `POST /api/hide`（toggle 式。再度クリックで un-hide。対象 story が存在しないと 404、未ログインは 401）
 
@@ -209,14 +209,13 @@ hide リンクとサーバー側除外ロジックを実装するページ:
 
 #### 新規 story-list ページ追加時のガイド
 
-新しい story 一覧ページを追加するときは、上記 12 ページと同じパターンを踏襲する:
+新しい story 一覧ページを追加するときは、共通ラッパ `src/lib/components/StoryList.svelte`（#147）を使う。クライアント側の一覧状態（hide 楽観更新 `localHiddenIds`/`onhide`、`votedIds`/`flaggedIds` の Set 化、rank 計算、More リンク、アシスト先頭行ヒント）は StoryList が集約しているので、ページ側でこれらを再実装しない:
 
-1. `+page.server.ts` で `getHiddenStoryIds(db, locals.user.id)` を取得
-2. ログイン中のユーザーには `stories.filter((s) => !hiddenIds.has(s.id))` で除外
-3. `+page.svelte` のメタ行に hide / un-hide トグルリンクを追加
-4. クリック後の即時消去のため `localHiddenIds` を保持
+1. `+page.server.ts` で `stories` / `votedIds` / `flaggedIds` を返す。ログイン中はサーバー側で hidden を除外する（または `hiddenIds` を返して `serverHiddenIds` 経由で渡す＝`/polls` 方式）
+2. `+page.svelte` は `<StoryList stories={data.stories} user={data.user} votedIds={data.votedIds} flaggedIds={data.flaggedIds} rankStart={(data.page - 1) * 30} moreHref={data.stories.length === 30 ? '/path?p=' + (data.page + 1) : null} />` を置くだけ
+3. 順位番号を出さない検索結果は `rankStart={null}`。`[poll]` タグを常時付けるなら `forcePollTag`
 
-`<StoryListItem />` 共通コンポーネント（#86）を抽出済み。新規ページはこれを使うだけで自動的に hide が入る。
+`StoryList` の中で行ごとに `<StoryListItem />`（#86）が描画される。新規ページは hide / vote / flag / rank / More / アシストヒントが自動で揃う。
 
 #### StoryListItem 抽出後の DOM 同一性（#86, #106 で検証）
 

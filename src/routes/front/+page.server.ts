@@ -28,8 +28,11 @@ export const load: PageServerLoad = async ({ url, platform, locals }) => {
 			getHiddenStoryIds(db, locals.user.id),
 			getFlaggedItemIds(db, locals.user.id, stories.map((s) => s.id), 'story')
 		]);
-		stories = stories.filter((s) => !hiddenIds.has(s.id)).slice(0, 30);
+		stories = stories.filter((s) => !hiddenIds.has(s.id));
 	}
+	// 60 件オーバーフェッチ（hidden 除外の余裕）を 30 件に切る。ログイン有無を問わず実行する＝
+	// 未ログインでも 30 件になり、ページ側の length===30 による More 判定が正しく働く（#147 レビュー）。
+	stories = stories.slice(0, 30);
 
 	return {
 		stories,
