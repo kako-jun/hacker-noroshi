@@ -75,7 +75,7 @@ const ASSIST_HINT: Record<Locale, Record<string, string>> = {
 		'signup.username': '新しいユーザー名。これから登録する人はここで好きな名前を決めます。',
 		'signup.password': '新しいパスワード。忘れないものを設定しましょう。',
 		'signup.submit': '押すとアカウントが作られ、ログインした状態になります。',
-		// 一覧の先頭行に1回だけ出す行コントロールの解説（StoryListItem が rank===1 のときに表示）。
+		// 一覧の描画先頭可視行に1回だけ出す行コントロールの解説（StoryList が firstVisibleId の行に assistFirst を渡す）。
 		'story.controls':
 			'各行の左の ▲ は upvote（投票）。良いと思った投稿を押し上げます。本家 Hacker News と同じく、ストーリーに downvote はありません（コメントの downvote はカルマ 500 以上で解禁）。点数の下にある hide＝自分の一覧から消す、flag＝規約違反の通報、コメント数のリンクで議論に入れます。',
 		// /item のストーリー操作行の直下に1回。

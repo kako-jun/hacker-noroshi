@@ -2,25 +2,12 @@
 	import { timeAgo, isNewUser } from '$lib/ranking';
 	import { tooltipJa } from '$lib/i18n';
 	import { formatText, displayUsername } from '$lib/format';
-	import StoryListItem from '$lib/components/StoryListItem.svelte';
+	import StoryList from '$lib/components/StoryList.svelte';
 
 	let { data } = $props();
-	let votedIds = $derived(new Set<number>(data.votedIds));
-	let flaggedIds = $derived(new Set<number>(data.flaggedIds ?? []));
-	let localHiddenIds = $state<Set<number>>(new Set());
 	let localVoteStates = $state<Record<number, 'up' | 'down' | null> | null>(null);
 	let localCommentPoints = $state<Record<number, number>>({});
 	let collapsed = $state<Record<number, boolean>>({});
-
-	function isHidden(id: number): boolean {
-		return localHiddenIds.has(id);
-	}
-
-	function onhide(id: number) {
-		const next = new Set(localHiddenIds);
-		next.add(id);
-		localHiddenIds = next;
-	}
 
 	function getCommentVoteState(commentId: number): 'up' | 'down' | null {
 		if (localVoteStates && commentId in localVoteStates) {
@@ -87,20 +74,14 @@
 
 {#if data.q}
 	{#if (data.type === 'all' || data.type === 'stories') && data.stories.length > 0}
-		<div class="story-list">
-			{#each data.stories as story, i (story.id)}
-				{#if !isHidden(story.id)}
-					<StoryListItem
-						{story}
-						user={data.user}
-						initialVoted={votedIds.has(story.id)}
-						initialFlagged={flaggedIds.has(story.id)}
-						{onhide}
-						assistFirst={i === 0}
-					/>
-				{/if}
-			{/each}
-		</div>
+		<!-- 検索結果の投稿一覧。rankStart=null で順位番号を出さない（本家 HN の検索も順位無し）。 -->
+		<StoryList
+			stories={data.stories}
+			user={data.user}
+			votedIds={data.votedIds}
+			flaggedIds={data.flaggedIds}
+			rankStart={null}
+		/>
 	{/if}
 
 	{#if (data.type === 'all' || data.type === 'comments') && data.comments.length > 0}
