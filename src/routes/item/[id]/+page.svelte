@@ -416,7 +416,6 @@
 	}
 </script>
 
-
 {#if data.mode === 'comment'}
 	{@const comment = data.targetComment}
 	{@const parentStory = data.parentStory}

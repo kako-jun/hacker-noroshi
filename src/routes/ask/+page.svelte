@@ -14,13 +14,13 @@
 	}
 </script>
 
-
 <div class="story-list">
 	{#each data.stories as story, i (story.id)}
 		{#if !localHiddenIds.has(story.id)}
 			<StoryListItem
 				{story}
 				rank={(data.page - 1) * 30 + i + 1}
+				assistFirst={i === 0}
 				user={data.user}
 				initialVoted={votedIds.has(story.id)}
 				initialFlagged={flaggedIds.has(story.id)}

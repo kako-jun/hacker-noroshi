@@ -81,9 +81,11 @@ const ASSIST_HINT: Record<Locale, Record<string, string>> = {
 		// /item のストーリー操作行の直下に1回。
 		'item.controls':
 			'この投稿への操作です。favorite＝お気に入り登録（自分のページの favorites に並びます）、hide＝一覧から隠す、flag＝通報。自分の投稿なら edit／delete も出ますが、編集できるのは投稿から2時間だけ（本家 HN の編集窓と同じ作法）。下のコメントは [–] で畳め、reply で返信できます。',
-		// ヘッダ直下に1回。メタ操作（言語・カルマ・アシスト本体）への気づき。
+		// ヘッダ直下に1回。メタ操作（言語・アシスト本体）への気づき。カルマは meta.karma に分離し、
+		// ログイン中（= 実際に (123) が見える）ときだけ layout が後段に足す。
 		'meta.controls':
-			'右上の lang で日本語／英語を切り替えられます。ログイン中は自分の名前の右の数字 (123) がカルマ。そして右下の青いスイッチがこのアシスト本体——オフにすると解説が消え、本家 Hacker News と同じ素の画面になります。慣れたらオフにして、本家へデビューしましょう。'
+			'右上の lang で日本語／英語を切り替えられます。右下の青いスイッチがこのアシスト本体——オフにすると解説が消え、本家 Hacker News と同じ素の画面になります。慣れたらオフにして、本家へデビューしましょう。',
+		'meta.karma': 'また、ログイン中はヘッダの自分の名前の右の数字 (123) がカルマ（karma＝評価点）です。'
 	},
 	en: {
 		'submit.title': 'Title. One line describing what you made or ask. e.g. "I built a CLI called X".',
@@ -105,7 +107,8 @@ const ASSIST_HINT: Record<Locale, Record<string, string>> = {
 		'item.controls':
 			'Actions for this post. favorite bookmarks it (it appears under favorites on your profile), hide removes it from your list, flag reports it. If it is your own post, edit / delete also appear — but you can only edit within 2 hours of posting (the same edit-window convention as the real HN). Below, collapse comments with [–] and reply to join in.',
 		'meta.controls':
-			'Use lang at the top-right to switch Japanese / English. When logged in, the number (123) next to your name is your karma. The blue switch at the bottom-right is this assist itself — turn it off and the guides disappear, leaving the plain screen identical to the real Hacker News. Once you are comfortable, switch it off and graduate to the real thing.'
+			'Use lang at the top-right to switch Japanese / English. The blue switch at the bottom-right is this assist itself — turn it off and the guides disappear, leaving the plain screen identical to the real Hacker News. Once you are comfortable, switch it off and graduate to the real thing.',
+		'meta.karma': 'Also, when you are logged in, the number (123) next to your name in the header is your karma (reputation).'
 	}
 };
 

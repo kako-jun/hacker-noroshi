@@ -88,7 +88,7 @@
 {#if data.q}
 	{#if (data.type === 'all' || data.type === 'stories') && data.stories.length > 0}
 		<div class="story-list">
-			{#each data.stories as story (story.id)}
+			{#each data.stories as story, i (story.id)}
 				{#if !isHidden(story.id)}
 					<StoryListItem
 						{story}
@@ -96,6 +96,7 @@
 						initialVoted={votedIds.has(story.id)}
 						initialFlagged={flaggedIds.has(story.id)}
 						{onhide}
+						assistFirst={i === 0}
 					/>
 				{/if}
 			{/each}

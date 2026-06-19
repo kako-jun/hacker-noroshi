@@ -9,6 +9,8 @@ import { expect, test } from '@playwright/test';
 test.describe('assist mode', () => {
 	test('右下スイッチでトグルでき、cookie で永続し、オフで素の画面に戻る', async ({ page }) => {
 		await page.goto('/');
+		// hydration 完了前にクリックすると onclick 未装着で no-op になり flaky。他テストと同じく待つ。
+		await page.waitForLoadState('networkidle');
 		const sw = page.locator('.assist-switch');
 		await expect(sw).toBeVisible();
 
@@ -62,6 +64,20 @@ test.describe('assist mode', () => {
 		await expect(intro).toContainText('検索ページ');
 	});
 
+	test('検索結果（rank を渡さない一覧）でも先頭行に行コントロール解説が出る', async ({ page }) => {
+		// 回帰防止: 以前は story.controls を絶対 rank===1 で出していたため、rank を渡さない /search では
+		// 永久に出なかった。描画 index（assistFirst=i===0）に直したので検索結果の先頭行にも出る。
+		await page.goto('/locale?lang=ja&next=' + encodeURIComponent('/search?q=HN'));
+		await page.waitForLoadState('networkidle');
+		const sw = page.locator('.assist-switch');
+		await expect(sw).toHaveAttribute('aria-checked', 'false');
+		// 検索結果が前提のテスト（シードに "Ask HN:"/"Show HN:" 等の HN 慣用句がある）。
+		await expect(page.locator('.story-item').first()).toBeVisible();
+		await sw.click();
+		await expect(page.locator('.assist-hint', { hasText: 'upvote' })).toHaveCount(1);
+		await expect(page.locator('.assist-hint', { hasText: 'upvote' })).toBeVisible();
+	});
+
 	test('ユーザーページでカルマの解説（karma 教育）が出る', async ({ page }) => {
 		await page.goto('/locale?lang=ja&next=/');
 		await page.waitForLoadState('networkidle');
@@ -93,6 +109,8 @@ test.describe('assist mode', () => {
 		await expect(page.locator('.assist-hint', { hasText: 'upvote' })).toHaveCount(1);
 		await expect(page.locator('.assist-hint', { hasText: 'upvote' })).toBeVisible();
 		await expect(page.locator('.assist-hint', { hasText: 'lang' })).toBeVisible();
+		// 未ログインでは存在しないカルマ (123) の解説を出さない（ログイン時だけ meta.karma を足す）。
+		await expect(page.locator('.assist-hint', { hasText: '(123)' })).toHaveCount(0);
 
 		// OFF：素の HN へ完全復元＝解説もヒントも1つも見えない（不変条件）。
 		await page.locator('.assist-switch').click();

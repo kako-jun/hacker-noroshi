@@ -42,7 +42,6 @@
 	}
 </script>
 
-
 <div class="front-nav">
 	<div class="front-nav-line">{formatDay(data.day)} (UTC) のストーリー。</div>
 	<div class="front-nav-line">
@@ -63,6 +62,7 @@
 			<StoryListItem
 				{story}
 				rank={(data.page - 1) * 30 + i + 1}
+				assistFirst={i === 0}
 				user={data.user}
 				initialVoted={votedIds.has(story.id)}
 				initialFlagged={flaggedIds.has(story.id)}

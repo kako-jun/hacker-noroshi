@@ -38,6 +38,9 @@
 		forcePollTag?: boolean;
 		/** hide 成功時に親へ通知（親側で localHiddenIds を更新するため） */
 		onhide?: (storyId: number) => void;
+		/** 一覧の「描画上の先頭行」だけ true。行コントロール解説 hint をここに1回だけ出す（#143）。
+		 *  絶対 rank ではなく描画 index で判定する＝2ページ目（rank=31〜）や rank 無しの /search でも先頭に出る。 */
+		assistFirst?: boolean;
 	};
 
 	let {
@@ -47,7 +50,8 @@
 		initialVoted,
 		initialFlagged,
 		forcePollTag = false,
-		onhide
+		onhide,
+		assistFirst = false
 	}: Props = $props();
 
 	// 楽観的更新は行ごとに独立した state で持つ。
@@ -207,7 +211,7 @@
 	</div>
 </div>
 
-{#if rank === 1}
-	<!-- 行コントロール（▲/hide/flag/comments）の解説。一覧の先頭行に1回だけ。アシスト OFF では CSS で消える。 -->
+{#if assistFirst}
+	<!-- 行コントロール（▲/hide/flag/comments）の解説。一覧の描画先頭行に1回だけ。アシスト OFF では CSS で消える。 -->
 	<div class="assist-hint">{assistHint('story.controls', locale)}</div>
 {/if}
