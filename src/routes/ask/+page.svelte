@@ -1,7 +1,6 @@
 <script lang="ts">
 	import StoryListItem from '$lib/components/StoryListItem.svelte';
 	import { tooltipJa } from '$lib/i18n';
-	import { assistIntro } from '$lib/assist';
 
 	let { data } = $props();
 	let votedIds = $derived(new Set<number>(data.votedIds));
@@ -15,7 +14,6 @@
 	}
 </script>
 
-<p class="assist-intro">{assistIntro('/ask', data.locale)}</p>
 
 <div class="story-list">
 	{#each data.stories as story, i (story.id)}

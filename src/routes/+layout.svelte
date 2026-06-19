@@ -2,9 +2,14 @@
 	import '../app.css';
 	import { page } from '$app/state';
 	import { label, localeToggleHref, tooltip } from '$lib/i18n';
-	import { assistSwitchLabel } from '$lib/assist';
+	import { assistHint, assistIntro, assistSwitchLabel } from '$lib/assist';
 
 	let { data, children } = $props();
+
+	// 画面の解説（.assist-intro）は現在の route だけで決まる純関数なので、各ページにベタ書きせず
+	// ここで 1 箇所だけ描画する（doctrine #3 webbed UI 重複の解消・#143）。route id にキーが無ければ空。
+	let assistIntroText = $derived(assistIntro(page.route.id, data.locale));
+	let metaHintText = $derived(assistHint('meta.controls', data.locale));
 
 	// アシストモード（#140）。SSR 値（cookie 由来 data.assist）で初期化＝初期描画のフラッシュ無し。
 	// クライアントではスイッチで即座にトグル（リロード無し・スクロール維持）し、cookie に焼いて次回 SSR と一致させる。
@@ -118,7 +123,14 @@
 		</div>
 	</header>
 
+	{#if metaHintText}
+		<div class="assist-hint">{metaHintText}</div>
+	{/if}
+
 	<main>
+		{#if assistIntroText}
+			<p class="assist-intro">{assistIntroText}</p>
+		{/if}
 		{@render children()}
 	</main>
 

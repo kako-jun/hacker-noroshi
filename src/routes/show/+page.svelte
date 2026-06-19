@@ -1,7 +1,6 @@
 <script lang="ts">
 	import StoryListItem from '$lib/components/StoryListItem.svelte';
 	import { tooltipJa } from '$lib/i18n';
-	import { assistIntro } from '$lib/assist';
 
 	let { data } = $props();
 	let votedIds = $derived(new Set<number>(data.votedIds));
@@ -15,7 +14,6 @@
 	}
 </script>
 
-<p class="assist-intro">{assistIntro('/show', data.locale)}</p>
 
 <div class="show-intro" style="padding: 10px 0 0 40px; font-size: 9pt; color: #828282;">
 	投稿前に <a href="/showhn">Show HN ルール</a> をお読みください。<a href="/shownew">最新の Show HN</a> も眺めてみるとよいでしょう。

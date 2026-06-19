@@ -10,7 +10,7 @@
 		storyTypeLabel,
 		tooltipJa
 	} from '$lib/i18n';
-	import { assistIntro } from '$lib/assist';
+	import { assistHint } from '$lib/assist';
 
 	let { data, form } = $props();
 	let localStoryVoted = $state<boolean | null>(null);
@@ -416,7 +416,6 @@
 	}
 </script>
 
-<p class="assist-intro">{assistIntro('/item', data.locale)}</p>
 
 {#if data.mode === 'comment'}
 	{@const comment = data.targetComment}
@@ -722,6 +721,9 @@
 			{/if}
 			| <a href="#comments">{data.comments.length} comment{data.comments.length !== 1 ? "s" : ""}</a>
 		</div>
+
+		<!-- 投稿への操作（favorite/edit窓/hide/コメント操作）の解説。ストーリー操作行の直下に1回。アシスト OFF では消える。 -->
+		<div class="assist-hint">{assistHint('item.controls', data.locale)}</div>
 
 		{#if editingStory}
 			<div class="comment-form">

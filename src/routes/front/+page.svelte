@@ -1,7 +1,6 @@
 <script lang="ts">
 	import StoryListItem from '$lib/components/StoryListItem.svelte';
 	import { tooltipJa } from '$lib/i18n';
-	import { assistIntro } from '$lib/assist';
 
 	let { data } = $props();
 	let votedIds = $derived(new Set<number>(data.votedIds));
@@ -43,7 +42,6 @@
 	}
 </script>
 
-<p class="assist-intro">{assistIntro('/front', data.locale)}</p>
 
 <div class="front-nav">
 	<div class="front-nav-line">{formatDay(data.day)} (UTC) のストーリー。</div>

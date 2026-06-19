@@ -3,6 +3,7 @@
 	import { displayUsername } from '$lib/format';
 	import { timeAgo, extractDomain, isNewUser } from '$lib/ranking';
 	import { canFlagStory, shouldShowPollTag, type UserLike } from '$lib/storyActions';
+	import { assistHint } from '$lib/assist';
 	import {
 		hasLegacyStoryTypePrefix,
 		label,
@@ -205,3 +206,8 @@
 		</div>
 	</div>
 </div>
+
+{#if rank === 1}
+	<!-- 行コントロール（▲/hide/flag/comments）の解説。一覧の先頭行に1回だけ。アシスト OFF では CSS で消える。 -->
+	<div class="assist-hint">{assistHint('story.controls', locale)}</div>
+{/if}
