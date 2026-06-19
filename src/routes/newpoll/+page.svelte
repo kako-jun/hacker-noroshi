@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { label, tooltip } from '$lib/i18n';
-	import { assistIntro, assistHint } from '$lib/assist';
+	import { assistHint } from '$lib/assist';
 
 	let { data, form } = $props();
 
@@ -19,7 +19,6 @@
 </svelte:head>
 
 <div class="hn-form">
-	<p class="assist-intro">{assistIntro('/newpoll', data.locale)}</p>
 	{#if form?.error}
 		<div class="form-error">{form.error}</div>
 	{/if}

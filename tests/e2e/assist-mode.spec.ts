@@ -9,6 +9,8 @@ import { expect, test } from '@playwright/test';
 test.describe('assist mode', () => {
 	test('右下スイッチでトグルでき、cookie で永続し、オフで素の画面に戻る', async ({ page }) => {
 		await page.goto('/');
+		// hydration 完了前にクリックすると onclick 未装着で no-op になり flaky。他テストと同じく待つ。
+		await page.waitForLoadState('networkidle');
 		const sw = page.locator('.assist-switch');
 		await expect(sw).toBeVisible();
 
@@ -47,5 +49,72 @@ test.describe('assist mode', () => {
 		const intro = page.locator('.assist-intro').first();
 		await expect(intro).toBeVisible();
 		await expect(intro).toContainText('ハッカーのろし');
+	});
+
+	test('intro は layout 集約済み＝辞書にキーを足しただけの /search でも解説が出る', async ({ page }) => {
+		// #143: intro を各ページにベタ書きせず +layout.svelte で route id 引きに集約した。
+		// /search は専用の描画コードを足していないのに、辞書キーがあるだけで解説が出る。
+		await page.goto('/locale?lang=ja&next=/search');
+		await page.waitForLoadState('networkidle');
+		const sw = page.locator('.assist-switch');
+		await expect(sw).toHaveAttribute('aria-checked', 'false');
+		await sw.click();
+		const intro = page.locator('.assist-intro').first();
+		await expect(intro).toBeVisible();
+		await expect(intro).toContainText('検索ページ');
+	});
+
+	test('検索結果（rank を渡さない一覧）でも先頭行に行コントロール解説が出る', async ({ page }) => {
+		// 回帰防止: 以前は story.controls を絶対 rank===1 で出していたため、rank を渡さない /search では
+		// 永久に出なかった。描画 index（assistFirst=i===0）に直したので検索結果の先頭行にも出る。
+		await page.goto('/locale?lang=ja&next=' + encodeURIComponent('/search?q=HN'));
+		await page.waitForLoadState('networkidle');
+		const sw = page.locator('.assist-switch');
+		await expect(sw).toHaveAttribute('aria-checked', 'false');
+		// 検索結果が前提のテスト（シードに "Ask HN:"/"Show HN:" 等の HN 慣用句がある）。
+		await expect(page.locator('.story-item').first()).toBeVisible();
+		await sw.click();
+		await expect(page.locator('.assist-hint', { hasText: 'upvote' })).toHaveCount(1);
+		await expect(page.locator('.assist-hint', { hasText: 'upvote' })).toBeVisible();
+	});
+
+	test('ユーザーページでカルマの解説（karma 教育）が出る', async ({ page }) => {
+		await page.goto('/locale?lang=ja&next=/');
+		await page.waitForLoadState('networkidle');
+		// 一覧の投稿者リンクから実在ユーザーの profile へ（locale cookie は ja のまま引き継がれる）。
+		const authorHref = await page
+			.locator('.story-meta a[href^="/user/"]')
+			.first()
+			.getAttribute('href');
+		expect(authorHref).toBeTruthy();
+		await page.goto(authorHref as string);
+		const sw = page.locator('.assist-switch');
+		await expect(sw).toHaveAttribute('aria-checked', 'false');
+		await sw.click();
+		const intro = page.locator('.assist-intro').first();
+		await expect(intro).toBeVisible();
+		await expect(intro).toContainText('カルマ');
+	});
+
+	test('一覧の先頭行に行コントロール解説が1回だけ＋メタ解説も出て、OFF で全アシストが消える', async ({
+		page
+	}) => {
+		await page.goto('/locale?lang=ja&next=/newest');
+		await page.waitForLoadState('networkidle');
+		const sw = page.locator('.assist-switch');
+		await expect(sw).toHaveAttribute('aria-checked', 'false');
+
+		// ON：行コントロール解説（▲ upvote）は先頭行に1回だけ。メタ解説（右上 lang）も出る。
+		await sw.click();
+		await expect(page.locator('.assist-hint', { hasText: 'upvote' })).toHaveCount(1);
+		await expect(page.locator('.assist-hint', { hasText: 'upvote' })).toBeVisible();
+		await expect(page.locator('.assist-hint', { hasText: 'lang' })).toBeVisible();
+		// 未ログインでは存在しないカルマ (123) の解説を出さない（ログイン時だけ meta.karma を足す）。
+		await expect(page.locator('.assist-hint', { hasText: '(123)' })).toHaveCount(0);
+
+		// OFF：素の HN へ完全復元＝解説もヒントも1つも見えない（不変条件）。
+		await page.locator('.assist-switch').click();
+		await expect(page.locator('.assist-intro:visible')).toHaveCount(0);
+		await expect(page.locator('.assist-hint:visible')).toHaveCount(0);
 	});
 });
