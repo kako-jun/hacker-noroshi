@@ -1,8 +1,16 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
-	import { tooltipJa } from '$lib/i18n';
+	import { label, tooltip } from '$lib/i18n';
 
-	let { form } = $props();
+	let { data, form } = $props();
+
+	function l(key: string): string {
+		return label(key, data.locale);
+	}
+
+	function tip(key: string): string {
+		return tooltip(key, data.locale);
+	}
 </script>
 
 <svelte:head>
@@ -18,26 +26,26 @@
 		<table>
 			<tbody>
 				<tr>
-					<td>title</td>
+					<td>{l('title')}</td>
 					<td><input type="text" name="title" value={form?.title ?? ''} maxlength="80" size="50" /></td>
 				</tr>
 				<tr>
-					<td>text</td>
+					<td>{l('text')}</td>
 					<td><textarea name="text" rows="4" cols="49">{form?.text ?? ''}</textarea></td>
 				</tr>
 				<tr>
-					<td style="vertical-align: top;">choices</td>
+					<td style="vertical-align: top;">{l('choices')}</td>
 					<td><textarea name="options" rows="8" cols="49">{form?.options ?? ''}</textarea></td>
 				</tr>
 				<tr>
 					<td></td>
-					<td><button type="submit" title={tooltipJa('submit')}>submit</button></td>
+					<td><button type="submit" title={tip('submit')}>{l('submit')}</button></td>
 				</tr>
 			</tbody>
 		</table>
 	</form>
 
 	<div class="form-note">
-		Choices: one per line, blank lines OK between. Minimum 2, maximum 10. Each choice up to 300 characters.
+		{l('form-note-poll')}
 	</div>
 </div>

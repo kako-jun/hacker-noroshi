@@ -58,18 +58,26 @@ Links: `#000000` (unvisited), `#828282` (visited). Hover: underline only.
 
 Base font size is `10pt` on html/body. Everything is in `pt`, not `rem` or `px`.
 
-### English Label Tooltip (Issue #133)
+### Locale Labels (Issues #133, #138)
 
-本家 HN の雰囲気を保つため、ヘッダー nav (`new` / `past` / `comments` / `ask` / `show` / `submit`)、
-フッター (`Guidelines` / `FAQ` / `Lists` / `API` / `GitHub` / `Search`)、topright のページ名、
-そして item ページ等の英語アクションリンク (`edit` / `delete` / `hide` / `flag` / `vouch` /
-`favorite` / `parent` / `root` / `next` / `reply` / `cancel` / `update` / `add comment` 他) は
-**英語表記のまま** にしておき、ホバー時の `title` 属性で日本語訳を表示する。
+UI labels support English and Japanese without changing routes, behavior, spacing, color, or typography.
+The visual system stays HN-faithful; only display strings change.
 
-- 本体テキストは英語のまま — 見た目（色・フォント・レイアウト）は変えない
-- 訳辞書は `src/lib/i18n.ts` の `TOOLTIP_JA` に集約。`tooltipJa(label)` で参照する
-- 動的 label（`5 days ago` 等の time-ago、`145 points` 等の数値混合、`5 comments` 等の
-  plural ラベル）は本仕組みの対象外
+- English mode renders HN-style labels and keeps Japanese `title` tooltips for discoverability.
+- Japanese mode renders the same actions in Japanese and uses English `title` tooltips where useful.
+- Label dictionaries live in `src/lib/i18n.ts`. Add stable label keys there instead of hardcoding route-local strings.
+- Locale must not fork behavior. English and Japanese labels map to the same routes, actions, and story types.
+- Dynamic text such as time-ago remains controlled by its formatter unless that formatter is explicitly localized.
+
+### Assistance Layer (Issues #139, #140)
+
+Hacker Noroshi may add operation-assist and practice-assist UI that Hacker News itself does not have. This layer must be visually separate from the HN-faithful core page.
+
+- Do not use HN orange (`#ff6600`) as the assist accent.
+- Define one dedicated assist color when the tour/tips UI is implemented, and reuse it consistently.
+- Floating overlays and glass-like translucent panels are allowed only for assistance UI.
+- Core HN UI still follows the no-shadow, no-gradient, no-transition rules.
+- When an assist tip is dismissed, the underlying HN-like page must look unchanged.
 
 ## 4. Component Stylings
 
