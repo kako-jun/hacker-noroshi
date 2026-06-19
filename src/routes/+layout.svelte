@@ -85,6 +85,7 @@
 	<header class="hn-header">
 		<div class="hn-header-left">
 			<a href="/" class="hn-header-logo"><img src="/icon-header.webp" alt="ハッカーのろし" width="18" height="18" /></a>
+			<div class="hn-header-titlenav">
 			<a href="/" class="hn-header-site-name">ハッカーのろし</a>
 			<nav class="hn-header-nav">
 				{#each navItems as item, i (item.href)}
@@ -99,6 +100,7 @@
 					>
 				{/each}
 			</nav>
+			</div>
 		</div>
 		<div class="hn-header-pagename">
 			{#if currentTopright(page.url.pathname)}

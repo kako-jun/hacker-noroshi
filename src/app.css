@@ -14,7 +14,9 @@ body {
 	font-family: Verdana, Geneva, sans-serif;
 	font-size: 10pt;
 	color: #828282;
-	background-color: #f6f6ef;
+	/* 本家 HN は body=白＋中央コンテナ(#hnmain)=cream の二層。PC幅で 85% コンテナの外側が白フレームになる
+	   （スマホ幅は .hn-page が 100% で白は見えない）。コンテナ色は .hn-page が #f6f6ef で持つ（#144）。 */
+	background-color: #ffffff;
 }
 
 a {
@@ -49,7 +51,9 @@ a:hover {
 	}
 
 	.hn-header-left {
-		flex-wrap: wrap;
+		/* ロゴと titlenav は横並びのまま（折り返さない）。折り返しは titlenav 内部で起こし、
+		   nav がロゴの右側に留まるようにする（#144）。 */
+		flex-wrap: nowrap;
 		flex: 1 1 auto;
 	}
 
@@ -84,8 +88,8 @@ a:hover {
 	}
 
 	.hn-footer-search input {
+		/* スマホでは検索ボックスを横いっぱいに（本家より狭い 200px 上限を撤去・#144）。 */
 		width: 100%;
-		max-width: 200px;
 	}
 
 	/* Remove 40px form indent on narrow viewports — at 375px that ate
@@ -195,6 +199,17 @@ a:hover {
 	align-items: center;
 	gap: 0;
 	flex: 1;
+}
+
+/* サイト名＋nav を1ブロックにして、ロゴの右側で内部折り返しさせる（本家HNのテーブルセル相当・#144）。
+   スマホ幅で nav が2行目に回り込んでもロゴより左には来ず、ロゴは2行の縦中央になる
+   （.hn-header-left は align-items:center なのでロゴが titlenav の高さに対して中央寄せ）。 */
+.hn-header-titlenav {
+	display: flex;
+	align-items: center;
+	flex-wrap: wrap;
+	flex: 1 1 auto;
+	min-width: 0;
 }
 
 .hn-header-left .hn-header-site-name {
