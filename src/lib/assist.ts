@@ -53,8 +53,6 @@ const ASSIST_INTRO: Record<Locale, Record<string, string>> = {
 const ASSIST_HINT: Record<Locale, Record<string, string>> = {
 	ja: {
 		'submit.title': 'タイトル。何を見せる／聞くのかを一行で。例：「◯◯という CLI を作った」。',
-		'submit.storyType':
-			'種別。「作ったもの」＝自作の紹介（Show）、「質問」＝相談（Ask）、「通常投稿」＝リンク共有。選ぶだけで OK。',
 		'submit.url': 'リンクを共有する場合は URL を。本文で語るなら空のままで構いません。',
 		'submit.text': '本文。質問や説明はこちらに。URL を空にすると本文での投稿になります。',
 		'submit.submit': '押すと投稿され、その投稿ページへ移動します。',
@@ -71,8 +69,6 @@ const ASSIST_HINT: Record<Locale, Record<string, string>> = {
 	},
 	en: {
 		'submit.title': 'Title. One line describing what you made or ask. e.g. "I built a CLI called X".',
-		'submit.storyType':
-			'Type. "Show" = introduce what you built, "Ask" = ask the community, "Story" = share a link. Just pick one.',
 		'submit.url': 'Add a URL if you are sharing a link. Leave it empty to post text instead.',
 		'submit.text': 'Body. Put your question or explanation here. Empty URL means a text post.',
 		'submit.submit': 'Posts your submission and takes you to its page.',

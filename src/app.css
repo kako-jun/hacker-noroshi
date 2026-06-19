@@ -13,20 +13,8 @@ html {
 body {
 	font-family: Verdana, Geneva, sans-serif;
 	font-size: 10pt;
-	/* 行高を固定する。未指定(normal)だと CJK フォールバックが Verdana より背が高く、日英切替で
-	   行・ボタンの高さが変わる(#138 follow-up)。固定値でロケール間の高さを揃える。 */
-	line-height: 1.3;
 	color: #828282;
 	background-color: #f6f6ef;
-}
-
-/* フォーム部品は UA 既定で line-height:normal(フォント依存)になりがちなので body の固定行高を継ぐ
-   ＝日英でボタン/入力/セレクトの高さが変わらない。 */
-button,
-input,
-select,
-textarea {
-	line-height: inherit;
 }
 
 a {

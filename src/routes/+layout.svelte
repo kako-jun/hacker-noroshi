@@ -13,6 +13,11 @@
 		assistOn = !assistOn;
 		document.cookie = `assist=${assistOn ? '1' : '0'}; path=/; max-age=${365 * 24 * 60 * 60}; samesite=lax`;
 	}
+	// ナビゲーションで cookie 由来の data.assist が変わったら追従する（別タブ等で cookie が変わった状態に
+	// 遷移後も古い初期値が残るのを防ぐ・レビュー指摘）。手動トグルは data.assist 不変なので上書きされない。
+	$effect(() => {
+		assistOn = data.assist;
+	});
 
 	type NavItem = { href: string; label: string; topright: string };
 	const navItems: NavItem[] = [

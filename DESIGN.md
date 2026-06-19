@@ -77,7 +77,7 @@ Hacker Noroshi adds an operation-assist layer ("assist mode") that Hacker News i
 - **When on**, each screen shows a top explainer of what the screen is, and form controls get nearby hints (what to write / what a button does). **When off**, the plain HN page is fully restored — assist elements are gated by a `.assist-on` ancestor class and hidden otherwise; nothing else changes.
 - **Visual = FF「初心者の館」message window**: solid blue gradient background, white border, white text, a modest drop shadow. Do NOT use HN orange (`#ff6600`). Do NOT use fake glass / `backdrop-filter` (meaningless over the flat cream page) or AI-cliché colored left-accent bars.
 - **Bilingual, practice-oriented copy.** Lead with the localized label the user actually sees, then teach the HN English term in parentheses — e.g. 質問（本家では「Ask」）, 作ったもの（Show）, 新着（new）. English mode already uses the HN terms. Copy lives in `src/lib/assist.ts` (ja/en), same definition-data style as `i18n.ts`.
-- This is the explicit exception to the core no-shadow / no-gradient / no-transition rules; the exception applies only to the assist layer. The locale switch and all controls must keep locale-independent heights (`line-height` is pinned so JA/EN do not change row/button heights).
+- This is the explicit exception to the core no-shadow / no-gradient / no-transition rules; the exception applies only to the assist layer.
 
 ## 4. Component Stylings
 
