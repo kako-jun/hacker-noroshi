@@ -1,5 +1,6 @@
 import type { PageServerLoad, Actions } from './$types';
 import { getDB } from '$lib/server/db';
+import { storyTypeFromTitleOrInput } from '$lib/i18n';
 import { fail, redirect } from '@sveltejs/kit';
 
 export const load: PageServerLoad = async ({ locals }) => {
@@ -20,17 +21,18 @@ export const actions: Actions = {
 		const title = (formData.get('title') as string)?.trim();
 		const url = (formData.get('url') as string)?.trim() || null;
 		const text = (formData.get('text') as string)?.trim() || null;
+		const storyType = storyTypeFromTitleOrInput(title ?? '', formData.get('storyType'));
 
 		if (!title) {
-			return fail(400, { error: 'Title is required', title, url, text });
+			return fail(400, { error: 'Title is required', title, url, text, storyType });
 		}
 
 		if (title.length > 80) {
-			return fail(400, { error: 'Title must be 80 characters or less', title, url, text });
+			return fail(400, { error: 'Title must be 80 characters or less', title, url, text, storyType });
 		}
 
 		if (!url && !text) {
-			return fail(400, { error: 'Either URL or text is required', title, url, text });
+			return fail(400, { error: 'Either URL or text is required', title, url, text, storyType });
 		}
 
 		if (url && text) {
@@ -38,7 +40,8 @@ export const actions: Actions = {
 				error: 'Please submit either a URL or text, not both',
 				title,
 				url,
-				text
+				text,
+				storyType
 			});
 		}
 
@@ -46,7 +49,7 @@ export const actions: Actions = {
 			try {
 				new URL(url);
 			} catch {
-				return fail(400, { error: 'Invalid URL', title, url, text });
+				return fail(400, { error: 'Invalid URL', title, url, text, storyType });
 			}
 		}
 
@@ -63,23 +66,17 @@ export const actions: Actions = {
 					error: "You're submitting too fast. Please slow down.",
 					title,
 					url,
-					text
+					text,
+					storyType
 				});
 			}
-		}
-
-		let type = 'story';
-		if (title.toLowerCase().startsWith('ask hn:') || title.startsWith('Ask HN:')) {
-			type = 'ask';
-		} else if (title.toLowerCase().startsWith('show hn:') || title.startsWith('Show HN:')) {
-			type = 'show';
 		}
 
 		const result = await db
 			.prepare(
 				'INSERT INTO stories (title, url, text, user_id, type) VALUES (?, ?, ?, ?, ?)'
 			)
-			.bind(title, url, text, locals.user.id, type)
+			.bind(title, url, text, locals.user.id, storyType)
 			.run();
 
 		const storyId = result.meta.last_row_id;

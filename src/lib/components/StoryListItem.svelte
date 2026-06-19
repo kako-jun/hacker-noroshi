@@ -3,7 +3,13 @@
 	import { displayUsername } from '$lib/format';
 	import { timeAgo, extractDomain, isNewUser } from '$lib/ranking';
 	import { canFlagStory, shouldShowPollTag, type UserLike } from '$lib/storyActions';
-	import { tooltipJa } from '$lib/i18n';
+	import {
+		hasLegacyStoryTypePrefix,
+		label,
+		normalizeLocale,
+		storyTypeLabel,
+		tooltip
+	} from '$lib/i18n';
 
 	interface StoryLike {
 		id: number;
@@ -58,6 +64,7 @@
 
 	let canFlag = $derived(canFlagStory(user, story));
 	let showPollTag = $derived(shouldShowPollTag(story, forcePollTag));
+	let locale = $derived(normalizeLocale(page.data.locale as string | undefined));
 
 	// 未ログインで vote/flag/hide を踏んだ際にログイン後に戻ってくる先（#116）。
 	// /login の safeNext で相対パス検証されるので、そのまま encode して渡せばよい。
@@ -115,6 +122,25 @@
 			}
 		}
 	}
+
+	function l(key: string): string {
+		return label(key, locale);
+	}
+
+	function tip(key: string): string {
+		return tooltip(key, locale);
+	}
+
+	function commentText(count: number): string {
+		if (count === 0) return l('discuss');
+		if (locale === 'ja') return `${count}${l('commentsLabel')}`;
+		return `${count} comment${count !== 1 ? 's' : ''}`;
+	}
+
+	function assistedTypeLabel(): string {
+		if (hasLegacyStoryTypePrefix(story.title, story.type)) return '';
+		return storyTypeLabel(story.type, locale);
+	}
 </script>
 
 <div class="story-item">
@@ -134,12 +160,13 @@
 			{:else}
 				<a href="/item/{story.id}" class="story-title">{story.title}</a>
 			{/if}
+			{#if assistedTypeLabel()} <span class="story-tag">[{assistedTypeLabel()}]</span>{/if}
 			{#if showPollTag} <span class="story-tag">[poll]</span>{/if}
 			{#if flagCount > 0} <span class="story-tag">[flagged]</span>{/if}
 			{#if story.dead === 1} <span class="story-tag">[dead]</span>{/if}
 		</div>
 		<div class="story-meta">
-			{points} point{points !== 1 ? 's' : ''} by
+			{points} {l(points === 1 ? 'point' : 'points')} {l('by')}
 			<a
 				href="/user/{story.username}"
 				style={isNewUser(story.user_created_at) ? 'color: #3c963c;' : ''}
@@ -151,32 +178,28 @@
 			{#if user}
 				<a
 					href="#hide"
-					title={tooltipJa('hide')}
+					title={tip('hide')}
 					onclick={(e) => {
 						e.preventDefault();
 						hide();
-					}}>hide</a
+					}}>{l('hide')}</a
 				>
 			{:else}
-				<a href={loginHref} title={tooltipJa('hide')}>hide</a>
+				<a href={loginHref} title={tip('hide')}>{l('hide')}</a>
 			{/if}
 			{#if story.url}
-				| <a href="/from?site={extractDomain(story.url)}" title={tooltipJa('past')}>past</a>
+				| <a href="/from?site={extractDomain(story.url)}" title={tip('past')}>{l('past')}</a>
 			{/if}
 			|
-			<a href="/item/{story.id}"
-				>{story.comment_count === 0
-					? 'discuss'
-					: `${story.comment_count} comment${story.comment_count !== 1 ? 's' : ''}`}</a
-			>
+			<a href="/item/{story.id}">{commentText(story.comment_count)}</a>
 			{#if canFlag}
 				| <a
 					href="#flag"
-					title={tooltipJa(flagged ? 'un-flag' : 'flag')}
+					title={tip(flagged ? 'un-flag' : 'flag')}
 					onclick={(e) => {
 						e.preventDefault();
 						flag();
-					}}>{flagged ? 'un-flag' : 'flag'}</a
+					}}>{l(flagged ? 'un-flag' : 'flag')}</a
 				>
 			{/if}
 		</div>

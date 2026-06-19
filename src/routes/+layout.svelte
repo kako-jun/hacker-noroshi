@@ -1,7 +1,7 @@
 <script lang="ts">
 	import '../app.css';
 	import { page } from '$app/state';
-	import { tooltipJa } from '$lib/i18n';
+	import { label, localeToggleHref, tooltip } from '$lib/i18n';
 
 	let { data, children } = $props();
 
@@ -52,6 +52,14 @@
 		if (extraToprightMap[pathname]) return extraToprightMap[pathname];
 		return '';
 	}
+
+	function l(key: string): string {
+		return label(key, data.locale);
+	}
+
+	function tip(key: string): string {
+		return tooltip(key, data.locale);
+	}
 </script>
 
 <svelte:head>
@@ -71,24 +79,25 @@
 					{/if}
 					<a
 						href={item.href}
-						title={tooltipJa(item.label)}
+						title={tip(item.label)}
 						class:active={isActive(item.href, page.url.pathname)}
-						aria-current={isActive(item.href, page.url.pathname) ? 'page' : undefined}>{item.label}</a
+						aria-current={isActive(item.href, page.url.pathname) ? 'page' : undefined}>{l(item.label)}</a
 					>
 				{/each}
 			</nav>
 		</div>
 		<div class="hn-header-pagename">
 			{#if currentTopright(page.url.pathname)}
-				<span class="topright" title={tooltipJa(currentTopright(page.url.pathname))}>{currentTopright(page.url.pathname)}</span>
+				<span class="topright" title={tip(currentTopright(page.url.pathname))}>{l(currentTopright(page.url.pathname))}</span>
 			{/if}
 		</div>
 		<div class="hn-header-right">
+			<a href={localeToggleHref(data.locale, page.url.pathname, page.url.search)}>{l('lang')}</a> |
 			{#if data.user}
 				<a href="/user/{data.user.username}">{data.user.username}</a> ({data.user.karma}) |
-				<a href="/logout" title={tooltipJa('logout')}>logout</a>
+				<a href="/logout" title={tip('logout')}>{l('logout')}</a>
 			{:else}
-				<a href="/login" title={tooltipJa('login')}>login</a>
+				<a href="/login" title={tip('login')}>{l('login')}</a>
 			{/if}
 		</div>
 	</header>
@@ -98,11 +107,11 @@
 	</main>
 
 	<footer class="hn-footer">
-		<a href="/guidelines" title={tooltipJa('Guidelines')}>Guidelines</a> | <a href="/faq" title={tooltipJa('FAQ')}>FAQ</a> | <a href="/lists" title={tooltipJa('Lists')}>Lists</a> |
-		<a href="/api-docs" title={tooltipJa('API')}>API</a> | <a href="https://github.com/kako-jun/hacker-noroshi" title={tooltipJa('GitHub')}>GitHub</a> |
-		<a href="/search" title={tooltipJa('Search')}>Search</a>
+		<a href="/guidelines" title={tip('Guidelines')}>{l('Guidelines')}</a> | <a href="/faq" title={tip('FAQ')}>{l('FAQ')}</a> | <a href="/lists" title={tip('Lists')}>{l('Lists')}</a> |
+		<a href="/api-docs" title={tip('API')}>{l('API')}</a> | <a href="https://github.com/kako-jun/hacker-noroshi" title={tip('GitHub')}>{l('GitHub')}</a> |
+		<a href="/search" title={tip('Search')}>{l('Search')}</a>
 		<form action="/search" method="get" class="hn-footer-search">
-			Search: <input type="text" name="q" />
+			{l('Search')}: <input type="text" name="q" />
 		</form>
 	</footer>
 </div>

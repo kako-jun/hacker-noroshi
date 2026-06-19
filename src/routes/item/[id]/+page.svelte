@@ -4,7 +4,12 @@
 	import { timeAgo, extractDomain, isNewUser, isThreadOpen } from '$lib/ranking';
 	import { formatText, displayUsername } from '$lib/format';
 	import { invalidateAll } from '$app/navigation';
-	import { tooltipJa } from '$lib/i18n';
+	import {
+		hasLegacyStoryTypePrefix,
+		normalizeLocale,
+		storyTypeLabel,
+		tooltipJa
+	} from '$lib/i18n';
 
 	let { data, form } = $props();
 	let localStoryVoted = $state<boolean | null>(null);
@@ -33,6 +38,11 @@
 
 	function getPollOptionCount(opt: { id: number; vote_count: number }): number {
 		return localPollOptionCounts[opt.id] ?? opt.vote_count;
+	}
+
+	function assistedTypeLabel(title: string, type: string | null | undefined): string {
+		if (hasLegacyStoryTypePrefix(title, type)) return '';
+		return storyTypeLabel(type, normalizeLocale(data.locale));
 	}
 
 	async function votePollOption(optionId: number) {
@@ -657,6 +667,7 @@
 				{:else}
 					{data.story.title}
 				{/if}
+				{#if assistedTypeLabel(data.story.title, data.story.type)} <span class="story-tag">[{assistedTypeLabel(data.story.title, data.story.type)}]</span>{/if}
 				{#if data.story.type === 'poll'} <span class="story-tag">[poll]</span>{/if}
 				{#if (data.story.flag_count ?? 0) > 0} <span class="story-tag">[flagged]</span>{/if}
 				{#if storyDead === 1} <span class="story-tag">[dead]</span>{/if}

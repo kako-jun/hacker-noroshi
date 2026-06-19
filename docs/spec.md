@@ -13,8 +13,12 @@ URL: https://hn.llll-ll.com
 
 - URL リンク投稿またはテキスト投稿（排他）
 - タイトル最大80文字
+- 投稿フォームには Hacker Noroshi の操作補助として story / ask / show の種別選択がある
+- 種別選択は `stories.type` の安定メタデータとして保存し、翻訳済み文字列をタイトルには挿入しない
+- `type=show` の表示ラベルは locale に応じて英語 UI では `Show HN`、日本語 UI では `作ったもの` として描画する
 - タイトルが「Ask HN:」で始まる → type=ask
 - タイトルが「Show HN:」で始まる → type=show
+- 既存互換のため、タイトルプレフィックスがある場合は種別選択より優先する
 - それ以外 → type=story
 - 投稿には要ログイン
 - レート制限: 同一ユーザーの連続投稿は10分間隔が必要。違反時は "You're submitting too fast. Please slow down." を表示
@@ -349,23 +353,19 @@ score = ((points - 1) / (hours_since_post + 2)^1.8) / (flag_count + 1)^1.5
 - `/faq` — よくある質問
 - `/showhn` — Show HN 専用ルール
 
-### 英語 label の日本語 tooltip (#133)
+### 英語 / 日本語 UI 切替 (#133, #138)
 
-本家 HN との見た目互換のため、UI ラベルは英語のままにし、ホバー時の `title` 属性で
-日本語訳を表示する。対象は以下:
+UI ラベルは英語・日本語を切り替えられる。切替は表示文字列のみで、ルート、投稿種別、API、
+ランキング、認証、フォーム処理の挙動は変えない。
 
-- ヘッダー nav: `new` / `past` / `comments` / `ask` / `show` / `submit`
-- ヘッダー右: `login` / `logout`
-- フッター: `Guidelines` / `FAQ` / `Lists` / `API` / `GitHub` / `Search`
-- topright ページ名（`asknew` / `noobstories` / `bestcomments` / `best` / `active` /
-  `highlights` / `newpoll` / `polls` / `leaders` / `lists` / `from` / `search` / `faq` /
-  `guidelines` / `api` / `admin` / `ipban` 他）
-- アクションリンク: `edit` / `delete` / `hide` / `un-hide` / `flag` / `un-flag` / `vouch` /
-  `favorite` / `un-fav` / `parent` / `root` / `context` / `next` / `prev` / `reply` /
-  `more` (`More`) / `cancel` / `update` / `add comment`
-
-訳辞書は `src/lib/i18n.ts` の `TOOLTIP_JA` に集約。テキスト本体・色・フォント・レイアウトは
-変更せず、`title` 属性のみを追加する。動的 label（time-ago、数値混合、plural）は対象外。
+- locale は Cookie `locale` に `en` / `ja` として保存する。未設定または不正値は `en`
+- `/locale?lang={en|ja}&next={relative-path}` で切替し、`safeNext()` で安全な相対パスに戻す
+- ヘッダー nav、ヘッダー右、フッター、topright、submit/login/newpoll フォーム、
+  story-list の主要アクションは `src/lib/i18n.ts` の共有辞書から表示する
+- 英語モードでは HN 風の英語ラベルを本体表示し、日本語訳を `title` tooltip に入れる
+- 日本語モードでは日本語ラベルを本体表示し、必要な箇所では英語ラベルを `title` tooltip に入れる
+- 動的 label（time-ago 等）は対象 formatter の責務。数値混合の一部（points/comments）は
+  `StoryListItem.svelte` 内で locale に応じて表示する
 
 ## v1 スコープ
 

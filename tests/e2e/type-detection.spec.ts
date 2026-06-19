@@ -14,6 +14,43 @@ import { signupNewUser, runD1 } from './helpers';
  * poll を作る手段が無いので skip する。
  */
 test.describe('story type detection', () => {
+	test('Japanese operation assist chooses show metadata without mutating title', async ({
+		page
+	}) => {
+		await page.goto('/locale?lang=ja&next=/login');
+		await signupNewUser(page);
+		const title = `plain assisted show ${Date.now()}`;
+
+		await page.goto('/submit');
+		await page.waitForLoadState('networkidle');
+		await page.selectOption('select[name="storyType"]', 'show');
+		await page.fill('input[name="title"]', title);
+		await page.fill('textarea[name="text"]', 'assisted show body');
+		await Promise.all([
+			page.waitForURL(/\/item\/\d+/, { timeout: 15_000 }),
+			page.click('button[type="submit"]')
+		]);
+
+		await expect(page.locator('.item-title')).toContainText('[作ったもの]');
+		await expect(page.locator('.item-title')).not.toContainText('作ったもの:');
+
+		// メタ先行保存は UI で証明する: [作ったもの]/[Show HN] バッジは stories.type から render 時に
+		// 導出され、/show 一覧は type='show' で絞る。両方の通過が「type=show 保存・タイトル非改変」を示す
+		// （SQLite の RAISE() はトリガ外で使えないため D1 直アサートはしない）。
+		const itemPath = new URL(page.url()).pathname;
+		await page.goto(`/locale?lang=en&next=${encodeURIComponent(itemPath)}`);
+		await expect(page.locator('.item-title')).toContainText('[Show HN]');
+		await expect(page.locator('.item-title')).not.toContainText('Show HN:');
+
+		await page.goto('/show');
+		const row = page
+			.locator('.story-item')
+			.filter({ has: page.locator('a.story-title', { hasText: title }) })
+			.first();
+		await expect(row).toHaveCount(1);
+		await expect(row).toContainText('[Show HN]');
+	});
+
 	test('Ask HN: prefix → type=ask, /ask に出る', async ({ page }) => {
 		await signupNewUser(page);
 		const title = `Ask HN: ${Date.now()} type 判定テスト`;

@@ -40,6 +40,7 @@ hacker-noroshi/
 │   │   ├── login/            # ログイン + サインアップ（1ページ統合）
 │   │   ├── signup/           # /login へリダイレクト
 │   │   ├── logout/           # ログアウト
+│   │   ├── locale/           # UI locale 切替
 │   │   ├── guidelines/       # ガイドライン
 │   │   ├── faq/              # FAQ
 │   │   ├── showhn/           # Show HN ルール
@@ -279,6 +280,7 @@ env: `TURNSTILE_SITE_KEY`（public）と `TURNSTILE_SECRET_KEY`（secret）。
 | `/login` | ログイン + サインアップ（本家HN準拠で1ページ統合） |
 | `/signup` | /login へリダイレクト（既存リンク互換） |
 | `/logout` | ログアウト（リダイレクト） |
+| `/locale` | UI locale 切替（`lang=en\|ja` と `next` を受け取り Cookie に保存して戻る） |
 | `/guidelines` | ガイドライン |
 | `/faq` | FAQ |
 | `/showhn` | Show HN ルール |

@@ -1,3 +1,40 @@
+<script lang="ts">
+	const storyExample = `{
+  "id": 42,
+  "type": "story",
+  "by": "noroshi",
+  "time": 1700000000,
+  "title": "Show HN: Hacker Noroshi",
+  "url": "https://hn.llll-ll.com/",
+  "text": null,
+  "score": 45,
+  "descendants": 3,
+  "kids": [44, 47, 51],
+  "dead": false,
+  "deleted": false
+}`;
+
+	const commentExample = `{
+  "id": 47,
+  "type": "comment",
+  "by": "tanaka",
+  "time": 1700000100,
+  "text": "Nice work.",
+  "parent": 42,
+  "score": 1,
+  "kids": [],
+  "dead": false,
+  "deleted": false
+}`;
+
+	const userExample = `{
+  "id": "noroshi",
+  "created": 1700000000,
+  "karma": 100,
+  "about": ""
+}`;
+</script>
+
 <svelte:head>
 	<title>API | ハッカーのろし</title>
 </svelte:head>
@@ -72,44 +109,15 @@
 	<p>
 		<code>$ curl https://hn.llll-ll.com/api/v0/item/42.json</code>
 	</p>
-	<pre style="font-size: 9pt; background: #f6f6ef; padding: 4pt; border: 1px solid #ccc; overflow-x: auto;">{
-  "id": 42,
-  "type": "story",
-  "by": "noroshi",
-  "time": 1700000000,
-  "title": "Show HN: Hacker Noroshi",
-  "url": "https://hn.llll-ll.com/",
-  "text": null,
-  "score": 45,
-  "descendants": 3,
-  "kids": [44, 47, 51],
-  "dead": false,
-  "deleted": false
-}</pre>
+	<pre style="font-size: 9pt; background: #f6f6ef; padding: 4pt; border: 1px solid #ccc; overflow-x: auto;">{storyExample}</pre>
 
 	<p><b>Comment item example</b></p>
 
-	<pre style="font-size: 9pt; background: #f6f6ef; padding: 4pt; border: 1px solid #ccc; overflow-x: auto;">{
-  "id": 47,
-  "type": "comment",
-  "by": "tanaka",
-  "time": 1700000100,
-  "text": "Nice work.",
-  "parent": 42,
-  "score": 1,
-  "kids": [],
-  "dead": false,
-  "deleted": false
-}</pre>
+	<pre style="font-size: 9pt; background: #f6f6ef; padding: 4pt; border: 1px solid #ccc; overflow-x: auto;">{commentExample}</pre>
 
 	<p><b>User example</b></p>
 
-	<pre style="font-size: 9pt; background: #f6f6ef; padding: 4pt; border: 1px solid #ccc; overflow-x: auto;">{
-  "id": "noroshi",
-  "created": 1700000000,
-  "karma": 100,
-  "about": ""
-}</pre>
+	<pre style="font-size: 9pt; background: #f6f6ef; padding: 4pt; border: 1px solid #ccc; overflow-x: auto;">{userExample}</pre>
 
 	<p><b>Field reference</b></p>
 
@@ -155,10 +163,10 @@
 	<p><b>Errors</b></p>
 
 	<p>
-		Unknown items / users return <code>404</code> with body <code>{"error": "not found"}</code>.
+		Unknown items / users return <code>404</code> with body <code>&#123;"error": "not found"&#125;</code>.
 		Malformed input (non-numeric ID, invalid username format) is also <code>404</code> by design,
 		matching HN's behaviour. Internal failures return <code>500</code> with body
-		<code>{"error": "internal"}</code>.
+		<code>&#123;"error": "internal"&#125;</code>.
 	</p>
 
 	<p><b>Rate limits</b></p>
