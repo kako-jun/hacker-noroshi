@@ -648,3 +648,88 @@ a:hover {
 .spacer-10 {
 	height: 10px;
 }
+
+/* ===== アシストモード（#140） =====
+   Hacker Noroshi 独自の操作補助層。HN 橙(#ff6600)は使わず青系(#1f6feb)＋ガラスで HN コア UI と視覚的に
+   分離する。解説/ヒントは既定で非表示で、.assist-on 配下でだけ可視＝オフにすれば素の HN ページが完全に戻る
+   （no-effects ルールの例外はこの層だけ）。 */
+.assist-intro,
+.assist-hint {
+	display: none;
+}
+.assist-on .assist-intro {
+	display: block;
+	margin: 8px 0 12px;
+	padding: 8px 10px;
+	font-family: Verdana, Geneva, sans-serif;
+	font-size: 9pt;
+	line-height: 1.5;
+	color: #0a2a66;
+	background: rgba(31, 111, 235, 0.1);
+	border: 1px solid rgba(31, 111, 235, 0.35);
+	border-left: 3px solid #1f6feb;
+	border-radius: 4px;
+	backdrop-filter: blur(2px);
+}
+.assist-on .assist-hint {
+	display: block;
+	margin-top: 3px;
+	padding: 4px 7px;
+	font-family: Verdana, Geneva, sans-serif;
+	font-size: 8pt;
+	line-height: 1.45;
+	color: #0a2a66;
+	background: rgba(31, 111, 235, 0.1);
+	border: 1px solid rgba(31, 111, 235, 0.3);
+	border-radius: 4px;
+	max-width: 480px;
+}
+
+/* 右下の常設スイッチ。fixed でスクロール追従。いつでもオン/オフ。 */
+.assist-switch {
+	position: fixed;
+	right: 14px;
+	bottom: 14px;
+	z-index: 50;
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	padding: 6px 10px;
+	font-family: Verdana, Geneva, sans-serif;
+	font-size: 8.5pt;
+	color: #0a2a66;
+	background: rgba(255, 255, 255, 0.65);
+	border: 1px solid rgba(31, 111, 235, 0.5);
+	border-radius: 999px;
+	cursor: pointer;
+	backdrop-filter: blur(4px);
+	box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+}
+.assist-switch-track {
+	position: relative;
+	width: 28px;
+	height: 14px;
+	border-radius: 999px;
+	background: #b9c4d4;
+	transition: background 0.15s;
+	flex-shrink: 0;
+}
+.assist-switch-thumb {
+	position: absolute;
+	top: 1px;
+	left: 1px;
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	background: #fff;
+	transition: left 0.15s;
+}
+.assist-switch[aria-checked='true'] .assist-switch-track {
+	background: #1f6feb;
+}
+.assist-switch[aria-checked='true'] .assist-switch-thumb {
+	left: 15px;
+}
+.assist-switch-text {
+	font-weight: bold;
+}
