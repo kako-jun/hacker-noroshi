@@ -38,6 +38,9 @@
 		forcePollTag?: boolean;
 		/** hide 成功時に親へ通知（親側で localHiddenIds を更新するため） */
 		onhide?: (storyId: number) => void;
+		/** これが渡されると meta 行は hide でなく un-hide を出す（/hidden 用・#153）。
+		 *  クリックで POST /api/hide（toggle で hidden を解除）→ 成功で親へ通知し、その行を /hidden 一覧から消す。 */
+		onunhide?: (storyId: number) => void;
 		/** 一覧の「描画上の先頭行」だけ true。行コントロール解説 hint をここに1回だけ出す（#143）。
 		 *  絶対 rank ではなく描画 index で判定する＝2ページ目（rank=31〜）や rank 無しの /search でも先頭に出る。 */
 		assistFirst?: boolean;
@@ -51,6 +54,7 @@
 		initialFlagged,
 		forcePollTag = false,
 		onhide,
+		onunhide,
 		assistFirst = false
 	}: Props = $props();
 
@@ -128,6 +132,22 @@
 		}
 	}
 
+	// /hidden 用（#153）。/api/hide は toggle なので、hidden な story に投げると un-hide される。
+	// 解除できたら（hidden=false）親へ通知し、その行を /hidden 一覧から消す。
+	async function unhide() {
+		const res = await fetch('/api/hide', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ storyId: story.id })
+		});
+		if (res.ok) {
+			const result: { hidden: boolean } = await res.json();
+			if (!result.hidden) {
+				onunhide?.(story.id);
+			}
+		}
+	}
+
 	function l(key: string): string {
 		return label(key, locale);
 	}
@@ -180,7 +200,16 @@
 					deleted: story.user_deleted === 1 ? 1 : story.user_deleted === 0 ? 0 : null
 				})}</a>
 			<a href="/item/{story.id}">{timeAgo(story.created_at)}</a> |
-			{#if user}
+			{#if onunhide}
+				<a
+					href="#unhide"
+					title={tip('un-hide')}
+					onclick={(e) => {
+						e.preventDefault();
+						unhide();
+					}}>{l('un-hide')}</a
+				>
+			{:else if user}
 				<a
 					href="#hide"
 					title={tip('hide')}

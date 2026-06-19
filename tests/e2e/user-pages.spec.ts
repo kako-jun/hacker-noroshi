@@ -43,4 +43,32 @@ test.describe('user listing pages via StoryList', () => {
 		await page.reload();
 		await expect(row()).toHaveCount(0);
 	});
+
+	test('/hidden も StoryList（unhide モード）で描画され、un-hide で行が消え復活しない', async ({
+		page
+	}) => {
+		const title = `E2E Unhide ${Date.now()}`;
+		const username = await signupNewUser(page);
+		await submitStory(page, { title, text: 'unhide body' });
+
+		// /newest で hide → /hidden に出る。
+		await page.goto('/newest');
+		const newestRow = page
+			.locator('.story-item')
+			.filter({ has: page.locator('a.story-title', { hasText: title }) });
+		await expect(newestRow).toBeVisible();
+		await newestRow.locator('.story-meta a[href="#hide"]').click();
+		await expect(newestRow).toHaveCount(0, { timeout: 5000 });
+
+		await page.goto(`/user/${username}/hidden`);
+		const row = () =>
+			page.locator('.story-item').filter({ has: page.locator('a.story-title', { hasText: title }) });
+		await expect(row()).toBeVisible();
+		// canonical row の un-hide リンク（StoryList unhide モード由来）。
+		await row().locator('.story-meta a[href="#unhide"]').click();
+		await expect(row()).toHaveCount(0, { timeout: 5000 });
+		// un-hide したのでリロードしても /hidden には戻らない。
+		await page.reload();
+		await expect(row()).toHaveCount(0);
+	});
 });

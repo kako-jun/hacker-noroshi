@@ -20,6 +20,9 @@
 		moreHref?: string | null;
 		/** url 無しでも常に [poll] タグを付ける（polls）。 */
 		forcePollTag?: boolean;
+		/** /hidden 用（#153）。各行を hide でなく un-hide で出し、un-hide で行を一覧から消す。
+		 *  この一覧は hidden を「表示」するので serverHiddenIds 等での除外はしない。 */
+		unhide?: boolean;
 	};
 
 	let {
@@ -30,7 +33,8 @@
 		serverHiddenIds = [],
 		rankStart = 0,
 		moreHref = null,
-		forcePollTag = false
+		forcePollTag = false,
+		unhide = false
 	}: Props = $props();
 
 	let votedSet = $derived(new Set<number>(votedIds));
@@ -42,7 +46,8 @@
 	function isHidden(id: number): boolean {
 		return serverHiddenSet.has(id) || localHiddenIds.has(id);
 	}
-	function onhide(id: number) {
+	// hide でも un-hide でも、成功した行はこの一覧から即座に消す（楽観更新）。
+	function removeFromView(id: number) {
 		const next = new Set(localHiddenIds);
 		next.add(id);
 		localHiddenIds = next;
@@ -64,7 +69,8 @@
 				initialVoted={votedSet.has(story.id)}
 				initialFlagged={flaggedSet.has(story.id)}
 				{forcePollTag}
-				{onhide}
+				onhide={unhide ? undefined : removeFromView}
+				onunhide={unhide ? removeFromView : undefined}
 			/>
 		{/if}
 	{/each}
