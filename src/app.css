@@ -14,7 +14,9 @@ body {
 	font-family: Verdana, Geneva, sans-serif;
 	font-size: 10pt;
 	color: #828282;
-	background-color: #f6f6ef;
+	/* 本家 HN は body=白＋中央コンテナ(#hnmain)=cream の二層。PC幅で 85% コンテナの外側が白フレームになる
+	   （スマホ幅は .hn-page が 100% で白は見えない）。コンテナ色は .hn-page が #f6f6ef で持つ（#144）。 */
+	background-color: #ffffff;
 }
 
 a {
