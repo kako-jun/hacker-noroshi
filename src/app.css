@@ -688,7 +688,10 @@ a:hover {
 }
 .assist-on .assist-hint {
 	display: block;
-	margin-top: 3px;
+	/* アシストが生む間隔はアシスト側が持つ（挿入される側＝フォームは無改変）。左インデントで対象コントロールの
+	   下位の注記として読ませ、下に必ず空間を空けて次の項目とくっつかないようにする。オフ時は display:none で
+	   これらのマージンごと消えるので host のリズムには無影響。 */
+	margin: 4px 0 10px 1.5em;
 	padding: 4px 8px;
 	font-family: Verdana, Geneva, sans-serif;
 	font-size: 8pt;
