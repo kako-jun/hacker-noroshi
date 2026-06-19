@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { label, tooltip } from '$lib/i18n';
+	import { assistIntro, assistHint } from '$lib/assist';
 
 	let { data, form } = $props();
 
@@ -18,6 +19,7 @@
 </svelte:head>
 
 <div class="hn-form">
+	<p class="assist-intro">{assistIntro('/newpoll', data.locale)}</p>
 	{#if form?.error}
 		<div class="form-error">{form.error}</div>
 	{/if}
@@ -27,19 +29,19 @@
 			<tbody>
 				<tr>
 					<td>{l('title')}</td>
-					<td><input type="text" name="title" value={form?.title ?? ''} maxlength="80" size="50" /></td>
+					<td><input type="text" name="title" value={form?.title ?? ''} maxlength="80" size="50" /><div class="assist-hint">{assistHint('newpoll.title', data.locale)}</div></td>
 				</tr>
 				<tr>
 					<td>{l('text')}</td>
-					<td><textarea name="text" rows="4" cols="49">{form?.text ?? ''}</textarea></td>
+					<td><textarea name="text" rows="4" cols="49">{form?.text ?? ''}</textarea><div class="assist-hint">{assistHint('newpoll.text', data.locale)}</div></td>
 				</tr>
 				<tr>
 					<td style="vertical-align: top;">{l('choices')}</td>
-					<td><textarea name="options" rows="8" cols="49">{form?.options ?? ''}</textarea></td>
+					<td><textarea name="options" rows="8" cols="49">{form?.options ?? ''}</textarea><div class="assist-hint">{assistHint('newpoll.options', data.locale)}</div></td>
 				</tr>
 				<tr>
 					<td></td>
-					<td><button type="submit" title={tip('submit')}>{l('submit')}</button></td>
+					<td><button type="submit" title={tip('submit')}>{l('submit')}</button><div class="assist-hint">{assistHint('newpoll.submit', data.locale)}</div></td>
 				</tr>
 			</tbody>
 		</table>

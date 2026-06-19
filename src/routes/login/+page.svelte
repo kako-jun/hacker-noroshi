@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { label, tooltip } from '$lib/i18n';
+	import { assistIntro, assistHint } from '$lib/assist';
 
 	let { data, form } = $props();
 
@@ -18,6 +19,7 @@
 </svelte:head>
 
 <div class="hn-form">
+	<p class="assist-intro">{assistIntro('/login', data.locale)}</p>
 	<b>{l('Login')}</b>
 	{#if form?.loginError}
 		<div class="form-error">{form.loginError}</div>
@@ -30,11 +32,14 @@
 			{l('username')}:
 			<input type="text" name="username" value={form?.loginUsername ?? ''} autocomplete="username" autocorrect="off" spellcheck="false" autocapitalize="off" autofocus />
 		</label>
+		<div class="assist-hint">{assistHint('login.username', data.locale)}</div>
 		<label class="login-row">
 			{l('password')}:
 			<input type="password" name="password" autocomplete="current-password" />
 		</label>
+		<div class="assist-hint">{assistHint('login.password', data.locale)}</div>
 		<button type="submit" title={tip('login')}>{l('login')}</button>
+		<div class="assist-hint">{assistHint('login.submit', data.locale)}</div>
 	</form>
 
 	<br /><br />
@@ -51,11 +56,14 @@
 			{l('username')}:
 			<input type="text" name="username" value={form?.signupUsername ?? ''} autocomplete="username" autocorrect="off" spellcheck="false" autocapitalize="off" />
 		</label>
+		<div class="assist-hint">{assistHint('signup.username', data.locale)}</div>
 		<label class="login-row">
 			{l('password')}:
 			<input type="password" name="password" autocomplete="new-password" />
 		</label>
+		<div class="assist-hint">{assistHint('signup.password', data.locale)}</div>
 		<button type="submit" title={tip('create account')}>{l('create account')}</button>
+		<div class="assist-hint">{assistHint('signup.submit', data.locale)}</div>
 	</form>
 
 	<div class="form-note">

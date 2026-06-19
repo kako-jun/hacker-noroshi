@@ -10,6 +10,7 @@
 		storyTypeLabel,
 		tooltipJa
 	} from '$lib/i18n';
+	import { assistIntro } from '$lib/assist';
 
 	let { data, form } = $props();
 	let localStoryVoted = $state<boolean | null>(null);
@@ -414,6 +415,8 @@
 		replyTo = replyTo === commentId ? null : commentId;
 	}
 </script>
+
+<p class="assist-intro">{assistIntro('/item', data.locale)}</p>
 
 {#if data.mode === 'comment'}
 	{@const comment = data.targetComment}

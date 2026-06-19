@@ -648,3 +648,98 @@ a:hover {
 .spacer-10 {
 	height: 10px;
 }
+
+/* ===== アシストモード（#140） =====
+   Hacker Noroshi 独自の操作補助層。HN 橙(#ff6600)は使わず青系(#1f6feb)＋ガラスで HN コア UI と視覚的に
+   分離する。解説/ヒントは既定で非表示で、.assist-on 配下でだけ可視＝オフにすれば素の HN ページが完全に戻る
+   （no-effects ルールの例外はこの層だけ）。 */
+.assist-intro,
+.assist-hint {
+	display: none;
+}
+.assist-on .assist-intro {
+	display: block;
+	/* 上下マージンを均等に（旧 8/12 の下重を解消）。 */
+	margin: 10px 0;
+	padding: 8px 11px;
+	font-family: Verdana, Geneva, sans-serif;
+	font-size: 9pt;
+	/* 行間を詰めて、最終行下の余白が「下だけ広い」ように見えるのを抑える。 */
+	line-height: 1.4;
+	/* FF の「初心者の館」風メッセージ窓＝青背景・白枠・白文字。クリーム地の HN 本体と一目で見分けつき、
+	   「外付けの案内」だと世界観で伝わる。橙は使わない。 */
+	color: #ffffff;
+	background: linear-gradient(180deg, #2a3f9e 0%, #141d54 100%);
+	border: 2px solid #ffffff;
+	border-radius: 6px;
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.45);
+}
+.assist-on .assist-hint {
+	display: block;
+	/* アシストが生む間隔はアシスト側が持つ（挿入される側＝フォームは無改変）。左インデントで対象コントロールの
+	   下位の注記として読ませ、下に必ず空間を空けて次の項目とくっつかないようにする。オフ時は display:none で
+	   これらのマージンごと消えるので host のリズムには無影響。 */
+	margin: 4px 0 10px 1.5em;
+	padding: 4px 8px;
+	font-family: Verdana, Geneva, sans-serif;
+	font-size: 8pt;
+	line-height: 1.45;
+	color: #ffffff;
+	background: linear-gradient(180deg, #2a3f9e 0%, #141d54 100%);
+	border: 2px solid #ffffff;
+	border-radius: 6px;
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.45);
+	max-width: 480px;
+}
+
+/* 右下の常設スイッチ。fixed でスクロール追従。いつでもオン/オフ。 */
+.assist-switch {
+	position: fixed;
+	right: 14px;
+	bottom: 14px;
+	z-index: 50;
+	display: inline-flex;
+	align-items: center;
+	gap: 7px;
+	padding: 6px 10px;
+	font-family: Verdana, Geneva, sans-serif;
+	font-size: 8.5pt;
+	/* 窓と同じ FF 初心者の館の意匠（青地・白枠・白文字）に揃える。 */
+	color: #ffffff;
+	background: linear-gradient(180deg, #2a3f9e 0%, #141d54 100%);
+	border: 2px solid #ffffff;
+	border-radius: 999px;
+	cursor: pointer;
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.45);
+}
+.assist-switch-track {
+	position: relative;
+	width: 28px;
+	height: 14px;
+	border-radius: 999px;
+	background: rgba(255, 255, 255, 0.3);
+	transition: background 0.15s;
+	flex-shrink: 0;
+}
+.assist-switch-thumb {
+	position: absolute;
+	top: 1px;
+	left: 1px;
+	width: 12px;
+	height: 12px;
+	border-radius: 50%;
+	background: #ffffff;
+	transition:
+		left 0.15s,
+		background 0.15s;
+}
+.assist-switch[aria-checked='true'] .assist-switch-track {
+	background: #ffffff;
+}
+.assist-switch[aria-checked='true'] .assist-switch-thumb {
+	left: 15px;
+	background: #141d54;
+}
+.assist-switch-text {
+	font-weight: bold;
+}

@@ -2,8 +2,22 @@
 	import '../app.css';
 	import { page } from '$app/state';
 	import { label, localeToggleHref, tooltip } from '$lib/i18n';
+	import { assistSwitchLabel } from '$lib/assist';
 
 	let { data, children } = $props();
+
+	// アシストモード（#140）。SSR 値（cookie 由来 data.assist）で初期化＝初期描画のフラッシュ無し。
+	// クライアントではスイッチで即座にトグル（リロード無し・スクロール維持）し、cookie に焼いて次回 SSR と一致させる。
+	let assistOn = $state(data.assist);
+	function toggleAssist() {
+		assistOn = !assistOn;
+		document.cookie = `assist=${assistOn ? '1' : '0'}; path=/; max-age=${365 * 24 * 60 * 60}; samesite=lax`;
+	}
+	// ナビゲーションで cookie 由来の data.assist が変わったら追従する（別タブ等で cookie が変わった状態に
+	// 遷移後も古い初期値が残るのを防ぐ・レビュー指摘）。手動トグルは data.assist 不変なので上書きされない。
+	$effect(() => {
+		assistOn = data.assist;
+	});
 
 	type NavItem = { href: string; label: string; topright: string };
 	const navItems: NavItem[] = [
@@ -67,7 +81,7 @@
 	<link rel="alternate" type="application/rss+xml" title="ハッカーのろし" href="/rss" />
 </svelte:head>
 
-<div class="hn-page">
+<div class="hn-page" class:assist-on={assistOn}>
 	<header class="hn-header">
 		<div class="hn-header-left">
 			<a href="/" class="hn-header-logo"><img src="/icon-header.webp" alt="ハッカーのろし" width="18" height="18" /></a>
@@ -114,4 +128,19 @@
 			{l('Search')}: <input type="text" name="q" />
 		</form>
 	</footer>
+
+	<!-- アシストモードのスイッチ（#140）。右下に固定・スクロール追従。青/ガラスで HN コアと分離。
+	     押すと即トグル（リロード無し）。aria-pressed で状態を支援技術へ伝える。 -->
+	<button
+		type="button"
+		class="assist-switch"
+		role="switch"
+		aria-checked={assistOn}
+		aria-label={assistSwitchLabel(data.locale)}
+		title={assistSwitchLabel(data.locale)}
+		onclick={toggleAssist}
+	>
+		<span class="assist-switch-track"><span class="assist-switch-thumb"></span></span>
+		<span class="assist-switch-text">{assistSwitchLabel(data.locale)}</span>
+	</button>
 </div>
