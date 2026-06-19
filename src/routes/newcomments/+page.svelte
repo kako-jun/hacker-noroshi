@@ -2,6 +2,7 @@
 	import { timeAgo, isNewUser } from '$lib/ranking';
 	import { tooltipJa } from '$lib/i18n';
 	import { formatText, displayUsername } from '$lib/format';
+	import { assistIntro } from '$lib/assist';
 
 	let { data } = $props();
 	let localVoteStates = $state<Record<number, 'up' | 'down' | null> | null>(null);
@@ -47,6 +48,8 @@
 <svelte:head>
 	<title>New Comments | ハッカーのろし</title>
 </svelte:head>
+
+<p class="assist-intro">{assistIntro('/newcomments', data.locale)}</p>
 
 <div style="padding-left: 40px;">
 	{#each data.comments as comment}
