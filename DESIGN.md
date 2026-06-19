@@ -27,12 +27,12 @@ Hardcoded CSS values. No variables, no tokens.
 | Color     | Hex       | Usage                              |
 | --------- | --------- | ---------------------------------- |
 | Orange    | `#ff6600` | Header bg, voted indicator (up/down), hover |
-| Cream     | `#f6f6ef` | Page background                    |
+| Cream     | `#f6f6ef` | Centered container (85% / #hnmain) background |
 | Black     | `#000000` | Primary text, titles               |
 | Gray      | `#828282` | Meta text, timestamps, visited links, faded comments (downvoted) |
 | Light gray | `#9a9a9a` | Inactive upvote arrow              |
 | Red       | `#ff0000` | Error messages                     |
-| White     | `#ffffff` | Header text, logo border           |
+| White     | `#ffffff` | Header text, logo border, body/outer frame (PC: shown around the 85% container) |
 
 Links: `#000000` (unvisited), `#828282` (visited). Hover: underline only.
 
