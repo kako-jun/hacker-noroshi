@@ -580,7 +580,7 @@
 								style="color: #828282;"
 							>{#if collapsed[child.id]}[+]{:else}[&ndash;]{/if}</a>
 							{#if collapsed[child.id] && descendantCounts[child.id] > 0}
-								<span style="color: #828282;"> ({descendantCounts[child.id]} {descendantCounts[child.id] === 1 ? 'reply' : 'replies'})</span>
+								<span style="color: #828282;"> ({descendantCounts[child.id]} more)</span>
 							{/if}
 						</span>
 					</div>
@@ -871,7 +871,7 @@
 								style="color: #828282;"
 							>{#if collapsed[comment.id]}[+]{:else}[&ndash;]{/if}</a>
 							{#if collapsed[comment.id] && descendantCounts[comment.id] > 0}
-								<span style="color: #828282;"> ({descendantCounts[comment.id]} {descendantCounts[comment.id] === 1 ? 'reply' : 'replies'})</span>
+								<span style="color: #828282;"> ({descendantCounts[comment.id]} more)</span>
 							{/if}
 						</span>
 					</div>
