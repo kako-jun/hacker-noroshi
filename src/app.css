@@ -707,12 +707,43 @@ a:hover {
 	max-width: 480px;
 }
 
-/* 右下の常設スイッチ。fixed でスクロール追従。いつでもオン/オフ。 */
-.assist-switch {
+/* 右下の常設ドック。ⓘ リンクとアシストスイッチを横並びにし、fixed でスクロール追従。 */
+.assist-dock {
 	position: fixed;
 	right: 14px;
 	bottom: 14px;
 	z-index: 50;
+	display: flex;
+	align-items: center;
+	gap: 8px;
+}
+
+/* 「このサイトの目的」へ飛ぶ円形 ⓘ リンク。常設（assist ON/OFF 不問）。
+   doctrine #6 でアシスト層は非オレンジ＝青/白でスイッチと対の意匠に揃える。 */
+.assist-about {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	width: 30px;
+	height: 30px;
+	color: #ffffff;
+	background: linear-gradient(180deg, #2a3f9e 0%, #141d54 100%);
+	border: 2px solid #ffffff;
+	border-radius: 50%;
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.45);
+	cursor: pointer;
+	text-decoration: none;
+	flex-shrink: 0;
+}
+.assist-about:hover {
+	background: linear-gradient(180deg, #344cb8 0%, #1a256b 100%);
+}
+.assist-about svg {
+	display: block;
+}
+
+/* 常設スイッチ。位置はドックが持つ（fixed でスクロール追従）。見た目だけ維持。 */
+.assist-switch {
 	display: inline-flex;
 	align-items: center;
 	gap: 7px;

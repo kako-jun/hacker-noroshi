@@ -84,7 +84,7 @@ const ASSIST_HINT: Record<Locale, Record<string, string>> = {
 		// ヘッダ直下に1回。メタ操作（言語・アシスト本体）への気づき。カルマは meta.karma に分離し、
 		// ログイン中（= 実際に (123) が見える）ときだけ layout が後段に足す。
 		'meta.controls':
-			'右上の lang で日本語／英語を切り替えられます。右下の青いスイッチがこのアシスト本体——オフにすると解説が消え、本家 Hacker News と同じ素の画面になります。慣れたらオフにして、本家へデビューしましょう。',
+			'右上の lang で日本語／英語を切り替えられます。右下には丸い ⓘ ボタンと「アシスト」と書かれたスイッチが並んでいます——ⓘ はこのサイトの目的（HN の練習場）の説明へ、「アシスト」スイッチがこのアシスト本体です。スイッチをオフにすると解説が消え、本家 Hacker News と同じ素の画面になります。慣れたらオフにして、本家へデビューしましょう。',
 		'meta.karma': 'また、ログイン中はヘッダの自分の名前の右の数字 (123) がカルマ（karma＝評価点）です。'
 	},
 	en: {
@@ -107,7 +107,7 @@ const ASSIST_HINT: Record<Locale, Record<string, string>> = {
 		'item.controls':
 			'Actions for this post. favorite bookmarks it (it appears under favorites on your profile), hide removes it from your list, flag reports it. If it is your own post, edit / delete also appear — but you can only edit within 2 hours of posting (the same edit-window convention as the real HN). Below, collapse comments with [–] and reply to join in.',
 		'meta.controls':
-			'Use lang at the top-right to switch Japanese / English. The blue switch at the bottom-right is this assist itself — turn it off and the guides disappear, leaving the plain screen identical to the real Hacker News. Once you are comfortable, switch it off and graduate to the real thing.',
+			'Use lang at the top-right to switch Japanese / English. At the bottom-right sit a round ⓘ button and a switch labeled "Assist": the ⓘ opens an explanation of what this site is for (a practice ground for HN), and the "Assist" switch is this assist itself — turn it off and the guides disappear, leaving the plain screen identical to the real Hacker News. Once you are comfortable, switch it off and graduate to the real thing.',
 		'meta.karma': 'Also, when you are logged in, the number (123) next to your name in the header is your karma (reputation).'
 	}
 };
@@ -126,4 +126,18 @@ export function assistHint(key: string, locale: Locale): string {
 /** 右下スイッチのラベル。 */
 export function assistSwitchLabel(locale: Locale): string {
 	return locale === 'ja' ? 'アシスト' : 'Assist';
+}
+
+/** 右下「このサイトの目的」リンクのラベル（ツールチップ/aria）。 */
+export function assistAboutLabel(locale: Locale): string {
+	return locale === 'ja'
+		? 'このサイトはなに？ — ハッカーのろしの目的'
+		: 'What is Hacker Noroshi? — why it exists';
+}
+
+/** 「このサイトの目的」記事（llll-ll）の URL。ロケール別。 */
+export function assistAboutUrl(locale: Locale): string {
+	return locale === 'ja'
+		? 'https://llll-ll.com/ja/posts/hacker-noroshi/'
+		: 'https://llll-ll.com/posts/hacker-noroshi/';
 }
