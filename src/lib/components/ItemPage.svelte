@@ -1,0 +1,1024 @@
+<script lang="ts">
+	import { enhance } from '$app/forms';
+	import { FLAG_KARMA_THRESHOLD } from '$lib/constants';
+	import { timeAgo, extractDomain, isNewUser, isThreadOpen } from '$lib/ranking';
+	import { formatText, displayUsername } from '$lib/format';
+	import { invalidateAll } from '$app/navigation';
+	import {
+		hasLegacyStoryTypePrefix,
+		normalizeLocale,
+		storyTypeLabel,
+		tooltipJa
+	} from '$lib/i18n';
+	import { assistHint } from '$lib/assist';
+	import { postHideToggle } from '$lib/storyActions';
+	import type { StoryRow, CommentRow, PollOptionRow } from '$lib/server/db';
+	import type { Locale } from '$lib/i18n';
+
+	// ItemPage は /item/[id]（story 専用）と /comment/[id]（comment permalink）
+	// の両ルートから共有される。各ルートの +page.server.ts は下記の discriminated
+	// union（mode で分岐）と同じ shape を返す。route の $types はコンポーネント
+	// から参照できないため、ここでローカルに構造型を定義して型安全を保つ。
+	type LayoutData = {
+		user: App.Locals['user'];
+		locale: Locale;
+		assist?: boolean;
+	};
+	type StoryModeData = LayoutData & {
+		mode: 'story';
+		story: StoryRow;
+		comments: CommentRow[];
+		storyVoted: boolean;
+		storyFavorited: boolean;
+		storyFlagged: boolean;
+		storyHidden?: boolean;
+		commentVoteStates: Record<number, 'up' | 'down'>;
+		flaggedCommentIds: number[];
+		pollOptions: PollOptionRow[];
+		pollVotedOptionIds: number[];
+	};
+	type CommentModeData = LayoutData & {
+		mode: 'comment';
+		targetComment: CommentRow;
+		parentStory: StoryRow;
+		comments: CommentRow[];
+		commentVoted: boolean;
+		commentFlagged: boolean;
+		commentVoteStates: Record<number, 'up' | 'down'>;
+		flaggedCommentIds: number[];
+		pollOptions: PollOptionRow[];
+		pollVotedOptionIds: number[];
+	};
+	type ItemData = StoryModeData | CommentModeData;
+	type ItemForm =
+		| { success?: boolean; error?: string; errorFor?: string; text?: string }
+		| null
+		| undefined;
+
+	let { data, form }: { data: ItemData; form: ItemForm } = $props();
+	let localStoryVoted = $state<boolean | null>(null);
+	let localStoryPoints = $state<number | null>(null);
+	let localCommentVoteStates = $state<Record<number, 'up' | 'down' | null> | null>(null);
+	let localCommentPoints = $state<Record<number, number>>({});
+	let replyTo = $state<number | null>(null);
+	let editingStory = $state(false);
+	let editingCommentId = $state<number | null>(null);
+	let localTargetCommentVoteState = $state<'up' | 'down' | null | undefined>(undefined);
+	let localTargetCommentPoints = $state<number | null>(null);
+	let localStoryFavorited = $state<boolean | null>(null);
+	let localStoryFlagged = $state<boolean | null>(null);
+	let localStoryHidden = $state<boolean | null>(null);
+	let localTargetCommentFlagged = $state<boolean | null>(null);
+	let localStoryDead = $state<number | null>(null);
+	let localTargetCommentDead = $state<number | null>(null);
+	// poll: ローカル状態。サーバーから来た投票済みID Set を初期値に持ち、トグルで更新する。
+	let localPollVotedOptionIds = $state<Set<number> | null>(null);
+	let localPollOptionCounts = $state<Record<number, number>>({});
+
+	function getPollVotedIds(): Set<number> {
+		if (localPollVotedOptionIds) return localPollVotedOptionIds;
+		return new Set(data.pollVotedOptionIds ?? []);
+	}
+
+	function getPollOptionCount(opt: { id: number; vote_count: number }): number {
+		return localPollOptionCounts[opt.id] ?? opt.vote_count;
+	}
+
+	function assistedTypeLabel(title: string, type: string | null | undefined): string {
+		if (hasLegacyStoryTypePrefix(title, type)) return '';
+		return storyTypeLabel(type, normalizeLocale(data.locale));
+	}
+
+	async function votePollOption(optionId: number) {
+		if (!data.user) {
+			window.location.href = '/login';
+			return;
+		}
+		const res = await fetch('/api/vote', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ itemId: optionId, itemType: 'poll_option' })
+		});
+		if (res.ok) {
+			const result: { voteState: 'up' | null; points: number } = await res.json();
+			localPollOptionCounts = { ...localPollOptionCounts, [optionId]: result.points };
+			const next = new Set(getPollVotedIds());
+			if (result.voteState === 'up') next.add(optionId);
+			else next.delete(optionId);
+			localPollVotedOptionIds = next;
+		}
+	}
+
+	function canFlagItem(authorId: number): boolean {
+		return !!data.user && data.user.karma >= FLAG_KARMA_THRESHOLD && authorId !== data.user.id;
+	}
+
+	async function flagStory() {
+		if (!data.user) {
+			window.location.href = '/login';
+			return;
+		}
+		if (data.mode !== 'story') return;
+		const res = await fetch('/api/flag', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ itemId: data.story.id, itemType: 'story' })
+		});
+		if (res.ok) {
+			const result: { flagged: boolean; flagCount: number } = await res.json();
+			localStoryFlagged = result.flagged;
+			if (result.flagCount > 4) localStoryDead = 1;
+		} else if (res.status === 403) {
+			const result = (await res.json()) as { error?: string };
+			alert(result.error || 'Permission denied');
+		}
+	}
+
+	async function flagTargetComment() {
+		if (!data.user) {
+			window.location.href = '/login';
+			return;
+		}
+		if (data.mode !== 'comment') return;
+		const res = await fetch('/api/flag', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ itemId: data.targetComment.id, itemType: 'comment' })
+		});
+		if (res.ok) {
+			const result: { flagged: boolean; flagCount: number } = await res.json();
+			localTargetCommentFlagged = result.flagged;
+			if (result.flagCount > 4) localTargetCommentDead = 1;
+		} else if (res.status === 403) {
+			const result = (await res.json()) as { error?: string };
+			alert(result.error || 'Permission denied');
+		}
+	}
+
+	async function vouchStory() {
+		if (!data.user) {
+			window.location.href = '/login';
+			return;
+		}
+		if (data.mode !== 'story') return;
+		const res = await fetch('/api/vouch', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ itemId: data.story.id, itemType: 'story' })
+		});
+		if (res.ok) {
+			localStoryDead = 0;
+			localStoryFlagged = false;
+			await invalidateAll();
+		} else {
+			const result = (await res.json()) as { error?: string };
+			alert(result.error || 'Vouch failed');
+		}
+	}
+
+	async function vouchTargetComment() {
+		if (!data.user) {
+			window.location.href = '/login';
+			return;
+		}
+		if (data.mode !== 'comment') return;
+		const res = await fetch('/api/vouch', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ itemId: data.targetComment.id, itemType: 'comment' })
+		});
+		if (res.ok) {
+			localTargetCommentDead = 0;
+			localTargetCommentFlagged = false;
+			await invalidateAll();
+		} else {
+			const result = (await res.json()) as { error?: string };
+			alert(result.error || 'Vouch failed');
+		}
+	}
+
+	function canEdit(createdAt: string, userId: number): boolean {
+		if (!data.user || data.user.id !== userId) return false;
+		const elapsed = Date.now() - new Date(createdAt).getTime();
+		return elapsed < 2 * 60 * 60 * 1000;
+	}
+
+	const confirmDelete = (message: string) => ({ cancel }: { cancel: () => void }) => {
+		if (!confirm(message)) {
+			cancel();
+			return;
+		}
+		return async ({ update }: { update: () => Promise<void> }) => {
+			await update();
+			await invalidateAll();
+		};
+	};
+
+	let storyVoted = $derived(localStoryVoted ?? (data.mode === 'story' ? data.storyVoted : false));
+	let storyPoints = $derived(localStoryPoints ?? (data.mode === 'story' ? data.story.points : 0));
+	let storyFavorited = $derived(localStoryFavorited ?? (data.mode === 'story' ? data.storyFavorited : false));
+	let storyFlagged = $derived(localStoryFlagged ?? (data.mode === 'story' ? data.storyFlagged : false));
+	let storyHidden = $derived(localStoryHidden ?? (data.mode === 'story' ? (data.storyHidden ?? false) : false));
+	let storyDead = $derived(localStoryDead ?? (data.mode === 'story' ? data.story.dead : 0));
+	let targetCommentFlagged = $derived(localTargetCommentFlagged ?? (data.mode === 'comment' ? data.commentFlagged : false));
+	let targetCommentDead = $derived(localTargetCommentDead ?? (data.mode === 'comment' ? data.targetComment.dead : 0));
+	let commentVoteStatesFromServer = $derived(data.commentVoteStates as Record<number, 'up' | 'down'>);
+
+	function getCommentVoteState(commentId: number): 'up' | 'down' | null {
+		if (localCommentVoteStates && commentId in localCommentVoteStates) {
+			return localCommentVoteStates[commentId];
+		}
+		return commentVoteStatesFromServer[commentId] ?? null;
+	}
+
+	function getCommentPoints(comment: { id: number; points: number }): number {
+		return localCommentPoints[comment.id] ?? comment.points;
+	}
+
+	let targetCommentVoteState = $derived(
+		localTargetCommentVoteState !== undefined
+			? localTargetCommentVoteState
+			: (data.mode === 'comment' ? (commentVoteStatesFromServer[data.targetComment.id] ?? null) : null)
+	);
+	let targetCommentPoints = $derived(
+		localTargetCommentPoints ?? (data.mode === 'comment' ? data.targetComment.points : 0)
+	);
+
+	interface CommentNode {
+		id: number;
+		text: string;
+		user_id: number;
+		story_id: number;
+		parent_id: number | null;
+		points: number;
+		created_at: string;
+		username: string;
+		user_created_at: string;
+		user_deleted?: number;
+		children: CommentNode[];
+		depth: number;
+	}
+
+	function buildCommentTree(
+		comments: typeof data.comments
+	): CommentNode[] {
+		const map = new Map<number, CommentNode>();
+		const roots: CommentNode[] = [];
+
+		for (const c of comments) {
+			map.set(c.id, { ...c, children: [], depth: 0 });
+		}
+
+		for (const c of comments) {
+			const node = map.get(c.id)!;
+			if (c.parent_id && map.has(c.parent_id)) {
+				const parent = map.get(c.parent_id)!;
+				node.depth = parent.depth + 1;
+				parent.children.push(node);
+			} else {
+				roots.push(node);
+			}
+		}
+
+		return roots;
+	}
+
+	function flattenTree(nodes: CommentNode[]): CommentNode[] {
+		const result: CommentNode[] = [];
+		function walk(list: CommentNode[]) {
+			for (const node of list) {
+				result.push(node);
+				walk(node.children);
+			}
+		}
+		walk(nodes);
+		return result;
+	}
+
+	// 子孫の総数。`[+] N replies` 表示と「閉じてるとき子孫を非表示」の判定に使う。
+	function countDescendants(node: CommentNode): number {
+		let n = 0;
+		for (const c of node.children) {
+			n += 1 + countDescendants(c);
+		}
+		return n;
+	}
+
+	let commentRoots = $derived(buildCommentTree(data.comments));
+	let commentTree = $derived(flattenTree(commentRoots));
+	let descendantCounts = $derived(
+		Object.fromEntries(commentTree.map((c) => [c.id, countDescendants(c)])) as Record<number, number>
+	);
+
+	// DFS 順での「次のコメント」「現在ノードがぶら下がるルートID」を id ごとに引けるよう
+	// マップにしておく。HN 互換の `root | parent | next` リンク用。
+	let nextCommentId = $derived.by(() => {
+		const map: Record<number, number> = {};
+		for (let i = 0; i < commentTree.length - 1; i++) {
+			map[commentTree[i].id] = commentTree[i + 1].id;
+		}
+		return map;
+	});
+	// nextCommentId の逆写像。DFS 順での「前のコメント」を id ごとに引く。
+	// HN 互換の `prev | next` リンク用。
+	let prevCommentId = $derived.by(() => {
+		const map: Record<number, number> = {};
+		for (let i = 1; i < commentTree.length; i++) {
+			map[commentTree[i].id] = commentTree[i - 1].id;
+		}
+		return map;
+	});
+	let rootCommentId = $derived.by(() => {
+		const map: Record<number, number> = {};
+		function walk(node: CommentNode, rootId: number) {
+			map[node.id] = rootId;
+			for (const c of node.children) walk(c, rootId);
+		}
+		for (const r of commentRoots) walk(r, r.id);
+		return map;
+	});
+
+	// 各コメントの折りたたみ状態（true = 閉じている）。HN は全コメントで使えるので
+	// id をキーに $state で保持する。フロントエンド完結。
+	let collapsed = $state<Record<number, boolean>>({});
+
+	function toggleCollapsed(commentId: number) {
+		collapsed[commentId] = !collapsed[commentId];
+	}
+
+	// id → CommentNode の Map を 1 回だけ構築して isHidden 内の祖先 lookup を O(1) にする。
+	// 以前は commentTree.find() を毎回走らせており O(N×depth×N) で大規模スレッドで重かった。
+	let commentById = $derived(new Map(commentTree.map((c) => [c.id, c])));
+
+	function isHidden(comment: CommentNode): boolean {
+		// 自身は表示するが、祖先のいずれかが閉じていれば非表示。
+		// parent_id を辿って collapsed 状態を確認する。
+		let pid = comment.parent_id;
+		while (pid) {
+			if (collapsed[pid]) return true;
+			const parent = commentById.get(pid);
+			if (!parent) break;
+			pid = parent.parent_id;
+		}
+		return false;
+	}
+
+	async function voteStory() {
+		if (!data.user) {
+			window.location.href = '/login';
+			return;
+		}
+		if (data.mode !== 'story') return;
+		const res = await fetch('/api/vote', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ itemId: data.story.id, itemType: 'story' })
+		});
+		if (res.ok) {
+			const result: { voteState: 'up' | 'down' | null; points: number } = await res.json();
+			localStoryPoints = result.points;
+			localStoryVoted = result.voteState === 'up';
+		}
+	}
+
+	async function voteTargetComment(direction: 'up' | 'down' = 'up') {
+		if (!data.user) {
+			window.location.href = '/login';
+			return;
+		}
+		if (data.mode !== 'comment') return;
+		const res = await fetch('/api/vote', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ itemId: data.targetComment.id, itemType: 'comment', direction })
+		});
+		if (res.ok) {
+			const result: { voteState: 'up' | 'down' | null; points: number } = await res.json();
+			localTargetCommentPoints = result.points;
+			localTargetCommentVoteState = result.voteState;
+			localCommentVoteStates = {
+				...(localCommentVoteStates ?? {}),
+				[data.targetComment.id]: result.voteState
+			};
+		} else if (res.status === 403) {
+			const result = (await res.json()) as { error?: string };
+			alert(result.error || 'Permission denied');
+		}
+	}
+
+	async function voteComment(commentId: number, direction: 'up' | 'down' = 'up') {
+		if (!data.user) {
+			window.location.href = '/login';
+			return;
+		}
+		const res = await fetch('/api/vote', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ itemId: commentId, itemType: 'comment', direction })
+		});
+		if (res.ok) {
+			const result: { voteState: 'up' | 'down' | null; points: number } = await res.json();
+			localCommentPoints = { ...localCommentPoints, [commentId]: result.points };
+			localCommentVoteStates = {
+				...(localCommentVoteStates ?? {}),
+				[commentId]: result.voteState
+			};
+		} else if (res.status === 403) {
+			const result = (await res.json()) as { error?: string };
+			alert(result.error || 'Permission denied');
+		}
+	}
+
+	async function toggleFavorite() {
+		if (!data.user) {
+			window.location.href = '/login';
+			return;
+		}
+		if (data.mode !== 'story') return;
+		const res = await fetch('/api/favorite', {
+			method: 'POST',
+			headers: { 'Content-Type': 'application/json' },
+			body: JSON.stringify({ storyId: data.story.id })
+		});
+		if (res.ok) {
+			const result: { favorited: boolean } = await res.json();
+			localStoryFavorited = result.favorited;
+		}
+	}
+
+	// 連打で再 toggle（hide のつもりが un-hide される）を防ぐ in-flight ガード（#154 と同趣旨・#155）。
+	let hideStoryInFlight = false;
+	async function toggleHideStory() {
+		if (!data.user) {
+			window.location.href = '/login';
+			return;
+		}
+		if (data.mode !== 'story') return;
+		if (hideStoryInFlight) return;
+		hideStoryInFlight = true;
+		try {
+			const result = await postHideToggle(data.story.id);
+			if (result !== null) {
+				localStoryHidden = result.hidden;
+			}
+		} finally {
+			hideStoryInFlight = false;
+		}
+	}
+
+	function toggleReply(commentId: number) {
+		replyTo = replyTo === commentId ? null : commentId;
+	}
+</script>
+
+{#if data.mode === 'comment'}
+	{@const comment = data.targetComment}
+	{@const parentStory = data.parentStory}
+	<div class="item-detail" style="padding-left: 40px;">
+		<div class="comment-head">
+			<span class="comment-vote">
+				<button
+					class="upvote"
+					class:voted={targetCommentVoteState === 'up'}
+					onclick={() => voteTargetComment('up')}
+					aria-label="upvote comment"
+				>
+					&#9650;
+				</button>
+				{#if data.user && data.user.karma >= 500}
+					<button
+						class="downvote"
+						class:voted={targetCommentVoteState === 'down'}
+						onclick={() => voteTargetComment('down')}
+						aria-label="downvote comment"
+					>
+						&#9660;
+					</button>
+				{/if}
+			</span>
+			<a href="/user/{comment.username}" style={isNewUser(comment.user_created_at) ? 'color: #3c963c;' : ''}>{displayUsername({ username: comment.username, deleted: comment.user_deleted })}</a>
+			<a href="/comment/{comment.id}">{timeAgo(comment.created_at)}</a>
+			{#if comment.parent_id}
+				| <a href="/comment/{comment.parent_id}" title={tooltipJa('parent')} style="color: #828282;">parent</a>
+			{:else}
+				| <a href="/item/{parentStory.id}" title={tooltipJa('parent')} style="color: #828282;">parent</a>
+			{/if}
+			| <a href="/item/{parentStory.id}#item-{comment.id}" title={tooltipJa('context')} style="color: #828282;">context</a>
+			| on: <a href="/item/{parentStory.id}">{parentStory.title}</a>
+			{#if (comment.flag_count ?? 0) > 0} <span class="story-tag">[flagged]</span>{/if}
+			{#if targetCommentDead === 1} <span class="story-tag">[dead]</span>{/if}
+			{#if canEdit(comment.created_at, comment.user_id)}
+				| <a
+					href="#edit"
+					title={tooltipJa('edit')}
+					onclick={(e) => {
+						e.preventDefault();
+						editingCommentId = comment.id;
+					}}>edit</a>
+			{/if}
+			{#if canFlagItem(comment.user_id)}
+				| <a href="#flag" title={tooltipJa(targetCommentFlagged ? 'un-flag' : 'flag')} onclick={(e) => { e.preventDefault(); flagTargetComment(); }}>{targetCommentFlagged ? 'un-flag' : 'flag'}</a>
+			{/if}
+			{#if canFlagItem(comment.user_id) && targetCommentDead === 1}
+				| <a href="#vouch" title={tooltipJa('vouch')} onclick={(e) => { e.preventDefault(); vouchTargetComment(); }}>vouch</a>
+			{/if}
+		</div>
+		{#if editingCommentId === comment.id}
+			<div class="comment-form">
+				<form method="POST" action="?/editComment" use:enhance={() => {
+					return async ({ update }) => {
+						editingCommentId = null;
+						await update();
+						await invalidateAll();
+					};
+				}}>
+					<input type="hidden" name="comment_id" value={comment.id} />
+					<textarea name="text" rows="4" cols="60">{comment.text}</textarea>
+					<br />
+					<button type="submit" title={tooltipJa('update')}>update</button>
+					<a
+						href="#cancel"
+						title={tooltipJa('cancel')}
+						onclick={(e) => {
+							e.preventDefault();
+							editingCommentId = null;
+						}}
+						style="margin-left: 8px; font-size: 7pt; color: #828282;">cancel</a>
+				</form>
+			</div>
+		{:else}
+			<div class="comment-text" class:faded={targetCommentPoints < 1}>
+				{#each comment.text.split('\n') as paragraph}
+					{#if paragraph.trim()}
+						<p>{@html formatText(paragraph)}</p>
+					{/if}
+				{/each}
+			</div>
+		{/if}
+
+		{#if form && 'errorFor' in form && form.errorFor === 'comment' && form.error}
+			<div class="comment-error">{form.error}</div>
+		{/if}
+		{#if data.user && isThreadOpen(data.parentStory.created_at)}
+			<div class="comment-form">
+				<form method="POST" action="?/comment" use:enhance={() => {
+					return async ({ update }) => {
+						await update();
+						await invalidateAll();
+					};
+				}}>
+					<input type="hidden" name="parent_id" value={comment.id} />
+					<textarea name="text" rows="6" cols="60">{form && 'errorFor' in form && form.errorFor === 'comment' && 'text' in form ? form.text ?? '' : ''}</textarea>
+					<br />
+					<button type="submit" title={tooltipJa('reply')}>reply</button>
+				</form>
+			</div>
+		{/if}
+
+		<div class="comments-section">
+			{#each commentTree as child}
+				{#if !isHidden(child)}
+				<div class="comment-item" id="item-{child.id}" style="padding-left: {child.depth * 40}px;">
+					<div class="comment-head">
+						<span class="comment-vote">
+							<button
+								class="upvote"
+								class:voted={getCommentVoteState(child.id) === 'up'}
+								onclick={() => voteComment(child.id, 'up')}
+								aria-label="upvote comment"
+							>
+								&#9650;
+							</button>
+							{#if data.user && data.user.karma >= 500}
+								<button
+									class="downvote"
+									class:voted={getCommentVoteState(child.id) === 'down'}
+									onclick={() => voteComment(child.id, 'down')}
+									aria-label="downvote comment"
+								>
+									&#9660;
+								</button>
+							{/if}
+						</span>
+						<a href="/user/{child.username}" style={isNewUser(child.user_created_at) ? 'color: #3c963c;' : ''}>{displayUsername({ username: child.username, deleted: child.user_deleted })}</a>
+						<a href="/comment/{child.id}">{timeAgo(child.created_at)}</a>
+						{#if child.parent_id && child.parent_id !== comment.id}
+							| <a href="#item-{rootCommentId[child.id]}" title={tooltipJa('root')} style="color: #828282;">root</a>
+							| <a href="#item-{child.parent_id}" title={tooltipJa('parent')} style="color: #828282;">parent</a>
+						{/if}
+						{#if prevCommentId[child.id]}
+							| <a href="#item-{prevCommentId[child.id]}" title={tooltipJa('prev')} style="color: #828282;">prev</a>
+						{/if}
+						{#if nextCommentId[child.id]}
+							| <a href="#item-{nextCommentId[child.id]}" title={tooltipJa('next')} style="color: #828282;">next</a>
+						{/if}
+						<span class="comment-toggle">
+							{' '}<a
+								href="#toggle"
+								onclick={(e) => {
+									e.preventDefault();
+									toggleCollapsed(child.id);
+								}}
+								style="color: #828282;"
+							>{#if collapsed[child.id]}[+]{:else}[&ndash;]{/if}</a>
+							{#if collapsed[child.id] && descendantCounts[child.id] > 0}
+								<span style="color: #828282;"> ({descendantCounts[child.id]} more)</span>
+							{/if}
+						</span>
+					</div>
+					{#if !collapsed[child.id]}
+					{#if editingCommentId === child.id}
+						<div class="comment-form">
+							<form method="POST" action="?/editComment" use:enhance={() => {
+								return async ({ update }) => {
+									editingCommentId = null;
+									await update();
+									await invalidateAll();
+								};
+							}}>
+								<input type="hidden" name="comment_id" value={child.id} />
+								<textarea name="text" rows="4" cols="60">{child.text}</textarea>
+								<br />
+								<button type="submit" title={tooltipJa('update')}>update</button>
+								<a
+									href="#cancel" title={tooltipJa('cancel')}
+									onclick={(e) => {
+										e.preventDefault();
+										editingCommentId = null;
+									}}
+									style="margin-left: 8px; font-size: 7pt; color: #828282;">cancel</a>
+							</form>
+						</div>
+					{:else}
+						<div class="comment-text" class:faded={getCommentPoints(child) < 1}>
+							{#each child.text.split('\n') as paragraph}
+								{#if paragraph.trim()}
+									<p>{@html formatText(paragraph)}</p>
+								{/if}
+							{/each}
+						</div>
+					{/if}
+					{#if data.user}
+						<div class="comment-reply">
+							{#if isThreadOpen(data.parentStory.created_at)}
+								<a
+									href="#reply"
+									title={tooltipJa('reply')}
+									onclick={(e) => {
+										e.preventDefault();
+										toggleReply(child.id);
+									}}>reply</a
+								>
+							{/if}
+							{#if canEdit(child.created_at, child.user_id)}
+								{#if isThreadOpen(data.parentStory.created_at)}|{/if} <a
+									href="#edit"
+									title={tooltipJa('edit')}
+									onclick={(e) => {
+										e.preventDefault();
+										editingCommentId = child.id;
+									}}>edit</a>
+								| <form method="POST" action="?/deleteComment" class="inline-form" use:enhance={confirmDelete('Delete this comment? Text will be replaced with [deleted].')}>
+									<input type="hidden" name="comment_id" value={child.id} />
+									<button type="submit" class="link-button" title={tooltipJa('delete')}>delete</button>
+								</form>
+							{/if}
+						</div>
+						{#if isThreadOpen(data.parentStory.created_at) && replyTo === child.id}
+							<div class="comment-form">
+								<form method="POST" action="?/comment" use:enhance={() => {
+									return async ({ update }) => {
+										replyTo = null;
+										await update();
+										await invalidateAll();
+									};
+								}}>
+									<input type="hidden" name="parent_id" value={child.id} />
+									<textarea name="text" rows="4" cols="60"></textarea>
+									<br />
+									<button type="submit" title={tooltipJa('reply')}>reply</button>
+								</form>
+							</div>
+						{/if}
+					{/if}
+					{/if}
+				</div>
+				{/if}
+			{/each}
+		</div>
+	</div>
+{:else}
+	<div class="item-detail" style="padding-left: 40px;">
+		<div style="display: flex; align-items: baseline;">
+			<span class="story-vote" style="margin-right: 4px;">
+				<button
+					class="upvote"
+					class:voted={storyVoted}
+					onclick={voteStory}
+					aria-label="upvote"
+				>
+					&#9650;
+				</button>
+			</span>
+			<span class="item-title">
+				{#if data.story.url}
+					<a href={data.story.url}>{data.story.title}</a>
+					<span class="item-domain">({extractDomain(data.story.url)})</span>
+				{:else}
+					{data.story.title}
+				{/if}
+				{#if assistedTypeLabel(data.story.title, data.story.type)} <span class="story-tag">[{assistedTypeLabel(data.story.title, data.story.type)}]</span>{/if}
+				{#if data.story.type === 'poll'} <span class="story-tag">[poll]</span>{/if}
+				{#if (data.story.flag_count ?? 0) > 0} <span class="story-tag">[flagged]</span>{/if}
+				{#if storyDead === 1} <span class="story-tag">[dead]</span>{/if}
+			</span>
+		</div>
+
+		<div class="item-meta">
+			{storyPoints} point{storyPoints !== 1 ? 's' : ''} by
+			<a href="/user/{data.story.username}" style={isNewUser(data.story.user_created_at) ? 'color: #3c963c;' : ''}>{displayUsername({ username: data.story.username, deleted: data.story.user_deleted })}</a>
+			{timeAgo(data.story.created_at)}
+			{#if canEdit(data.story.created_at, data.story.user_id)}
+				| <a
+					href="#edit"
+					title={tooltipJa('edit')}
+					onclick={(e) => {
+						e.preventDefault();
+						editingStory = true;
+					}}>edit</a>
+				| <form method="POST" action="?/deleteStory" class="inline-form" use:enhance={confirmDelete('Delete this story? Text will be replaced with [deleted].')}>
+					<button type="submit" class="link-button" title={tooltipJa('delete')}>delete</button>
+				</form>
+			{/if}
+			{#if data.user}
+				| <a
+					href="#hide"
+					title={tooltipJa(storyHidden ? 'un-hide' : 'hide')}
+					onclick={(e) => {
+						e.preventDefault();
+						toggleHideStory();
+					}}>{storyHidden ? 'un-hide' : 'hide'}</a>
+			{/if}
+			{#if data.story.url}
+				| <a href="/from?site={extractDomain(data.story.url)}" title={tooltipJa('past')}>past</a>
+			{/if}
+			{#if data.user}
+				| <a
+					href="#favorite"
+					title={tooltipJa(storyFavorited ? 'un-fav' : 'favorite')}
+					onclick={(e) => {
+						e.preventDefault();
+						toggleFavorite();
+					}}>{storyFavorited ? 'un-fav' : 'favorite'}</a>
+			{/if}
+			{#if canFlagItem(data.story.user_id)}
+				| <a href="#flag" title={tooltipJa(storyFlagged ? 'un-flag' : 'flag')} onclick={(e) => { e.preventDefault(); flagStory(); }}>{storyFlagged ? 'un-flag' : 'flag'}</a>
+			{/if}
+			{#if canFlagItem(data.story.user_id) && storyDead === 1}
+				| <a href="#vouch" title={tooltipJa('vouch')} onclick={(e) => { e.preventDefault(); vouchStory(); }}>vouch</a>
+			{/if}
+			| <a href="#comments">{data.comments.length} comment{data.comments.length !== 1 ? "s" : ""}</a>
+		</div>
+
+		<!-- 投稿への操作（favorite/edit窓/hide/コメント操作）の解説。ストーリー操作行の直下に1回。アシスト OFF では消える。 -->
+		<div class="assist-hint">{assistHint('item.controls', data.locale)}</div>
+
+		{#if editingStory}
+			<div class="comment-form">
+				<form method="POST" action="?/editStory" use:enhance={() => {
+					return async ({ update }) => {
+						editingStory = false;
+						await update();
+						await invalidateAll();
+					};
+				}}>
+					<table style="border-spacing: 0;">
+						<tbody>
+							<tr>
+								<td style="color: #828282; text-align: right; padding: 2px 5px; vertical-align: top;">title:</td>
+								<td style="padding: 2px 5px;"><input type="text" name="title" value={data.story.title} style="font-family: monospace; font-size: 10pt; width: 300px;" /></td>
+							</tr>
+							<tr>
+								<td style="color: #828282; text-align: right; padding: 2px 5px; vertical-align: top;">text:</td>
+								<td style="padding: 2px 5px;"><textarea name="text" rows="6" cols="60">{data.story.text ?? ''}</textarea></td>
+							</tr>
+						</tbody>
+					</table>
+					<button type="submit" title={tooltipJa('update')}>update</button>
+					<a
+						href="#cancel"
+						title={tooltipJa('cancel')}
+						onclick={(e) => {
+							e.preventDefault();
+							editingStory = false;
+						}}
+						style="margin-left: 8px; font-size: 7pt; color: #828282;">cancel</a>
+				</form>
+			</div>
+		{:else if data.story.text}
+			<div class="item-text">
+				{#each data.story.text.split('\n') as paragraph}
+					{#if paragraph.trim()}
+						<p>{@html formatText(paragraph)}</p>
+					{/if}
+				{/each}
+			</div>
+		{/if}
+
+		{#if data.story.type === 'poll' && data.pollOptions && data.pollOptions.length > 0}
+			<div class="poll-options">
+				{#each data.pollOptions as opt}
+					<div class="poll-option">
+						<span class="story-vote poll-option-vote">
+							<button
+								class="upvote"
+								class:voted={getPollVotedIds().has(opt.id)}
+								onclick={() => votePollOption(opt.id)}
+								aria-label="upvote choice"
+							>
+								&#9650;
+							</button>
+						</span>
+						<span class="poll-option-text">{opt.text}</span>
+						<div class="poll-option-meta">
+							{getPollOptionCount(opt)} point{getPollOptionCount(opt) !== 1 ? 's' : ''}
+						</div>
+					</div>
+				{/each}
+			</div>
+		{/if}
+
+		{#if form && 'errorFor' in form && form.errorFor === 'comment' && form.error}
+			<div class="comment-error">{form.error}</div>
+		{/if}
+		{#if data.user && isThreadOpen(data.story.created_at)}
+			<div class="comment-form">
+				<form method="POST" action="?/comment" use:enhance={() => {
+					return async ({ update }) => {
+						await update();
+						await invalidateAll();
+					};
+				}}>
+					<textarea name="text" rows="6" cols="60">{form && 'errorFor' in form && form.errorFor === 'comment' && 'text' in form ? form.text ?? '' : ''}</textarea>
+					<br />
+					<button type="submit" title={tooltipJa('add comment')}>add comment</button>
+				</form>
+			</div>
+		{/if}
+
+		<div class="comments-section" id="comments">
+			{#each commentTree as comment}
+				{#if !isHidden(comment)}
+				<div class="comment-item" id="item-{comment.id}" style="padding-left: {comment.depth * 40}px;">
+					<div class="comment-head">
+						<span class="comment-vote">
+							<button
+								class="upvote"
+								class:voted={getCommentVoteState(comment.id) === 'up'}
+								onclick={() => voteComment(comment.id, 'up')}
+								aria-label="upvote comment"
+							>
+								&#9650;
+							</button>
+							{#if data.user && data.user.karma >= 500}
+								<button
+									class="downvote"
+									class:voted={getCommentVoteState(comment.id) === 'down'}
+									onclick={() => voteComment(comment.id, 'down')}
+									aria-label="downvote comment"
+								>
+									&#9660;
+								</button>
+							{/if}
+						</span>
+						<a href="/user/{comment.username}" style={isNewUser(comment.user_created_at) ? 'color: #3c963c;' : ''}>{displayUsername({ username: comment.username, deleted: comment.user_deleted })}</a>
+						<a href="/comment/{comment.id}">{timeAgo(comment.created_at)}</a>
+						{#if comment.parent_id}
+							| <a href="#item-{rootCommentId[comment.id]}" title={tooltipJa('root')} style="color: #828282;">root</a>
+							| <a href="#item-{comment.parent_id}" title={tooltipJa('parent')} style="color: #828282;">parent</a>
+						{/if}
+						{#if prevCommentId[comment.id]}
+							| <a href="#item-{prevCommentId[comment.id]}" title={tooltipJa('prev')} style="color: #828282;">prev</a>
+						{/if}
+						{#if nextCommentId[comment.id]}
+							| <a href="#item-{nextCommentId[comment.id]}" title={tooltipJa('next')} style="color: #828282;">next</a>
+						{/if}
+						<span class="comment-toggle">
+							{' '}<a
+								href="#toggle"
+								onclick={(e) => {
+									e.preventDefault();
+									toggleCollapsed(comment.id);
+								}}
+								style="color: #828282;"
+							>{#if collapsed[comment.id]}[+]{:else}[&ndash;]{/if}</a>
+							{#if collapsed[comment.id] && descendantCounts[comment.id] > 0}
+								<span style="color: #828282;"> ({descendantCounts[comment.id]} more)</span>
+							{/if}
+						</span>
+					</div>
+					{#if !collapsed[comment.id]}
+					{#if editingCommentId === comment.id}
+						<div class="comment-form">
+							<form method="POST" action="?/editComment" use:enhance={() => {
+								return async ({ update }) => {
+									editingCommentId = null;
+									await update();
+									await invalidateAll();
+								};
+							}}>
+								<input type="hidden" name="comment_id" value={comment.id} />
+								<textarea name="text" rows="4" cols="60">{comment.text}</textarea>
+								<br />
+								<button type="submit" title={tooltipJa('update')}>update</button>
+								<a
+									href="#cancel" title={tooltipJa('cancel')}
+									onclick={(e) => {
+										e.preventDefault();
+										editingCommentId = null;
+									}}
+									style="margin-left: 8px; font-size: 7pt; color: #828282;">cancel</a>
+							</form>
+						</div>
+					{:else}
+						<div class="comment-text" class:faded={getCommentPoints(comment) < 1}>
+							{#each comment.text.split('\n') as paragraph}
+								{#if paragraph.trim()}
+									<p>{@html formatText(paragraph)}</p>
+								{/if}
+							{/each}
+						</div>
+					{/if}
+					{#if data.user}
+						<div class="comment-reply">
+							{#if isThreadOpen(data.story.created_at)}
+								<a
+									href="#reply"
+									title={tooltipJa('reply')}
+									onclick={(e) => {
+										e.preventDefault();
+										toggleReply(comment.id);
+									}}>reply</a
+								>
+							{/if}
+							{#if canEdit(comment.created_at, comment.user_id)}
+								{#if isThreadOpen(data.story.created_at)}|{/if} <a
+									href="#edit"
+									title={tooltipJa('edit')}
+									onclick={(e) => {
+										e.preventDefault();
+										editingCommentId = comment.id;
+									}}>edit</a>
+								| <form method="POST" action="?/deleteComment" class="inline-form" use:enhance={confirmDelete('Delete this comment? Text will be replaced with [deleted].')}>
+									<input type="hidden" name="comment_id" value={comment.id} />
+									<button type="submit" class="link-button" title={tooltipJa('delete')}>delete</button>
+								</form>
+							{/if}
+						</div>
+						{#if isThreadOpen(data.story.created_at) && replyTo === comment.id}
+							<div class="comment-form">
+								<form method="POST" action="?/comment" use:enhance={() => {
+									return async ({ update }) => {
+										replyTo = null;
+										await update();
+										await invalidateAll();
+									};
+								}}>
+									<input type="hidden" name="parent_id" value={comment.id} />
+									<textarea name="text" rows="4" cols="60"></textarea>
+									<br />
+									<button type="submit" title={tooltipJa('reply')}>reply</button>
+								</form>
+							</div>
+						{/if}
+					{/if}
+					{/if}
+				</div>
+				{/if}
+			{/each}
+		</div>
+	</div>
+{/if}
+
+<style>
+	/* poll 選択肢ブロック専用のスタイル。インラインスタイル散らかし対策で
+	   重複していた値（padding-left, font-size 等）を1箇所に集約。 */
+	.poll-options {
+		padding-left: 18px;
+		margin-top: 8pt;
+	}
+	.poll-option {
+		margin-bottom: 4pt;
+	}
+	.poll-option-vote {
+		margin-right: 4px;
+	}
+	.poll-option-text {
+		font-size: 10pt;
+	}
+	.poll-option-meta {
+		padding-left: 18px;
+		font-size: 7pt;
+		color: #828282;
+	}
+</style>
