@@ -2,7 +2,7 @@
 	import { page } from '$app/state';
 	import { displayUsername } from '$lib/format';
 	import { timeAgo, extractDomain, isNewUser } from '$lib/ranking';
-	import { canFlagStory, shouldShowPollTag, type UserLike } from '$lib/storyActions';
+	import { canFlagStory, shouldShowPollTag, postHideToggle, type UserLike } from '$lib/storyActions';
 	import { assistHint } from '$lib/assist';
 	import {
 		hasLegacyStoryTypePrefix,
@@ -125,14 +125,8 @@
 		if (hideInFlight) return null;
 		hideInFlight = true;
 		try {
-			const res = await fetch('/api/hide', {
-				method: 'POST',
-				headers: { 'Content-Type': 'application/json' },
-				body: JSON.stringify({ storyId: story.id })
-			});
-			if (!res.ok) return null;
-			const result: { hidden: boolean } = await res.json();
-			return result.hidden;
+			const result = await postHideToggle(story.id);
+			return result === null ? null : result.hidden;
 		} finally {
 			hideInFlight = false;
 		}

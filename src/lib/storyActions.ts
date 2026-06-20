@@ -47,3 +47,14 @@ export function shouldShowPollTag(
 ): boolean {
 	return forcePollTag || story.type === 'poll';
 }
+
+/** /api/hide を叩いて toggle 後の hidden 状態を返す。非2xx は null（呼び出し側で握り）。 */
+export async function postHideToggle(storyId: number): Promise<{ hidden: boolean } | null> {
+	const res = await fetch('/api/hide', {
+		method: 'POST',
+		headers: { 'Content-Type': 'application/json' },
+		body: JSON.stringify({ storyId })
+	});
+	if (!res.ok) return null;
+	return (await res.json()) as { hidden: boolean };
+}
