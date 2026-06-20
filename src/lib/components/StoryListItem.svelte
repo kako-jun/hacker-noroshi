@@ -118,34 +118,34 @@
 		}
 	}
 
-	async function hide() {
-		const res = await fetch('/api/hide', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ storyId: story.id })
-		});
-		if (res.ok) {
+	// hide と un-hide は同じ /api/hide（toggle）を叩く。共有して二重実装を避け、in-flight ガードで
+	// 連打による再 toggle（un-hide のつもりが再 hide される）を防ぐ（#154 レビュー）。
+	let hideInFlight = false;
+	async function toggleHide(): Promise<boolean | null> {
+		if (hideInFlight) return null;
+		hideInFlight = true;
+		try {
+			const res = await fetch('/api/hide', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ storyId: story.id })
+			});
+			if (!res.ok) return null;
 			const result: { hidden: boolean } = await res.json();
-			if (result.hidden) {
-				onhide?.(story.id);
-			}
+			return result.hidden;
+		} finally {
+			hideInFlight = false;
 		}
 	}
 
-	// /hidden 用（#153）。/api/hide は toggle なので、hidden な story に投げると un-hide される。
-	// 解除できたら（hidden=false）親へ通知し、その行を /hidden 一覧から消す。
+	async function hide() {
+		if ((await toggleHide()) === true) onhide?.(story.id);
+	}
+
+	// /hidden 用（#153）。toggle なので hidden な story に投げると un-hide される。解除（hidden=false）できたら
+	// 親へ通知してその行を /hidden 一覧から消す。
 	async function unhide() {
-		const res = await fetch('/api/hide', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ storyId: story.id })
-		});
-		if (res.ok) {
-			const result: { hidden: boolean } = await res.json();
-			if (!result.hidden) {
-				onunhide?.(story.id);
-			}
-		}
+		if ((await toggleHide()) === false) onunhide?.(story.id);
 	}
 
 	function l(key: string): string {
