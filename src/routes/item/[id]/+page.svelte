@@ -11,6 +11,7 @@
 		tooltipJa
 	} from '$lib/i18n';
 	import { assistHint } from '$lib/assist';
+	import { postHideToggle } from '$lib/storyActions';
 
 	let { data, form } = $props();
 	let localStoryVoted = $state<boolean | null>(null);
@@ -394,20 +395,23 @@
 		}
 	}
 
+	// 連打で再 toggle（hide のつもりが un-hide される）を防ぐ in-flight ガード（#154 と同趣旨・#155）。
+	let hideStoryInFlight = false;
 	async function toggleHideStory() {
 		if (!data.user) {
 			window.location.href = '/login';
 			return;
 		}
 		if (data.mode !== 'story') return;
-		const res = await fetch('/api/hide', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ storyId: data.story.id })
-		});
-		if (res.ok) {
-			const result: { hidden: boolean } = await res.json();
-			localStoryHidden = result.hidden;
+		if (hideStoryInFlight) return;
+		hideStoryInFlight = true;
+		try {
+			const result = await postHideToggle(data.story.id);
+			if (result !== null) {
+				localStoryHidden = result.hidden;
+			}
+		} finally {
+			hideStoryInFlight = false;
 		}
 	}
 

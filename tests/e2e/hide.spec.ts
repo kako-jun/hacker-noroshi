@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { signupNewUser, submitStory } from './helpers';
+import { signupNewUser, submitStory, findStoryIdByTitle } from './helpers';
 
 test('hide a story removes it from /newest and shows it on /user/[id]/hidden', async ({
 	page
@@ -48,4 +48,45 @@ test('hide a story removes it from /newest and shows it on /user/[id]/hidden', a
 			.filter({ has: page.locator('a.story-title', { hasText: titleA }) })
 			.first()
 	).toBeVisible();
+});
+
+test('item page hide link toggles hide ⇄ un-hide and persists across reload', async ({
+	page
+}) => {
+	// #155 のフォロー: /item/[id] 詳細ページの hide↔un-hide トグルを踏む唯一の e2e。
+	// リファクタ #155 で toggleHideStory() に in-flight ガードを足した経路（item 側）が
+	// 他の e2e ではカバーされていなかったため、ここで通す。
+	// item ページは単体表示なので hide しても行は消えず、リンクテキストが入れ替わるのが観測点。
+	const title = `E2E Item Hide ${Date.now()}`;
+
+	// User A が投稿
+	await signupNewUser(page);
+	await submitStory(page, { title, text: 'item hide test body' });
+
+	// logout して User B でログイン（他人の story を hide する想定）
+	await page.goto('/logout');
+	await signupNewUser(page);
+
+	// User B が /newest から story id を引いて /item/{id} を開く
+	await page.goto('/newest');
+	const id = await findStoryIdByTitle(page, title);
+	await page.goto(`/item/${id}`);
+
+	// メタ行の hide リンクは story モードの .item-meta 内に1つだけ（href="#hide"）。
+	// コメントの操作リンクは #reply/#edit/#flag/#toggle で #hide は使わないため一意。
+	const hideLink = page.locator('a[href="#hide"]');
+	await expect(hideLink).toHaveText('hide');
+
+	// クリックで toggle → hidden=true、テキストが un-hide に反転
+	await hideLink.click();
+	await expect(hideLink).toHaveText('un-hide', { timeout: 5000 });
+
+	// リロードを跨いで hidden 状態が保持される（サーバが storyHidden=true を返す）
+	await page.reload();
+	const hideLinkAfterReload = page.locator('a[href="#hide"]');
+	await expect(hideLinkAfterReload).toHaveText('un-hide');
+
+	// もう一度クリックで un-hide → hidden=false に戻り、テキストが hide に反転
+	await hideLinkAfterReload.click();
+	await expect(hideLinkAfterReload).toHaveText('hide', { timeout: 5000 });
 });

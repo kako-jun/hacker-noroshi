@@ -217,6 +217,8 @@ hide リンクとサーバー側除外ロジックを実装するページ:
 
 `StoryList` の中で行ごとに `<StoryListItem />`（#86）が描画される。新規ページは hide / vote / flag / rank / More / アシストヒントが自動で揃う。
 
+hide / un-hide のクライアント呼び出し（`POST /api/hide` のトグル）は、一覧の `StoryListItem` と `/item/[id]` 詳細ページの両方が共有ヘルパ `postHideToggle()`（`$lib/storyActions.ts`）を使う（#155）。`/api/hide` の contract（body `{storyId}` → `{hidden:boolean}`、非2xx は `null`）が1箇所に集約され、連打による逆トグル防止の in-flight ガードは各呼び出し側が state として持つ。
+
 #### StoryListItem 抽出後の DOM 同一性（#86, #106 で検証）
 
 抽出前の `+page.svelte` 等にハードコードされていた `.story-item` レンダリング DOM と、抽出後の `<StoryListItem />` レンダリング DOM はクラス名・タグ階層・テキストノードの並びが完全に一致する（`/`,  `/newest`, `/best`, `/active`, `/front`, `/ask`, `/show`, `/asknew`, `/shownew`, `/noobstories`, `/from`, `/polls`, `/search` の全 13 ページが対象）。具体的には次の構造:
