@@ -38,6 +38,9 @@
 		forcePollTag?: boolean;
 		/** hide 成功時に親へ通知（親側で localHiddenIds を更新するため） */
 		onhide?: (storyId: number) => void;
+		/** これが渡されると meta 行は hide でなく un-hide を出す（/hidden 用・#153）。
+		 *  クリックで POST /api/hide（toggle で hidden を解除）→ 成功で親へ通知し、その行を /hidden 一覧から消す。 */
+		onunhide?: (storyId: number) => void;
 		/** 一覧の「描画上の先頭行」だけ true。行コントロール解説 hint をここに1回だけ出す（#143）。
 		 *  絶対 rank ではなく描画 index で判定する＝2ページ目（rank=31〜）や rank 無しの /search でも先頭に出る。 */
 		assistFirst?: boolean;
@@ -51,6 +54,7 @@
 		initialFlagged,
 		forcePollTag = false,
 		onhide,
+		onunhide,
 		assistFirst = false
 	}: Props = $props();
 
@@ -114,18 +118,34 @@
 		}
 	}
 
-	async function hide() {
-		const res = await fetch('/api/hide', {
-			method: 'POST',
-			headers: { 'Content-Type': 'application/json' },
-			body: JSON.stringify({ storyId: story.id })
-		});
-		if (res.ok) {
+	// hide と un-hide は同じ /api/hide（toggle）を叩く。共有して二重実装を避け、in-flight ガードで
+	// 連打による再 toggle（un-hide のつもりが再 hide される）を防ぐ（#154 レビュー）。
+	let hideInFlight = false;
+	async function toggleHide(): Promise<boolean | null> {
+		if (hideInFlight) return null;
+		hideInFlight = true;
+		try {
+			const res = await fetch('/api/hide', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ storyId: story.id })
+			});
+			if (!res.ok) return null;
 			const result: { hidden: boolean } = await res.json();
-			if (result.hidden) {
-				onhide?.(story.id);
-			}
+			return result.hidden;
+		} finally {
+			hideInFlight = false;
 		}
+	}
+
+	async function hide() {
+		if ((await toggleHide()) === true) onhide?.(story.id);
+	}
+
+	// /hidden 用（#153）。toggle なので hidden な story に投げると un-hide される。解除（hidden=false）できたら
+	// 親へ通知してその行を /hidden 一覧から消す。
+	async function unhide() {
+		if ((await toggleHide()) === false) onunhide?.(story.id);
 	}
 
 	function l(key: string): string {
@@ -180,7 +200,16 @@
 					deleted: story.user_deleted === 1 ? 1 : story.user_deleted === 0 ? 0 : null
 				})}</a>
 			<a href="/item/{story.id}">{timeAgo(story.created_at)}</a> |
-			{#if user}
+			{#if onunhide}
+				<a
+					href="#unhide"
+					title={tip('un-hide')}
+					onclick={(e) => {
+						e.preventDefault();
+						unhide();
+					}}>{l('un-hide')}</a
+				>
+			{:else if user}
 				<a
 					href="#hide"
 					title={tip('hide')}
