@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest';
-import { canFlagStory, shouldShowPollTag } from '../../src/lib/storyActions';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { canFlagStory, shouldShowPollTag, postHideToggle } from '../../src/lib/storyActions';
 import { FLAG_KARMA_THRESHOLD } from '../../src/lib/constants';
 
 describe('canFlagStory', () => {
@@ -95,5 +95,84 @@ describe('StoryListItem display flag logic', () => {
 		const localVoted: boolean | null = false;
 		const initialVoted = true;
 		expect(localVoted ?? initialVoted).toBe(false);
+	});
+});
+
+/**
+ * postHideToggle: /api/hide を叩いて toggle 後の hidden 状態を返す共有ヘルパ（#155）。
+ * StoryListItem.svelte の toggleHide() と item/[id]/+page.svelte の toggleHideStory()
+ * の同型 fetch 重複を解消するために切り出した純粋関数。
+ *
+ * fetch は captcha-unban.test.ts の流儀に合わせて globalThis を spy で差し替える。
+ * Svelte コンポーネント内部の in-flight ガード（hideInFlight 等）はユニット対象外
+ * （既存 e2e tests/e2e/hide.spec.ts が担保）。
+ */
+describe('postHideToggle', () => {
+	afterEach(() => {
+		vi.restoreAllMocks();
+	});
+
+	function mockHide(response: { ok: boolean; status?: number; json?: () => Promise<unknown> }) {
+		return vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
+			return {
+				ok: response.ok,
+				status: response.status ?? (response.ok ? 200 : 400),
+				json: response.json ?? (async () => ({}))
+			} as unknown as Response;
+		});
+	}
+
+	it('2xx 正常系: hidden:true を返す', async () => {
+		mockHide({ ok: true, json: async () => ({ hidden: true }) });
+		const result = await postHideToggle(123);
+		expect(result).toEqual({ hidden: true });
+	});
+
+	it('2xx 正常系: hidden:false を返す', async () => {
+		mockHide({ ok: true, json: async () => ({ hidden: false }) });
+		const result = await postHideToggle(123);
+		expect(result).toEqual({ hidden: false });
+	});
+
+	it('fetch を /api/hide に POST + JSON ヘッダ + storyId を含む body で 1 回だけ呼ぶ', async () => {
+		const fetchSpy = mockHide({ ok: true, json: async () => ({ hidden: true }) });
+		await postHideToggle(123);
+
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		const [url, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
+		expect(url).toBe('/api/hide');
+		expect(init.method).toBe('POST');
+		expect(init.headers).toEqual({ 'Content-Type': 'application/json' });
+		expect(JSON.parse(init.body as string)).toEqual({ storyId: 123 });
+	});
+
+	it('別の storyId（999）もそのまま body に入る', async () => {
+		const fetchSpy = mockHide({ ok: true, json: async () => ({ hidden: true }) });
+		await postHideToggle(999);
+
+		expect(fetchSpy).toHaveBeenCalledTimes(1);
+		const [, init] = fetchSpy.mock.calls[0] as [string, RequestInit];
+		expect(JSON.parse(init.body as string)).toEqual({ storyId: 999 });
+	});
+
+	it('非2xx（403）なら null を返す', async () => {
+		mockHide({ ok: false, status: 403 });
+		const result = await postHideToggle(123);
+		expect(result).toBeNull();
+	});
+
+	it('非2xx（500）なら null を返す', async () => {
+		mockHide({ ok: false, status: 500 });
+		const result = await postHideToggle(123);
+		expect(result).toBeNull();
+	});
+
+	it('非2xx の場合は json をパースせず null を返す（json が呼ばれても結果は null）', async () => {
+		const json = vi.fn(async () => ({ hidden: true }));
+		mockHide({ ok: false, status: 403, json });
+		const result = await postHideToggle(123);
+		expect(result).toBeNull();
+		// ok:false で早期 return するため json は呼ばれない
+		expect(json).not.toHaveBeenCalled();
 	});
 });
