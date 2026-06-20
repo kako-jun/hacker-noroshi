@@ -63,24 +63,30 @@ test.describe('Issue #130: /item/[id] 内の本文テキストの x 揃え', () 
 		expect(Math.abs(commentTextX - titleX)).toBeLessThanOrEqual(2);
 	});
 
-	test('Mode A (comment permalink): on:タイトル と コメント本文 の x が揃う', async ({ page }) => {
+	test('Mode A (comment permalink): フォーカスコメント本文の x が .item-detail + 18px に揃う', async ({ page }) => {
 		const title = `Story: comment permalink ${Date.now()}`;
 		await setupStoryWithComment(page, { title });
 
-		// timestamp link が `/item/<commentId>` のパーマリンク
+		// timestamp link が `/comment/<commentId>` のパーマリンク（#164 で /item から分離）。
+		// 旧テストは story↔comment の id 衝突で /item/{commentId} が story 表示に
+		// すり替わる（#164 のバグ）前提で on:title と body の x を比較していたが、
+		// /comment へ分離して正しく comment mode が描画されるようになったため、
+		// comment mode の正しい階段揃え（item-detail 直下 + .comment-text の 18px）を検証する。
 		await page.locator('.comment-item .comment-head a').filter({ hasText: /ago/ }).first().click();
-		await page.waitForURL(/\/item\/\d+/);
+		await page.waitForURL(/\/comment\/\d+/);
 		await page.waitForLoadState('networkidle');
 
 		// data.mode === 'comment' の sanity check: on:<storyTitle> リンクが出るはず
 		const storyTitleLink = page.locator('.item-detail a').filter({ hasText: title });
 		await expect(storyTitleLink).toBeVisible();
 
-		const titleLinkX = await storyTitleLink.first().evaluate((el) => Math.round(el.getBoundingClientRect().x));
-		const commentTextX = await readX(page, '.comment-text p');
+		// .item-detail のコンテンツ開始 x（padding-left 込み）。
+		const detailContentX = await readX(page, '.item-detail');
+		// フォーカスコメント本文（.item-detail 直下の .comment-text p）の x。
+		const commentTextX = await readX(page, '.item-detail > .comment-text p');
 
-		// ストーリーへのリンク（meta 行内）と コメント本文の text 開始位置が同等であること
-		expect(Math.abs(commentTextX - titleLinkX)).toBeLessThanOrEqual(20);
+		// comment 本文は .item-detail のコンテンツ領域 + .comment-text の 18px から始まる。
+		expect(Math.abs(commentTextX - (detailContentX + 18))).toBeLessThanOrEqual(2);
 	});
 
 	test('Mode B: reply クリックで開いた textarea が comment-text と同じ x', async ({ page }) => {
