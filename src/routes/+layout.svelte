@@ -149,7 +149,7 @@
 
 	<footer class="hn-footer">
 		<a href="/guidelines" title={tip('Guidelines')}>{l('Guidelines')}</a> | <a href="/faq" title={tip('FAQ')}>{l('FAQ')}</a> | <a href="/lists" title={tip('Lists')}>{l('Lists')}</a> |
-		<a href="/api-docs" title={tip('API')}>{l('API')}</a> | <a href="https://github.com/kako-jun/hacker-noroshi" title={tip('GitHub')}>{l('GitHub')}</a> |
+		<a href="/api-docs" title={tip('API')}>{l('API')}</a> | <a href="https://github.com/kako-jun/hacker-noroshi/security" title={tip('Security')}>{l('Security')}</a> | <a href="https://github.com/kako-jun/hacker-noroshi" title={tip('GitHub')}>{l('GitHub')}</a> |
 		<a href="/search" title={tip('Search')}>{l('Search')}</a>
 		<form action="/search" method="get" class="hn-footer-search">
 			{l('Search')}: <input type="text" name="q" />
