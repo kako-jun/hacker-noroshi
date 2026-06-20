@@ -74,9 +74,9 @@
 					{/if}
 				</span>
 				<a href="/user/{comment.username}" style={isNewUser(comment.user_created_at) ? 'color: #3c963c;' : ''}>{displayUsername({ username: comment.username, deleted: comment.user_deleted })}</a>
-				<a href="/item/{comment.id}">{timeAgo(comment.created_at)}</a>
-				| <a href="/item/{comment.parent_id ?? comment.story_id}" title={tooltipJa('parent')} style="color: #828282;">parent</a>
-				| <a href="/item/{comment.id}" title={tooltipJa('context')} style="color: #828282;">context</a>
+				<a href="/comment/{comment.id}">{timeAgo(comment.created_at)}</a>
+				| <a href={comment.parent_id ? '/comment/' + comment.parent_id : '/item/' + comment.story_id} title={tooltipJa('parent')} style="color: #828282;">parent</a>
+				| <a href="/comment/{comment.id}" title={tooltipJa('context')} style="color: #828282;">context</a>
 				| on: <a href="/item/{comment.story_id}">{comment.story_title}</a>
 				{' '}<a
 					href="#toggle"
