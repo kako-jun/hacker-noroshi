@@ -277,6 +277,15 @@
 		}
 		return map;
 	});
+	// nextCommentId の逆写像。DFS 順での「前のコメント」を id ごとに引く。
+	// HN 互換の `prev | next` リンク用。
+	let prevCommentId = $derived.by(() => {
+		const map: Record<number, number> = {};
+		for (let i = 1; i < commentTree.length; i++) {
+			map[commentTree[i].id] = commentTree[i - 1].id;
+		}
+		return map;
+	});
 	let rootCommentId = $derived.by(() => {
 		const map: Record<number, number> = {};
 		function walk(node: CommentNode, rootId: number) {
@@ -452,6 +461,7 @@
 			{:else}
 				| <a href="/item/{parentStory.id}" title={tooltipJa('parent')} style="color: #828282;">parent</a>
 			{/if}
+			| <a href="/item/{parentStory.id}#item-{comment.id}" title={tooltipJa('context')} style="color: #828282;">context</a>
 			| on: <a href="/item/{parentStory.id}">{parentStory.title}</a>
 			{#if (comment.flag_count ?? 0) > 0} <span class="story-tag">[flagged]</span>{/if}
 			{#if targetCommentDead === 1} <span class="story-tag">[dead]</span>{/if}
@@ -553,6 +563,9 @@
 						{#if child.parent_id && child.parent_id !== comment.id}
 							| <a href="#item-{rootCommentId[child.id]}" title={tooltipJa('root')} style="color: #828282;">root</a>
 							| <a href="#item-{child.parent_id}" title={tooltipJa('parent')} style="color: #828282;">parent</a>
+						{/if}
+						{#if prevCommentId[child.id]}
+							| <a href="#item-{prevCommentId[child.id]}" title={tooltipJa('prev')} style="color: #828282;">prev</a>
 						{/if}
 						{#if nextCommentId[child.id]}
 							| <a href="#item-{nextCommentId[child.id]}" title={tooltipJa('next')} style="color: #828282;">next</a>
@@ -841,6 +854,9 @@
 						{#if comment.parent_id}
 							| <a href="#item-{rootCommentId[comment.id]}" title={tooltipJa('root')} style="color: #828282;">root</a>
 							| <a href="#item-{comment.parent_id}" title={tooltipJa('parent')} style="color: #828282;">parent</a>
+						{/if}
+						{#if prevCommentId[comment.id]}
+							| <a href="#item-{prevCommentId[comment.id]}" title={tooltipJa('prev')} style="color: #828282;">prev</a>
 						{/if}
 						{#if nextCommentId[comment.id]}
 							| <a href="#item-{nextCommentId[comment.id]}" title={tooltipJa('next')} style="color: #828282;">next</a>
