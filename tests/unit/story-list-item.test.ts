@@ -101,11 +101,14 @@ describe('StoryListItem display flag logic', () => {
 /**
  * postHideToggle: /api/hide を叩いて toggle 後の hidden 状態を返す共有ヘルパ（#155）。
  * StoryListItem.svelte の toggleHide() と item/[id]/+page.svelte の toggleHideStory()
- * の同型 fetch 重複を解消するために切り出した純粋関数。
+ * の同型 fetch 重複を解消するために切り出した。fetch を行う I/O ヘルパなので純粋関数では
+ * ないが、fetch を spy で差し替えれば引数と分岐（2xx/非2xx）を単体で固定できる。
  *
  * fetch は captcha-unban.test.ts の流儀に合わせて globalThis を spy で差し替える。
- * Svelte コンポーネント内部の in-flight ガード（hideInFlight 等）はユニット対象外
- * （既存 e2e tests/e2e/hide.spec.ts が担保）。
+ * Svelte コンポーネント内部の in-flight ガード（hideInFlight / hideStoryInFlight）は
+ * コンポーネント state なのでユニット対象外。一覧の hide/un-hide 経路は既存 e2e
+ * tests/e2e/hide.spec.ts が踏むが、item ページの toggleHideStory ガード（#155 で新規追加）と
+ * 連打そのものの検証は現状どのテストも踏んでいない（item hide の e2e 追加は follow-up）。
  */
 describe('postHideToggle', () => {
 	afterEach(() => {
