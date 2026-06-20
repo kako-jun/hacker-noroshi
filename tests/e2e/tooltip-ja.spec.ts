@@ -23,6 +23,18 @@ test.describe('English label tooltip (title attribute)', () => {
 		await expect(apiLink).toHaveAttribute('title', '公開 API のドキュメント');
 	});
 
+	test('footer の "Security" リンクが GitHub security を指し、脆弱性報告先の title が付く（#159）', async ({
+		page
+	}) => {
+		await page.goto('/');
+		const securityLink = page.locator('.hn-footer a', { hasText: /^Security$/ });
+		await expect(securityLink).toHaveAttribute(
+			'href',
+			'https://github.com/kako-jun/hacker-noroshi/security'
+		);
+		await expect(securityLink).toHaveAttribute('title', 'セキュリティ・脆弱性の報告先');
+	});
+
 	test('/item/{id} で add comment ボタンに日本語 title が付く', async ({ page }) => {
 		// signup → submitStory で確実に「自分が著者の story」を用意し、
 		// /item/<id> を開いて add comment ボタンの title を検証する。
