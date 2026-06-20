@@ -127,3 +127,17 @@ export function assistHint(key: string, locale: Locale): string {
 export function assistSwitchLabel(locale: Locale): string {
 	return locale === 'ja' ? 'アシスト' : 'Assist';
 }
+
+/** 右下「このサイトの目的」リンクのラベル（ツールチップ/aria）。 */
+export function assistAboutLabel(locale: Locale): string {
+	return locale === 'ja'
+		? 'このサイトはなに？ — ハッカーのろしの目的'
+		: 'What is Hacker Noroshi? — why it exists';
+}
+
+/** 「このサイトの目的」記事（llll-ll）の URL。ロケール別。 */
+export function assistAboutUrl(locale: Locale): string {
+	return locale === 'ja'
+		? 'https://llll-ll.com/ja/posts/hacker-noroshi/'
+		: 'https://llll-ll.com/posts/hacker-noroshi/';
+}

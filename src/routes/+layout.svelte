@@ -2,7 +2,7 @@
 	import '../app.css';
 	import { page } from '$app/state';
 	import { label, localeToggleHref, tooltip } from '$lib/i18n';
-	import { assistHint, assistIntro, assistSwitchLabel } from '$lib/assist';
+	import { assistHint, assistIntro, assistSwitchLabel, assistAboutLabel, assistAboutUrl } from '$lib/assist';
 
 	let { data, children } = $props();
 
@@ -157,17 +157,35 @@
 	</footer>
 
 	<!-- アシストモードのスイッチ（#140）。右下に固定・スクロール追従。青/ガラスで HN コアと分離。
-	     押すと即トグル（リロード無し）。aria-pressed で状態を支援技術へ伝える。 -->
-	<button
-		type="button"
-		class="assist-switch"
-		role="switch"
-		aria-checked={assistOn}
-		aria-label={assistSwitchLabel(data.locale)}
-		title={assistSwitchLabel(data.locale)}
-		onclick={toggleAssist}
-	>
-		<span class="assist-switch-track"><span class="assist-switch-thumb"></span></span>
-		<span class="assist-switch-text">{assistSwitchLabel(data.locale)}</span>
-	</button>
+	     押すと即トグル（リロード無し）。aria-pressed で状態を支援技術へ伝える。
+	     左隣の ⓘ リンク（#160）は常設（assist ON/OFF どちらでも表示）で llll-ll の目的記事へ別タブで飛ぶ。 -->
+	<div class="assist-dock">
+		<a
+			class="assist-about"
+			href={assistAboutUrl(data.locale)}
+			target="_blank"
+			rel="noopener noreferrer"
+			title={assistAboutLabel(data.locale)}
+			aria-label={assistAboutLabel(data.locale)}
+		>
+			<!-- ⓘ インフォアイコン（円の中に i）。currentColor で白に追従。 -->
+			<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+				<circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5" />
+				<circle cx="8" cy="4.3" r="1" fill="currentColor" />
+				<rect x="7.1" y="6.4" width="1.8" height="5.4" rx="0.9" fill="currentColor" />
+			</svg>
+		</a>
+		<button
+			type="button"
+			class="assist-switch"
+			role="switch"
+			aria-checked={assistOn}
+			aria-label={assistSwitchLabel(data.locale)}
+			title={assistSwitchLabel(data.locale)}
+			onclick={toggleAssist}
+		>
+			<span class="assist-switch-track"><span class="assist-switch-thumb"></span></span>
+			<span class="assist-switch-text">{assistSwitchLabel(data.locale)}</span>
+		</button>
+	</div>
 </div>
