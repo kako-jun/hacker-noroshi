@@ -294,9 +294,8 @@ export const TOOLTIP_JA = {
 	root: 'スレッドの先頭へ',
 	context: '前後の文脈を見る',
 	next: '次へ',
-	// prev は本家 HN レイアウトでは現状描画されないが、将来コメント間移動を
-	// 追加した際に流用できるよう辞書だけ先取りで持つ。tooltipJa('prev') が
-	// 呼ばれていない状態が正常。
+	// prev はコメントツリー行で next と対に描画する（#157）。本家 HN も
+	// item ページのコメント行に prev | next を出す（DFS 順の前後コメントへ）。
 	prev: '前へ',
 	reply: '返信',
 	More: '次のページ',
