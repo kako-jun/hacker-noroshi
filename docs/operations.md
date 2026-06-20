@@ -78,15 +78,21 @@ D1 データベース ID: `185871af-76c3-403c-81c8-aede8f8cd100`
 
 ### seed 再投入の注意
 
-`db:seed` は INSERT のみで冪等ではない。既に seed 済みの DB に対して再実行すると UNIQUE 制約で落ちる。クリーンに入れ直す場合は
+`db:seed` は INSERT のみで冪等ではない。既に seed 済みの DB に対して再実行すると UNIQUE 制約で落ちる。`db:init`/`db:seed` は DROP しないため、繰り返すと local D1 に行が累積し、seed 固定 id や ban 残留に依存する e2e が汚染される。クリーンに入れ直すときは
+
+```bash
+npm run db:reset   # db/reset.sql (全テーブル DROP) → db:init → db:seed
+```
+
+を使う（#166）。`reset.sql` は全 12 テーブルを `DROP TABLE IF EXISTS` するので、テーブルごと作り直して AUTOINCREMENT も初期化される（DELETE と違い sqlite_sequence を別途消す必要がない）。e2e を回す前にクリーンにしたいときも `npm run db:reset`。
+
+明示的に DELETE で消したい場合は次でも同じ結果になる（AUTOINCREMENT を戻さないと poll_options が参照する story id (45/46) がずれるので sqlite_sequence も消すこと）:
 
 ```bash
 wrangler d1 execute hacker-noroshi-db --local --command \
   "DELETE FROM votes; DELETE FROM poll_options; DELETE FROM comments; DELETE FROM hidden; DELETE FROM favorites; DELETE FROM stories; DELETE FROM ip_bans; DELETE FROM ip_login_failures; DELETE FROM sessions; DELETE FROM flags; DELETE FROM username_history; DELETE FROM users; DELETE FROM sqlite_sequence;"
 npm run db:seed
 ```
-
-の順で全テーブルと autoincrement をリセットしてから流す。AUTOINCREMENT を戻さないと poll_options が参照する story id (45/46) がずれる。
 
 ## DB マイグレーション
 
