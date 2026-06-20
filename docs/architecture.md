@@ -28,7 +28,8 @@ hacker-noroshi/
 │   │   ├── lists/            # ブラウズリンク集
 │   │   ├── api-docs/         # APIドキュメント
 │   │   ├── rss/              # RSS 2.0 フィード
-│   │   ├── item/[id]/        # 投稿詳細 or コメントパーマリンク + コメント + 編集
+│   │   ├── item/[id]/        # ストーリー詳細 + コメントツリー + 編集（story 専用・非 story id は /comment へ 308）
+│   │   ├── comment/[id]/      # コメントパーマリンク（#164・id 衝突回避で /item から分離）
 │   │   ├── user/[id]/        # プロフィール + 編集
 │   │   │   ├── submissions/  # ユーザーの投稿一覧
 │   │   │   ├── comments/     # ユーザーのコメント一覧
@@ -268,7 +269,8 @@ env: `TURNSTILE_SITE_KEY`（public）と `TURNSTILE_SECRET_KEY`（secret）。
 | `/noobcomments` | 新規ユーザー（過去14日以内）のコメント |
 | `/leaders` | karma 上位30ユーザーのリーダーボード |
 | `/lists` | ブラウズリンク集（本家HN順、実装済み13項目を掲載） |
-| `/item/[id]` | 投稿詳細 or コメントパーマリンク + コメントスレッド + 編集 |
+| `/item/[id]` | ストーリー詳細 + コメントスレッド + 編集（story 専用。id が story でなければ `/comment/[id]` へ 308 リダイレクト） |
+| `/comment/[id]` | コメントパーマリンク（#164。`stories` と `comments` が id 空間を共有するため、コメントは `/item` と分離したこのルートで解決する） |
 | `/user/[id]` | ユーザープロフィール + 編集 |
 | `/user/[id]/submissions` | ユーザーの投稿一覧 |
 | `/user/[id]/comments` | ユーザーのコメント一覧 |
