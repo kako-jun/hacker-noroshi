@@ -96,6 +96,62 @@ test.describe('assist mode', () => {
 		await expect(intro).toContainText('カルマ');
 	});
 
+	test('ⓘ リンクは常設で、assist OFF→ON 切替でも消えない（assist ゲート外）', async ({ page }) => {
+		// #160: ⓘ は .assist-on 配下ではなく常設。assist の OFF/ON どちらでも見える。
+		await page.goto('/');
+		await page.waitForLoadState('networkidle');
+		const about = page.locator('.assist-about');
+		const sw = page.locator('.assist-switch');
+
+		// 既定 OFF でも ⓘ は見える。
+		await expect(sw).toHaveAttribute('aria-checked', 'false');
+		await expect(about).toBeVisible();
+
+		// ON にしても ⓘ は見えたまま。
+		await sw.click();
+		await expect(sw).toHaveAttribute('aria-checked', 'true');
+		await expect(about).toBeVisible();
+
+		// もう一度 OFF に戻しても見えたまま。
+		await sw.click();
+		await expect(sw).toHaveAttribute('aria-checked', 'false');
+		await expect(about).toBeVisible();
+	});
+
+	test('ⓘ の href はロケール別に正しく、別タブ（target=_blank・rel=noopener）で開く', async ({
+		page
+	}) => {
+		// 既定（en）：ja prefix 無しの目的記事へ。
+		await page.goto('/');
+		await page.waitForLoadState('networkidle');
+		const aboutEn = page.locator('.assist-about');
+		await expect(aboutEn).toHaveAttribute('href', 'https://llll-ll.com/posts/hacker-noroshi/');
+		await expect(aboutEn).toHaveAttribute('target', '_blank');
+		await expect(aboutEn).toHaveAttribute('rel', /noopener/);
+
+		// ja に切り替えるとページ遷移するので locator を取り直して href を厳密一致で確認。
+		await page.goto('/locale?lang=ja&next=/');
+		await page.waitForLoadState('networkidle');
+		const aboutJa = page.locator('.assist-about');
+		await expect(aboutJa).toHaveAttribute('href', 'https://llll-ll.com/ja/posts/hacker-noroshi/');
+		// 外部 URL なので実クリックでの遷移はしない（href 検証に留める）。
+	});
+
+	test('ⓘ リンクはスイッチより左（DOM 順で .assist-about が先頭）', async ({ page }) => {
+		await page.goto('/');
+		await page.waitForLoadState('networkidle');
+		// .assist-dock の最初の子が .assist-about（= 左）であること。
+		const firstChild = page.locator('.assist-dock > *:first-child');
+		await expect(firstChild).toHaveClass(/assist-about/);
+
+		// 念のため実レイアウトの x 座標でも about が switch より左にあることを確認。
+		const aboutBox = await page.locator('.assist-about').boundingBox();
+		const switchBox = await page.locator('.assist-switch').boundingBox();
+		expect(aboutBox).not.toBeNull();
+		expect(switchBox).not.toBeNull();
+		expect((aboutBox as { x: number }).x).toBeLessThan((switchBox as { x: number }).x);
+	});
+
 	test('一覧の先頭行に行コントロール解説が1回だけ＋メタ解説も出て、OFF で全アシストが消える', async ({
 		page
 	}) => {
