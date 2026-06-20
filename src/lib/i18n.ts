@@ -24,6 +24,7 @@ export const UI_LABELS = {
 		FAQ: 'FAQ',
 		Lists: 'Lists',
 		API: 'API',
+		Security: 'Security',
 		GitHub: 'GitHub',
 		Search: 'Search',
 		asknew: 'asknew',
@@ -111,6 +112,7 @@ export const UI_LABELS = {
 		FAQ: 'FAQ',
 		Lists: '一覧',
 		API: 'API',
+		Security: 'Security',
 		GitHub: 'GitHub',
 		Search: '検索',
 		asknew: '新着の質問',
@@ -255,6 +257,7 @@ export const TOOLTIP_JA = {
 	FAQ: 'よくある質問',
 	Lists: '各種一覧',
 	API: '公開 API のドキュメント',
+	Security: 'セキュリティ・脆弱性の報告先',
 	GitHub: 'GitHub リポジトリ',
 	Search: '検索',
 
