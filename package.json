@@ -12,6 +12,7 @@
 		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
 		"db:init": "wrangler d1 execute hacker-noroshi-db --local --file=db/schema.sql",
 		"db:seed": "wrangler d1 execute hacker-noroshi-db --local --file=db/seed.sql",
+		"db:reset": "wrangler d1 execute hacker-noroshi-db --local --file=db/reset.sql && npm run db:init && npm run db:seed",
 		"test": "vitest run",
 		"test:watch": "vitest",
 		"test:e2e": "playwright test",
