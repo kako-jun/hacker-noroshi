@@ -179,4 +179,45 @@ test.describe('assist mode', () => {
 		await expect(page.locator('.assist-hint:visible')).toHaveCount(0);
 		await expect(page.locator('.assist-meta:visible')).toHaveCount(0);
 	});
+
+	test('メタ箱は ⓘ＋スイッチの真上＝.assist-meta の y が .assist-dock-controls より小さい (#170)', async ({
+		page
+	}) => {
+		// #170: メタ解説は最上部 .assist-hint から右下ドックへ移設し、ⓘ＋スイッチ（.assist-dock-controls）の
+		// 真上に右寄せで積む。実レイアウトの bounding box で「メタが上」を保証する（CSS の縦積み順の回帰防止）。
+		await page.goto('/locale?lang=ja&next=/newest');
+		await page.waitForLoadState('networkidle');
+		const sw = page.locator('.assist-switch');
+		await expect(sw).toHaveAttribute('aria-checked', 'false');
+		await sw.click();
+
+		const meta = page.locator('.assist-meta');
+		const controls = page.locator('.assist-dock-controls');
+		await expect(meta).toBeVisible();
+		await expect(controls).toBeVisible();
+
+		const metaBox = await meta.boundingBox();
+		const controlsBox = await controls.boundingBox();
+		expect(metaBox).not.toBeNull();
+		expect(controlsBox).not.toBeNull();
+		// y（top）が小さい＝画面上で上にある。メタが ⓘ＋スイッチの真上。
+		expect((metaBox as { y: number }).y).toBeLessThan((controlsBox as { y: number }).y);
+	});
+
+	test('en ロケールでも ON でメタが可視になり、英語メタ文（Assist を含む）が出る (#170)', async ({
+		page
+	}) => {
+		// 既存テストは ja 中心なので en の最小スモーク。en でもメタ箱が ON ゲートで可視になり、英語で出る。
+		await page.goto('/locale?lang=en&next=/newest');
+		await page.waitForLoadState('networkidle');
+		const sw = page.locator('.assist-switch');
+		await expect(sw).toHaveAttribute('aria-checked', 'false');
+		await sw.click();
+
+		const meta = page.locator('.assist-meta');
+		await expect(meta).toBeVisible();
+		await expect(meta).toContainText('Assist');
+		// en なので日本語のメタ文（「言語」）は出ない（ロケール分離）。
+		await expect(meta).not.toContainText('言語');
+	});
 });
