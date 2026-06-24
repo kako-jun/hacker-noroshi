@@ -707,15 +707,46 @@ a:hover {
 	max-width: 480px;
 }
 
-/* 右下の常設ドック。ⓘ リンクとアシストスイッチを横並びにし、fixed でスクロール追従。 */
+/* 右下の常設ドック。メタ解説（上・右寄せ）と「ⓘ＋アシストスイッチ」の横並び（下）を縦に積む。
+   fixed でスクロール追従（#140・#170）。 */
 .assist-dock {
 	position: fixed;
 	right: 14px;
 	bottom: 14px;
 	z-index: 50;
 	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 8px;
+}
+/* ⓘ リンクとアシストスイッチの横並び（ドック下段）。 */
+.assist-dock-controls {
+	display: flex;
 	align-items: center;
 	gap: 8px;
+}
+
+/* メタ解説（言語/アシスト本体/カルマ）。最上部でなく ⓘ＋スイッチの真上に右寄せで出す（#170）。
+   既定で非表示、.assist-on 配下でだけ可視＝オフにすれば素の HN ページが完全に戻る（不変条件）。
+   見た目は .assist-hint と同じ FF 初心者の館の意匠（青地・白枠・白文字）。 */
+.assist-meta {
+	display: none;
+}
+.assist-on .assist-meta {
+	display: block;
+	text-align: right;
+	max-width: 340px;
+	/* 右寄せのドック上段なので下方向だけ少し空ける。 */
+	margin: 0 0 4px;
+	padding: 8px 11px;
+	font-family: Verdana, Geneva, sans-serif;
+	font-size: 8.5pt;
+	line-height: 1.45;
+	color: #ffffff;
+	background: linear-gradient(180deg, #2a3f9e 0%, #141d54 100%);
+	border: 2px solid #ffffff;
+	border-radius: 6px;
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.45);
 }
 
 /* 「このサイトの目的」へ飛ぶ円形 ⓘ リンク。常設（assist ON/OFF 不問）。

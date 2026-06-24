@@ -9,9 +9,10 @@
 	// 画面の解説（.assist-intro）は現在の route だけで決まる純関数なので、各ページにベタ書きせず
 	// ここで 1 箇所だけ描画する（doctrine #3 webbed UI 重複の解消・#143）。route id にキーが無ければ空。
 	let assistIntroText = $derived(assistIntro(page.route.id, data.locale));
-	// メタ解説（言語/アシスト本体）。カルマ文は実際に (123) が見えるログイン中だけ後段に足す（未ログインに
-	// 存在しないコントロールを教えない・レビュー指摘）。解説対象の「教えるページ」= intro があるページにだけ出し、
-	// faq/guidelines 等の純粋ページには出さない（サイト全体への過剰露出を避ける・レビュー指摘）。
+	// メタ解説（言語/アシスト本体）。右下ドックの ⓘ＋スイッチの真上に右寄せで描画する（#170 で最上部から移設）。
+	// カルマ文は実際に (123) が見えるログイン中だけ後段に足す（未ログインに存在しないコントロールを教えない・
+	// レビュー指摘）。intro があるページにだけ出すゲートは維持。intro は今や全ルートにあるので実質常時表示になる
+	// （意図通り）。.assist-meta は .assist-on ゲートで OFF 時は非表示。
 	let metaHintText = $derived(
 		assistIntroText
 			? assistHint('meta.controls', data.locale) +
@@ -136,10 +137,6 @@
 		</div>
 	</header>
 
-	{#if metaHintText}
-		<div class="assist-hint">{metaHintText}</div>
-	{/if}
-
 	<main>
 		{#if assistIntroText}
 			<p class="assist-intro">{assistIntroText}</p>
@@ -158,34 +155,41 @@
 
 	<!-- アシストモードのスイッチ（#140）。右下に固定・スクロール追従。青/ガラスで HN コアと分離。
 	     押すと即トグル（リロード無し）。aria-pressed で状態を支援技術へ伝える。
-	     左隣の ⓘ リンク（#160）は常設（assist ON/OFF どちらでも表示）で llll-ll の目的記事へ別タブで飛ぶ。 -->
+	     左隣の ⓘ リンク（#160）は常設（assist ON/OFF どちらでも表示）で llll-ll の目的記事へ別タブで飛ぶ。
+	     メタ解説（言語/アシスト本体/カルマ）は最上部でなく、この ⓘ＋スイッチの真上に右寄せで出す（#170）。
+	     .assist-meta は .assist-on ゲートで OFF 時は非表示＝素の HN へ完全復元の不変条件を守る。 -->
 	<div class="assist-dock">
-		<a
-			class="assist-about"
-			href={assistAboutUrl(data.locale)}
-			target="_blank"
-			rel="noopener noreferrer"
-			title={assistAboutLabel(data.locale)}
-			aria-label={assistAboutLabel(data.locale)}
-		>
-			<!-- ⓘ インフォアイコン（円の中に i）。currentColor で白に追従。 -->
-			<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
-				<circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5" />
-				<circle cx="8" cy="4.3" r="1" fill="currentColor" />
-				<rect x="7.1" y="6.4" width="1.8" height="5.4" rx="0.9" fill="currentColor" />
-			</svg>
-		</a>
-		<button
-			type="button"
-			class="assist-switch"
-			role="switch"
-			aria-checked={assistOn}
-			aria-label={assistSwitchLabel(data.locale)}
-			title={assistSwitchLabel(data.locale)}
-			onclick={toggleAssist}
-		>
-			<span class="assist-switch-track"><span class="assist-switch-thumb"></span></span>
-			<span class="assist-switch-text">{assistSwitchLabel(data.locale)}</span>
-		</button>
+		{#if metaHintText}
+			<div class="assist-meta">{metaHintText}</div>
+		{/if}
+		<div class="assist-dock-controls">
+			<a
+				class="assist-about"
+				href={assistAboutUrl(data.locale)}
+				target="_blank"
+				rel="noopener noreferrer"
+				title={assistAboutLabel(data.locale)}
+				aria-label={assistAboutLabel(data.locale)}
+			>
+				<!-- ⓘ インフォアイコン（円の中に i）。currentColor で白に追従。 -->
+				<svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true" focusable="false">
+					<circle cx="8" cy="8" r="7" fill="none" stroke="currentColor" stroke-width="1.5" />
+					<circle cx="8" cy="4.3" r="1" fill="currentColor" />
+					<rect x="7.1" y="6.4" width="1.8" height="5.4" rx="0.9" fill="currentColor" />
+				</svg>
+			</a>
+			<button
+				type="button"
+				class="assist-switch"
+				role="switch"
+				aria-checked={assistOn}
+				aria-label={assistSwitchLabel(data.locale)}
+				title={assistSwitchLabel(data.locale)}
+				onclick={toggleAssist}
+			>
+				<span class="assist-switch-track"><span class="assist-switch-thumb"></span></span>
+				<span class="assist-switch-text">{assistSwitchLabel(data.locale)}</span>
+			</button>
+		</div>
 	</div>
 </div>
