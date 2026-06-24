@@ -88,6 +88,8 @@ test.describe('assist mode', () => {
 			.getAttribute('href');
 		expect(authorHref).toBeTruthy();
 		await page.goto(authorHref as string);
+		// hydration 完了前にクリックすると onclick 未装着で no-op になり flaky（他テストと同じく待つ）。
+		await page.waitForLoadState('networkidle');
 		const sw = page.locator('.assist-switch');
 		await expect(sw).toHaveAttribute('aria-checked', 'false');
 		await sw.click();
@@ -140,8 +142,9 @@ test.describe('assist mode', () => {
 	test('ⓘ リンクはスイッチより左（DOM 順で .assist-about が先頭）', async ({ page }) => {
 		await page.goto('/');
 		await page.waitForLoadState('networkidle');
-		// .assist-dock の最初の子が .assist-about（= 左）であること。
-		const firstChild = page.locator('.assist-dock > *:first-child');
+		// #170: ⓘ＋スイッチは .assist-dock-controls にまとまった（上にメタ解説）。その横並びの最初の子が
+		// .assist-about（= 左）であること。
+		const firstChild = page.locator('.assist-dock-controls > *:first-child');
 		await expect(firstChild).toHaveClass(/assist-about/);
 
 		// 念のため実レイアウトの x 座標でも about が switch より左にあることを確認。
@@ -160,17 +163,20 @@ test.describe('assist mode', () => {
 		const sw = page.locator('.assist-switch');
 		await expect(sw).toHaveAttribute('aria-checked', 'false');
 
-		// ON：行コントロール解説（▲ upvote）は先頭行に1回だけ。メタ解説（右上 lang）も出る。
+		// ON：行コントロール解説（▲ upvote）は先頭行に1回だけ。メタ解説（#170 で右下ドック上段 .assist-meta へ
+		// 移設）も出る。
 		await sw.click();
 		await expect(page.locator('.assist-hint', { hasText: 'upvote' })).toHaveCount(1);
 		await expect(page.locator('.assist-hint', { hasText: 'upvote' })).toBeVisible();
-		await expect(page.locator('.assist-hint', { hasText: 'lang' })).toBeVisible();
+		await expect(page.locator('.assist-meta')).toBeVisible();
+		await expect(page.locator('.assist-meta')).toContainText('言語');
 		// 未ログインでは存在しないカルマ (123) の解説を出さない（ログイン時だけ meta.karma を足す）。
-		await expect(page.locator('.assist-hint', { hasText: '(123)' })).toHaveCount(0);
+		await expect(page.locator('.assist-meta', { hasText: '(123)' })).toHaveCount(0);
 
-		// OFF：素の HN へ完全復元＝解説もヒントも1つも見えない（不変条件）。
+		// OFF：素の HN へ完全復元＝解説もヒントもメタも1つも見えない（不変条件）。
 		await page.locator('.assist-switch').click();
 		await expect(page.locator('.assist-intro:visible')).toHaveCount(0);
 		await expect(page.locator('.assist-hint:visible')).toHaveCount(0);
+		await expect(page.locator('.assist-meta:visible')).toHaveCount(0);
 	});
 });
