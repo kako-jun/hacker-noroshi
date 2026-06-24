@@ -735,7 +735,7 @@ a:hover {
 .assist-on .assist-meta {
 	display: block;
 	text-align: right;
-	max-width: 340px;
+	max-width: min(340px, calc(100vw - 28px));
 	/* 右寄せのドック上段なので下方向だけ少し空ける。 */
 	margin: 0 0 4px;
 	padding: 8px 11px;

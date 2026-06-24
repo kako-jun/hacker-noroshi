@@ -56,7 +56,7 @@ const ASSIST_INTRO: Record<Locale, Record<string, string>> = {
 		'/api-docs': 'API＝外部のプログラムから投稿やコメントを取得するための、公開 API の解説ページです。',
 		'/noprocrast': 'noprocrast（やりすぎ防止）＝一定時間で利用を区切る、本家 Hacker News 由来の設定の説明ページです。',
 		'/admin/ipban': '管理者用：IP BAN（アクセス禁止）を管理するページです。',
-		'/ipban': '管理者用：IP BAN（アクセス禁止）を管理するページです。'
+		'/ipban': 'あなたの IP がアクセス禁止（IP BAN）になっていないか確認するページです。されていれば、その場で解除を申請できます。'
 	},
 	en: {
 		'/': 'This is Hacker Noroshi — a practice ground for debuting on the real (English) Hacker News. Browse new / ask / show and try posting.',
@@ -95,7 +95,7 @@ const ASSIST_INTRO: Record<Locale, Record<string, string>> = {
 		'/api-docs': 'API — docs for the public API to fetch posts and comments programmatically.',
 		'/noprocrast': 'noprocrast — about the HN setting that breaks up your usage after a while.',
 		'/admin/ipban': 'Admin: manage IP bans (blocked addresses).',
-		'/ipban': 'Admin: manage IP bans (blocked addresses).'
+		'/ipban': 'Check whether your IP is banned, and request an unban right here if it is.'
 	}
 };
 
@@ -127,7 +127,7 @@ const ASSIST_HINT: Record<Locale, Record<string, string>> = {
 		// アシスト本体）への気づき。カルマは meta.karma に分離し、ログイン中（= 実際に (123) が見える）ときだけ
 		// layout が後段に足す。
 		'meta.controls':
-			'下に並ぶ ⓘ ボタンと「アシスト」スイッチの説明です。「アシスト」スイッチがこの操作補助の本体で、オフにすると解説が消え、本家 Hacker News と同じ素の画面に戻ります。慣れたらオフにして、本家へデビューしましょう。ⓘ はこのサイトの目的（HN の練習場）の説明へ飛びます。表示言語は右上の言語リンク（English／日本語）で切り替えられます。',
+			'下に並ぶ ⓘ ボタンと「アシスト」スイッチの説明です。「アシスト」スイッチがこの操作補助の本体で、オフにすると解説が消え、本家 Hacker News と同じ素の画面に戻ります。慣れたらオフにして、本家へデビューしましょう。ⓘ はこのサイトの目的（HN の練習場）の説明へ飛びます。表示言語は右上の「English」リンクで切り替えられます。',
 		'meta.karma': 'また、ログイン中はヘッダのあなたの名前の右の数字 (123) がカルマ（karma＝評価点）です。'
 	},
 	en: {
@@ -150,7 +150,7 @@ const ASSIST_HINT: Record<Locale, Record<string, string>> = {
 		'item.controls':
 			'Actions for this post. favorite bookmarks it (it appears under favorites on your profile), hide removes it from your list, flag reports it. If it is your own post, edit / delete also appear — but you can only edit within 2 hours of posting (the same edit-window convention as the real HN). Below, collapse comments with [–] and reply to join in.',
 		'meta.controls':
-			'Just below sit a round ⓘ button and a switch labeled "Assist". The "Assist" switch is this assist itself — turn it off and the guides disappear, leaving the plain screen identical to the real Hacker News. Once you are comfortable, switch it off and graduate to the real thing. The ⓘ opens an explanation of what this site is for. Use the language link at the top-right (English / 日本語) to switch the display language.',
+			'Just below sit a round ⓘ button and a switch labeled "Assist". The "Assist" switch is this assist itself — turn it off and the guides disappear, leaving the plain screen identical to the real Hacker News. Once you are comfortable, switch it off and graduate to the real thing. The ⓘ opens an explanation of what this site is for. Use the 「日本語」 link at the top-right to switch the display language.',
 		'meta.karma': 'Also, when you are logged in, the number (123) next to your name in the header is your karma (reputation).'
 	}
 };
