@@ -730,7 +730,11 @@ a:hover {
 }
 
 /* 右下の常設ドック。メタ解説（上・右寄せ）と「ⓘ＋アシストスイッチ」の横並び（下）を縦に積む。
-   fixed でスクロール追従（#140・#170）。 */
+   fixed でスクロール追従（#140・#170）。
+   .assist-dock 自体は背景もサイズ指定も持たず子要素（.assist-meta 等）の flow に合わせて箱が広がるため、
+   子に pointer-events: none を付けるだけでは（背景なしの div でも箱全体がヒットテスト対象という挙動により）
+   親のこの箱がクリックを奪い続けてしまう。ドック全体を none にした上で、実際にクリック可能な下段
+   （.assist-dock-controls＝ⓘ＋スイッチ）だけ auto に戻す（#177）。 */
 .assist-dock {
 	position: fixed;
 	right: 14px;
@@ -740,12 +744,15 @@ a:hover {
 	flex-direction: column;
 	align-items: flex-end;
 	gap: 8px;
+	pointer-events: none;
 }
-/* ⓘ リンクとアシストスイッチの横並び（ドック下段）。 */
+/* ⓘ リンクとアシストスイッチの横並び（ドック下段）。実際にクリック可能なのはここだけなので
+   pointer-events を auto に戻す（#177）。 */
 .assist-dock-controls {
 	display: flex;
 	align-items: center;
 	gap: 8px;
+	pointer-events: auto;
 }
 
 /* メタ解説（言語/アシスト本体/カルマ）。最上部でなく ⓘ＋スイッチの真上に右寄せで出す（#170）。
@@ -769,6 +776,7 @@ a:hover {
 	border: 2px solid #ffffff;
 	border-radius: 6px;
 	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.45);
+	/* pointer-events は .assist-dock の none を継承する（#177）。ここで改めて指定はしない。 */
 }
 
 /* 「このサイトの目的」へ飛ぶ円形 ⓘ リンク。常設（assist ON/OFF 不問）。
