@@ -10,13 +10,24 @@ import {
 /**
  * Issue #172: アシストヒントを画面単位パラグラフ（story.controls / item.controls）から
  * 要素単位（story.upvote/hide/flag/comments・item.favorite/hide/flag/edit/delete/
- * comment-toggle/reply）へ再設計。各コントロールの真横に `.assist-hint-float` として
- * フロート表示する。
+ * comment-toggle/reply）へ再設計。
+ *
+ * 第1段（`.assist-anchor` + `.assist-hint-float` + `.assist-stagger-*` による絶対配置・固定pxオフセット
+ * 階段状レイアウト）はセルフレビュー2巡で、固定pxオフセットが実際のレイアウト（行の高さ・ページごとの
+ * ヒント段数・ビューポート幅）に追従できないという同じ欠陥クラスのバグを繰り返し出した（story.upvote が
+ * 無関係な行に重なる／item.upvote がコメント本文に重なる／狭幅ビューポートで画面右にはみ出す=#174）。
+ *
+ * 第2段では絶対配置をやめ、コントロール群の直下に通常のドキュメントフロー要素として `.assist-hint-list`
+ * （`.assist-hint` を縦積み）を挿入する設計に置き換えた。documentフローは要素同士が押し合うだけで重ならず、
+ * 幅もコンテナ内に自然に収まるため、旧設計にあった「重なり回帰ガード」テスト群はもう意味を持たない
+ * （構造的に重なりが起きない）。代わりに、行の直後に正しいヒント一覧が正しい文言・順序・条件で出ることを
+ * 検証する。
  *
  * ここでは以下を確認する:
- *  A. 重なり回帰ガード（複数ヒント同時表示で互いに重ならない・画面外に出ない）
- *  B. 正常系（コントロール単位の紐付け＝どのヒントがどのリンク直下に出るか）
+ *  A. 配置（行/コントロール群の直後に assist-hint-list が document フローで出る）
+ *  B. 正常系（どのヒントがどの行のリストに、どの順序で出るか）
  *  C. 権限・条件分岐（ゲスト・own post・編集窓・0コメント）
+ *  D. 狭幅ビューポート（#174 再現ケースの直り確認・test.fail() からの格上げ）
  *  E. 状態遷移（hide でのヒント移動、assist ON/OFF 連打）
  *  F. i18n 実配線（en ロケール）
  *  G. console error スモーク
@@ -25,35 +36,6 @@ import {
  * 「実際の画面のどこに出るか／出ないか」だけを見る。
  */
 
-type Box = { x: number; y: number; width: number; height: number };
-
-/** 2つの矩形が重なっていれば true。 */
-function boxesOverlap(a: Box, b: Box): boolean {
-	return !(a.x + a.width <= b.x || b.x + b.width <= a.x || a.y + a.height <= b.y || b.y + b.height <= a.y);
-}
-
-/** locator が指す複数要素の boundingBox を順に取得する（null は無い前提で assert する）。 */
-async function boxesOf(locator: ReturnType<Page['locator']>, count: number): Promise<Box[]> {
-	const boxes: Box[] = [];
-	for (let i = 0; i < count; i++) {
-		const box = await locator.nth(i).boundingBox();
-		expect(box, `element ${i} has no boundingBox (not rendered/visible?)`).not.toBeNull();
-		boxes.push(box as Box);
-	}
-	return boxes;
-}
-
-/** 全ペアで重なりが無いことを assert する。 */
-function expectNoOverlaps(boxes: Box[]): void {
-	for (let i = 0; i < boxes.length; i++) {
-		for (let j = i + 1; j < boxes.length; j++) {
-			expect(boxesOverlap(boxes[i], boxes[j]), `hint ${i} と ${j} が重なっている: ${JSON.stringify(boxes[i])} / ${JSON.stringify(boxes[j])}`).toBe(
-				false
-			);
-		}
-	}
-}
-
 /** assist スイッチを ON にする（既定 OFF を前提に1回クリック）。 */
 async function turnAssistOn(page: Page): Promise<void> {
 	const sw = page.locator('.assist-switch');
@@ -61,151 +43,55 @@ async function turnAssistOn(page: Page): Promise<void> {
 	await sw.click();
 }
 
-test.describe('assist element hints (#172): overlap regression guard', () => {
-	test('own-post: edit/delete/hide/favorite の4ヒント同時表示でも互いに重ならない（表1・行2）', async ({
-		page
-	}) => {
-		await signupNewUser(page);
-		const title = `overlap own post ${Date.now()}`;
-		await submitStory(page, { title, text: 'body' });
-		await page.goto('/newest');
-		const storyId = await findStoryIdByTitle(page, title);
-		await page.goto(`/item/${storyId}`);
-		await page.waitForLoadState('networkidle');
-		await turnAssistOn(page);
-
-		const hints = page.locator('.item-meta .assist-hint-float');
-		await expect(hints).toHaveCount(4);
-		expectNoOverlaps(await boxesOf(hints, 4));
-	});
-
-	test('他人の投稿・高カルマ: hide/favorite/flag の3ヒント同時表示でも互いに重ならない（表1・行5）', async ({
-		page
-	}) => {
-		await signupNewUser(page);
-		const title = `overlap other post ${Date.now()}`;
-		await submitStory(page, { title, text: 'body' });
-		await page.goto('/logout');
-
-		const viewer = await signupNewUser(page);
-		updateUserKarma(viewer, 50);
-		await page.goto('/newest');
-		const storyId = await findStoryIdByTitle(page, title);
-		await page.goto(`/item/${storyId}`);
-		await page.waitForLoadState('networkidle');
-		await turnAssistOn(page);
-
-		// edit/delete は他人の投稿なので出ない（この3つだけが対象）。
-		await expect(page.locator('.item-meta .assist-anchor').filter({ has: page.locator('a[href="#edit"]') })).toHaveCount(0);
-		const hints = page.locator('.item-meta .assist-hint-float');
-		await expect(hints).toHaveCount(3);
-		expectNoOverlaps(await boxesOf(hints, 3));
-	});
-
-	test('一覧 assistFirst 行: upvote/hide/comments/flag の4ヒントが同時表示でも重ならず、upvote は story-meta 側ヒント群より下に浮く（表2・行4）', async ({
-		page
-	}) => {
-		await signupNewUser(page);
-		const title = `overlap list assistFirst ${Date.now()}`;
-		await submitStory(page, { title, text: 'body' });
-		await page.goto('/logout');
-
-		const viewer = await signupNewUser(page);
-		updateUserKarma(viewer, 50);
-		await page.goto('/newest');
-		await page.waitForLoadState('networkidle');
-		// 直前に投稿した story が最新なので先頭行のはず（assistFirst はこの行に出る）。
-		await expect(page.locator('.story-item').first().locator('.story-title')).toHaveText(title);
-		await turnAssistOn(page);
-
-		const firstItem = page.locator('.story-item').first();
-		const allHints = firstItem.locator('.assist-hint-float');
-		await expect(allHints).toHaveCount(4);
-		expectNoOverlaps(await boxesOf(allHints, 4));
-
-		const upvoteAnchorBox = await firstItem.locator('.story-vote').boundingBox();
-		const upvoteBox = await firstItem.locator('.story-vote .assist-hint-float').boundingBox();
-		const metaHints = firstItem.locator('.story-meta .assist-hint-float');
-		await expect(metaHints).toHaveCount(3);
-		const metaBoxes = await boxesOf(metaHints, 3);
-		expect(upvoteBox).not.toBeNull();
-		expect(upvoteAnchorBox).not.toBeNull();
-		for (const metaBox of metaBoxes) {
-			expect((upvoteBox as Box).y, 'upvote ヒントが story-meta 側ヒントより下にない').toBeGreaterThan(metaBox.y);
-		}
-		// #172 must 1 回帰ガード: 旧 190px オフセットでは upvote ヒントが自分の行から5行下（約216px）まで
-		// 離れ、無関係な行のタイトル群に重なっていた。近傍（200px以内）に留まることを確認する。
-		expect(
-			(upvoteBox as Box).y - (upvoteAnchorBox as Box).y,
-			'upvote ヒントが自分の▲から離れすぎている（無関係な行に重なる不具合の再発）'
-		).toBeLessThan(200);
-	});
-
-	test('▲（14px幅）直下のヒントは横幅つぶれで縦に潰れない（アンカー幅より明確に広く・異常な高さでない）', async ({
-		page
-	}) => {
-		// upvote ヒントは assistFirst であれば未ログインでも出る（データ依存なし）。
-		await page.goto('/newest');
-		await page.waitForLoadState('networkidle');
-		await turnAssistOn(page);
-
-		const firstItem = page.locator('.story-item').first();
-		const anchorBox = await firstItem.locator('.story-vote').boundingBox();
-		const hintBox = await firstItem.locator('.story-vote .assist-hint-float').boundingBox();
-		expect(anchorBox).not.toBeNull();
-		expect(hintBox).not.toBeNull();
-		// アンカー（▲ボタン、数十px幅）よりヒントは明確に広い＝横幅つぶれで縦長になっていない。
-		expect((hintBox as Box).width).toBeGreaterThan((anchorBox as Box).width + 30);
-		// 1〜2行程度に収まる高さで、縦に潰れて何行にもなっていない。
-		expect((hintBox as Box).height).toBeLessThan(80);
-	});
-
-	test('狭幅ビューポート(375×667)でも item-meta の4ヒントが重ならず、画面右にはみ出さない', async ({
-		page
-	}) => {
-		// 既知のギャップ（#172 テスト設計時点で判明・未修正）: .assist-hint-float は固定 px オフセット
-		// （stagger-1〜4）と width:max-content/max-width:200pt の絶対配置で、狭幅向けの CSS 分岐が無い。
-		// 375px 幅では stagger-3（item.favorite）のヒントが右に 100px 超はみ出す（実測確認済み）。
-		// これはテストコードの誤りではなくプロダクション側の未対応（本タスクでは実装変更禁止のため
-		// 直さない）。重なり無しは満たすので、はみ出し検知だけ test.fail() で「現状は失敗して当然」と
-		// 明示する。将来レスポンシブ対応が入って通るようになったら、この行を消して昇格させる。
-		test.fail(true, '#172: 狭幅ビューポートでの assist-hint-float 右はみ出し（CSS 未対応、既知のギャップ）');
-		await page.setViewportSize({ width: 375, height: 667 });
-		await signupNewUser(page);
-		const title = `narrow viewport own post ${Date.now()}`;
-		await submitStory(page, { title, text: 'body' });
-		await page.goto('/newest');
-		const storyId = await findStoryIdByTitle(page, title);
-		await page.goto(`/item/${storyId}`);
-		await page.waitForLoadState('networkidle');
-		await turnAssistOn(page);
-
-		const hints = page.locator('.item-meta .assist-hint-float');
-		await expect(hints).toHaveCount(4);
-		const boxes = await boxesOf(hints, 4);
-		expectNoOverlaps(boxes);
-		for (const box of boxes) {
-			expect(box.x + box.width, `ヒントが画面右(375px)からはみ出している: ${JSON.stringify(box)}`).toBeLessThanOrEqual(375);
-		}
-	});
-});
-
-test.describe('assist element hints (#172): control-to-hint mapping', () => {
-	test('一覧: story.hide が hide リンク直下、story.comments がコメント数リンク直下に出る', async ({
+test.describe('assist element hints (#172): list row hint placement', () => {
+	test('一覧 先頭行: hint list が .story-item の直後に document フローで出て、upvote/hide/comments の3件が順に並ぶ（ゲスト・flag無し）', async ({
 		page
 	}) => {
 		await page.goto('/locale?lang=ja&next=/newest');
 		await page.waitForLoadState('networkidle');
 		await turnAssistOn(page);
 
-		// ゲストは flag が出ないので .story-meta 内の assist-anchor は [hide, comments] の2個で固定。
-		const anchors = page.locator('.story-item').first().locator('.story-meta .assist-anchor');
-		await expect(anchors).toHaveCount(2);
-		await expect(anchors.nth(0).locator('.assist-hint-float')).toContainText('非表示（hide）');
-		await expect(anchors.nth(1).locator('.assist-hint-float')).toContainText('コメント');
+		// .story-list の直下の子として .story-item の直後に .assist-hint-list が1つだけ出る
+		// （assistFirst は先頭可視行にしか付かないため）。
+		const list = page.locator('.story-list > .assist-hint-list');
+		await expect(list).toHaveCount(1);
+		const hints = list.locator('.assist-hint');
+		await expect(hints).toHaveCount(3);
+		await expect(hints.nth(0)).toContainText('▲ は upvote（投票）');
+		await expect(hints.nth(1)).toContainText('非表示（hide）');
+		await expect(hints.nth(2)).toContainText('コメント');
+
+		// document フロー配置なので、リストは対象行の下（y座標が対象行より大きい）に自然に落ちる。
+		const rowBox = await page.locator('.story-item').first().boundingBox();
+		const listBox = await list.boundingBox();
+		expect(rowBox).not.toBeNull();
+		expect(listBox).not.toBeNull();
+		expect((listBox!).y).toBeGreaterThan((rowBox!).y);
 	});
 
-	test('/user/[id]/hidden: un-hide ボタン直下に story.un-hide が出て、story.hide の文言は出ない（#172 must 2）', async ({
+	test('一覧 先頭行・他人の投稿＋高カルマ: upvote/hide/comments/flag の4件がこの順に並ぶ', async ({ page }) => {
+		await page.goto('/locale?lang=ja&next=/login');
+		await signupNewUser(page);
+		const title = `list hints flag ${Date.now()}`;
+		await submitStory(page, { title, text: 'body' });
+		await page.goto('/logout');
+
+		const viewer = await signupNewUser(page);
+		updateUserKarma(viewer, 50);
+		await page.goto('/newest');
+		await page.waitForLoadState('networkidle');
+		await expect(page.locator('.story-item').first().locator('.story-title')).toHaveText(title);
+		await turnAssistOn(page);
+
+		const hints = page.locator('.story-list > .assist-hint-list').locator('.assist-hint');
+		await expect(hints).toHaveCount(4);
+		await expect(hints.nth(0)).toContainText('▲ は upvote（投票）');
+		await expect(hints.nth(1)).toContainText('非表示（hide）');
+		await expect(hints.nth(2)).toContainText('コメント');
+		await expect(hints.nth(3)).toContainText('通報（flag）');
+	});
+
+	test('/user/[id]/hidden: story.un-hide がリストに出て、story.hide の文言は出ない（#172 must 2）', async ({
 		page
 	}) => {
 		await page.goto('/locale?lang=ja&next=/login');
@@ -229,108 +115,79 @@ test.describe('assist element hints (#172): control-to-hint mapping', () => {
 		await page.waitForLoadState('networkidle');
 		await turnAssistOn(page);
 
-		const unhideAnchor = page
-			.locator('.story-item')
-			.filter({ has: page.locator('a.story-title', { hasText: title }) })
-			.locator('.story-meta .assist-anchor')
-			.filter({ has: page.locator('a[href="#unhide"]') });
-		const hint = unhideAnchor.locator('.assist-hint-float');
-		await expect(hint).toContainText('非表示解除（un-hide）');
-		await expect(hint).not.toContainText('この投稿を自分の一覧から消します');
-	});
-
-	test('/item: item.edit / item.delete が各リンク直下に出る', async ({ page }) => {
-		await page.goto('/locale?lang=ja&next=/login');
-		await signupNewUser(page);
-		const title = `mapping edit delete ${Date.now()}`;
-		await submitStory(page, { title, text: 'body' });
-		await page.goto('/newest');
-		const storyId = await findStoryIdByTitle(page, title);
-		await page.goto(`/item/${storyId}`);
-		await page.waitForLoadState('networkidle');
-		await turnAssistOn(page);
-
-		const editAnchor = page.locator('.item-meta .assist-anchor').filter({ has: page.locator('a[href="#edit"]') });
-		await expect(editAnchor.locator('.assist-hint-float')).toContainText('編集（edit）');
-		const deleteAnchor = page.locator('.item-meta form[action="?/deleteStory"]');
-		await expect(deleteAnchor.locator('.assist-hint-float')).toContainText('削除（delete）');
-	});
-
-	test('/item: item.hide / item.favorite が各リンク直下に出る', async ({ page }) => {
-		await page.goto('/locale?lang=ja&next=/login');
-		await signupNewUser(page);
-		const title = `mapping hide favorite ${Date.now()}`;
-		await submitStory(page, { title, text: 'body' });
-		await page.goto('/newest');
-		const storyId = await findStoryIdByTitle(page, title);
-		await page.goto(`/item/${storyId}`);
-		await page.waitForLoadState('networkidle');
-		await turnAssistOn(page);
-
-		const hideAnchor = page.locator('.item-meta .assist-anchor').filter({ has: page.locator('a[href="#hide"]') });
-		await expect(hideAnchor.locator('.assist-hint-float')).toContainText('非表示（hide）');
-		const favAnchor = page.locator('.item-meta .assist-anchor').filter({ has: page.locator('a[href="#favorite"]') });
-		await expect(favAnchor.locator('.assist-hint-float')).toContainText('お気に入り（favorite）');
-	});
-
-	test('/item: item.upvote が本体▲直下に出て、item-meta 側の4ヒントと重ならない（#172 should）', async ({
-		page
-	}) => {
-		await page.goto('/locale?lang=ja&next=/login');
-		await signupNewUser(page);
-		const title = `mapping item upvote ${Date.now()}`;
-		await submitStory(page, { title, text: 'body' });
-		await page.goto('/newest');
-		const storyId = await findStoryIdByTitle(page, title);
-		await page.goto(`/item/${storyId}`);
-		await page.waitForLoadState('networkidle');
-		await turnAssistOn(page);
-
-		const upvoteHint = page.locator('.item-detail .story-vote.assist-anchor .assist-hint-float');
-		await expect(upvoteHint).toContainText('▲ は upvote（投票）');
-
-		// own post: edit/delete/hide/favorite の4ヒントが同時に出るシナリオでも重ならないことを確認する。
-		const metaHints = page.locator('.item-meta .assist-hint-float');
-		await expect(metaHints).toHaveCount(4);
-		const upvoteBox = await upvoteHint.boundingBox();
-		const metaBoxes = await boxesOf(metaHints, 4);
-		expect(upvoteBox).not.toBeNull();
-		for (const metaBox of metaBoxes) {
-			expect(
-				boxesOverlap(upvoteBox as Box, metaBox),
-				'item.upvote ヒントが item-meta 側ヒントと重なっている'
-			).toBe(false);
-		}
-	});
-
-	test('/item: item.comment-toggle が最初のコメント行の折り畳みリンク直下、item.reply が reply 直下に出る', async ({
-		page
-	}) => {
-		// seed story id=8 (BBS) は 5段ネストのコメントツリー(id 15→16→17→18→19)を持つ。
-		// DFS 平坦化順の先頭は id=15 = firstCommentId。
-		await page.goto('/locale?lang=ja&next=/login');
-		await signupNewUser(page);
-		await page.goto('/item/8');
-		await page.waitForLoadState('networkidle');
-		await turnAssistOn(page);
-
-		const firstComment = page.locator('#item-15');
-		await expect(firstComment.locator('.comment-toggle .assist-hint-float')).toContainText('たたみ');
-		await expect(firstComment.locator('.comment-reply .assist-hint-float')).toContainText('返信（reply）');
+		const hints = page.locator('.story-list > .assist-hint-list').locator('.assist-hint');
+		await expect(hints.filter({ hasText: '非表示解除（un-hide）' })).toHaveCount(1);
+		await expect(hints.filter({ hasText: 'この投稿を自分の一覧から消します' })).toHaveCount(0);
 	});
 });
 
-test.describe('assist element hints (#172): permission & condition branches', () => {
-	test('ゲスト（未ログイン）で /item を開くと item-meta 配下のヒントが0件（表1・行1）', async ({ page }) => {
-		await page.goto('/item/1');
-		await page.waitForLoadState('networkidle');
-		await turnAssistOn(page);
-		await expect(page.locator('.item-meta .assist-hint-float')).toHaveCount(0);
-	});
-
-	test('編集窓超過（3時間前）で item.edit/item.delete ヒントが消え、item.hide/item.favorite は残る（表1・行3）', async ({
+test.describe('assist element hints (#172): item-meta hint list', () => {
+	test('own-post・編集窓内: item-meta の直後に upvote/edit/delete/hide/favorite の5件がこの順に並ぶ', async ({
 		page
 	}) => {
+		await page.goto('/locale?lang=ja&next=/login');
+		await signupNewUser(page);
+		const title = `own post hints ${Date.now()}`;
+		await submitStory(page, { title, text: 'body' });
+		await page.goto('/newest');
+		const storyId = await findStoryIdByTitle(page, title);
+		await page.goto(`/item/${storyId}`);
+		await page.waitForLoadState('networkidle');
+		await turnAssistOn(page);
+
+		const list = page.locator('.item-meta + .assist-hint-list');
+		await expect(list).toHaveCount(1);
+		const hints = list.locator('.assist-hint');
+		await expect(hints).toHaveCount(5);
+		await expect(hints.nth(0)).toContainText('▲ は upvote（投票）');
+		await expect(hints.nth(1)).toContainText('編集（edit）');
+		await expect(hints.nth(2)).toContainText('削除（delete）');
+		await expect(hints.nth(3)).toContainText('非表示（hide）');
+		await expect(hints.nth(4)).toContainText('お気に入り（favorite）');
+
+		// document フロー配置なので item-meta の下に自然に落ち、コメント本文とは重ならない。
+		const metaBox = await page.locator('.item-meta').boundingBox();
+		const listBox = await list.boundingBox();
+		expect(metaBox).not.toBeNull();
+		expect(listBox).not.toBeNull();
+		expect((listBox!).y).toBeGreaterThan((metaBox!).y);
+	});
+
+	test('他人の投稿・高カルマ: upvote/hide/favorite/flag の4件（edit/delete は出ない）', async ({ page }) => {
+		await page.goto('/locale?lang=ja&next=/login');
+		await signupNewUser(page);
+		const title = `overlap other post ${Date.now()}`;
+		await submitStory(page, { title, text: 'body' });
+		await page.goto('/logout');
+
+		const viewer = await signupNewUser(page);
+		updateUserKarma(viewer, 50);
+		await page.goto('/newest');
+		const storyId = await findStoryIdByTitle(page, title);
+		await page.goto(`/item/${storyId}`);
+		await page.waitForLoadState('networkidle');
+		await turnAssistOn(page);
+
+		const hints = page.locator('.item-meta + .assist-hint-list').locator('.assist-hint');
+		await expect(hints).toHaveCount(4);
+		await expect(hints.nth(0)).toContainText('▲ は upvote（投票）');
+		await expect(hints.nth(1)).toContainText('非表示（hide）');
+		await expect(hints.nth(2)).toContainText('お気に入り（favorite）');
+		await expect(hints.nth(3)).toContainText('通報（flag）');
+	});
+
+	test('ゲスト（未ログイン）: item-meta 直後のヒント一覧は item.upvote の1件だけ', async ({ page }) => {
+		await page.goto('/locale?lang=ja&next=/item/1');
+		await page.waitForLoadState('networkidle');
+		await turnAssistOn(page);
+
+		const hints = page.locator('.item-meta + .assist-hint-list').locator('.assist-hint');
+		await expect(hints).toHaveCount(1);
+		await expect(hints.first()).toContainText('▲ は upvote（投票）');
+	});
+
+	test('編集窓超過（3時間前）: edit/delete ヒントが消え、upvote/hide/favorite は残る', async ({ page }) => {
+		await page.goto('/locale?lang=ja&next=/login');
 		await signupNewUser(page);
 		const title = `edit window hint ${Date.now()}`;
 		await submitStory(page, { title, text: 'body' });
@@ -341,17 +198,16 @@ test.describe('assist element hints (#172): permission & condition branches', ()
 		await page.waitForLoadState('networkidle');
 		await turnAssistOn(page);
 
-		await expect(page.locator('.item-meta .assist-anchor').filter({ has: page.locator('a[href="#edit"]') })).toHaveCount(0);
-		await expect(page.locator('.item-meta form[action="?/deleteStory"]')).toHaveCount(0);
-		await expect(
-			page.locator('.item-meta .assist-anchor').filter({ has: page.locator('a[href="#hide"]') }).locator('.assist-hint-float')
-		).toBeVisible();
-		await expect(
-			page.locator('.item-meta .assist-anchor').filter({ has: page.locator('a[href="#favorite"]') }).locator('.assist-hint-float')
-		).toBeVisible();
+		const hints = page.locator('.item-meta + .assist-hint-list').locator('.assist-hint');
+		await expect(hints).toHaveCount(3);
+		await expect(hints.filter({ hasText: '編集（edit）' })).toHaveCount(0);
+		await expect(hints.filter({ hasText: '削除（delete）' })).toHaveCount(0);
+		await expect(hints.filter({ hasText: '非表示（hide）' })).toHaveCount(1);
+		await expect(hints.filter({ hasText: 'お気に入り（favorite）' })).toHaveCount(1);
 	});
 
-	test('自分の投稿では karma が十分でも item.flag ヒントが決して出ない（表1・行2との対比）', async ({ page }) => {
+	test('自分の投稿では karma が十分でも item.flag ヒントが決して出ない', async ({ page }) => {
+		await page.goto('/locale?lang=ja&next=/login');
 		const username = await signupNewUser(page);
 		updateUserKarma(username, 50);
 		const title = `own post high karma no flag ${Date.now()}`;
@@ -362,10 +218,47 @@ test.describe('assist element hints (#172): permission & condition branches', ()
 		await page.waitForLoadState('networkidle');
 		await turnAssistOn(page);
 
-		await expect(page.locator('.item-meta .assist-anchor').filter({ has: page.locator('a[href="#flag"]') })).toHaveCount(0);
+		// own post なので upvote/edit/delete/hide/favorite の5件のみ。flag は karma が十分でも出ない。
+		const hints = page.locator('.item-meta + .assist-hint-list').locator('.assist-hint');
+		await expect(hints).toHaveCount(5);
+		await expect(hints.filter({ hasText: '通報（flag）' })).toHaveCount(0);
+	});
+});
+
+test.describe('assist element hints (#172): comment row hint list', () => {
+	test('最初のコメント行の直後に comment-toggle/reply の2件がこの順に並ぶ', async ({ page }) => {
+		// seed story id=8 (BBS) は 5段ネストのコメントツリー(id 15→16→17→18→19)を持つ。
+		// DFS 平坦化順の先頭は id=15 = firstCommentId。
+		await page.goto('/locale?lang=ja&next=/login');
+		await signupNewUser(page);
+		await page.goto('/item/8');
+		await page.waitForLoadState('networkidle');
+		await turnAssistOn(page);
+
+		const list = page.locator('#item-15 + .assist-hint-list');
+		await expect(list).toHaveCount(1);
+		const hints = list.locator('.assist-hint');
+		await expect(hints).toHaveCount(2);
+		await expect(hints.nth(0)).toContainText('たたみ');
+		await expect(hints.nth(1)).toContainText('返信（reply）');
+
+		// 後続のコメント行（id=16 以降）には出ない（連呼防止）。
+		await expect(page.locator('#item-16 + .assist-hint-list')).toHaveCount(0);
 	});
 
-	test('コメント0件のストーリーでは item.comment-toggle/item.reply ヒントがどちらも出ずクラッシュしない（表3・行1）', async ({
+	test('未ログインでコメントがある投稿では item.comment-toggle は出るが item.reply は出ない', async ({
+		page
+	}) => {
+		await page.goto('/locale?lang=ja&next=/item/8');
+		await page.waitForLoadState('networkidle');
+		await turnAssistOn(page);
+
+		const hints = page.locator('#item-15 + .assist-hint-list').locator('.assist-hint');
+		await expect(hints).toHaveCount(1);
+		await expect(hints.first()).toContainText('たたみ');
+	});
+
+	test('コメント0件のストーリーでは comments-section 内に assist-hint-list が出ずクラッシュしない', async ({
 		page
 	}) => {
 		const errors: string[] = [];
@@ -381,23 +274,57 @@ test.describe('assist element hints (#172): permission & condition branches', ()
 		await turnAssistOn(page);
 
 		await expect(page.locator('.comment-item')).toHaveCount(0);
-		await expect(page.locator('.comments-section .assist-hint-float')).toHaveCount(0);
+		await expect(page.locator('.comments-section .assist-hint-list')).toHaveCount(0);
 		// ページ自体はクラッシュせず正常に描画されている。
 		await expect(page.locator('.item-title', { hasText: title })).toBeVisible();
 		expect(errors).toEqual([]);
 	});
+});
 
-	test('未ログインでコメントがある投稿では item.comment-toggle は出るが item.reply は出ない（表3・行2）', async ({
-		page
-	}) => {
-		await page.goto('/item/8');
+test.describe('assist element hints (#172): narrow viewport (#174 fix confirmation)', () => {
+	test('375×667 でも item-meta ヒント一覧が画面右にはみ出さず、正しい件数で表示される', async ({ page }) => {
+		// #174: 旧 .assist-hint-float 設計では固定 px オフセット絶対配置＋width:max-content により、
+		// 375px 幅で一部ヒントが右に100px超はみ出していた（既知のギャップ、test.fail() で明示していた）。
+		// document フロー配置への置き換えでコンテナ幅に自然に収まるようになったはずなので、通常の
+		// assertion に格上げして確認する。
+		await page.setViewportSize({ width: 375, height: 667 });
+		await signupNewUser(page);
+		const title = `narrow viewport own post ${Date.now()}`;
+		await submitStory(page, { title, text: 'body' });
+		await page.goto('/newest');
+		const storyId = await findStoryIdByTitle(page, title);
+		await page.goto(`/item/${storyId}`);
 		await page.waitForLoadState('networkidle');
 		await turnAssistOn(page);
 
-		const firstComment = page.locator('#item-15');
-		await expect(firstComment.locator('.comment-toggle .assist-hint-float')).toBeVisible();
-		// reply ブロック自体が {#if data.user} でゲストには描画されない。
-		await expect(firstComment.locator('.comment-reply')).toHaveCount(0);
+		const list = page.locator('.item-meta + .assist-hint-list');
+		const hints = list.locator('.assist-hint');
+		await expect(hints).toHaveCount(5);
+		for (let i = 0; i < 5; i++) {
+			const box = await hints.nth(i).boundingBox();
+			expect(box, `hint ${i} has no boundingBox`).not.toBeNull();
+			expect(
+				box!.x + box!.width,
+				`hint ${i} が画面右(375px)からはみ出している: ${JSON.stringify(box)}`
+			).toBeLessThanOrEqual(375);
+			expect(box!.x, `hint ${i} が画面左からはみ出している: ${JSON.stringify(box)}`).toBeGreaterThanOrEqual(0);
+		}
+	});
+
+	test('375×667 でも一覧ページの先頭行ヒントが画面右にはみ出さない', async ({ page }) => {
+		await page.setViewportSize({ width: 375, height: 667 });
+		await page.goto('/newest');
+		await page.waitForLoadState('networkidle');
+		await turnAssistOn(page);
+
+		const hints = page.locator('.story-list > .assist-hint-list').locator('.assist-hint');
+		const count = await hints.count();
+		expect(count).toBeGreaterThan(0);
+		for (let i = 0; i < count; i++) {
+			const box = await hints.nth(i).boundingBox();
+			expect(box).not.toBeNull();
+			expect(box!.x + box!.width, `hint ${i} が画面右(375px)からはみ出している`).toBeLessThanOrEqual(375);
+		}
 	});
 });
 
@@ -414,17 +341,19 @@ test.describe('assist element hints (#172): state transitions', () => {
 
 		const firstItem = page.locator('.story-item').first();
 		const firstTitle = await firstItem.locator('.story-title').innerText();
-		await firstItem.locator('.story-meta .assist-anchor a[href="#hide"]').click();
+		await firstItem.locator('.story-meta a[href="#hide"]').click();
 		await page.waitForLoadState('networkidle');
 
 		// 隠した行はもう一覧に無い。
-		await expect(page.locator('.story-item').filter({ has: page.locator('.story-title', { hasText: firstTitle }) })).toHaveCount(0);
-		// upvote ヒントは重複せず1個だけ（新しい先頭行に移った）。
+		await expect(
+			page.locator('.story-item').filter({ has: page.locator('.story-title', { hasText: firstTitle }) })
+		).toHaveCount(0);
+		// upvote ヒントは重複せず1個だけ（新しい先頭行に移った）、かつ .story-list 直下のリストは1つだけ。
 		await expect(page.locator('.assist-hint', { hasText: 'upvote' })).toHaveCount(1);
-		await expect(page.locator('.story-item').first().locator('.assist-hint', { hasText: 'upvote' })).toHaveCount(1);
+		await expect(page.locator('.story-list > .assist-hint-list')).toHaveCount(1);
 	});
 
-	test('assist ON→OFF→ON を素早く繰り返しても assist-hint-float:visible の個数が毎回同じで累積しない', async ({
+	test('assist ON→OFF→ON を素早く繰り返しても表示中の assist-hint 個数が毎回同じで累積しない', async ({
 		page
 	}) => {
 		await page.goto('/newest');
@@ -432,20 +361,20 @@ test.describe('assist element hints (#172): state transitions', () => {
 		const sw = page.locator('.assist-switch');
 
 		await sw.click(); // ON
-		const initialCount = await page.locator('.assist-hint-float:visible').count();
+		const initialCount = await page.locator('.assist-hint:visible').count();
 		expect(initialCount).toBeGreaterThan(0);
 
 		for (let i = 0; i < 3; i++) {
 			await sw.click(); // OFF
-			await expect(page.locator('.assist-hint-float:visible')).toHaveCount(0);
+			await expect(page.locator('.assist-hint:visible')).toHaveCount(0);
 			await sw.click(); // ON
-			await expect(page.locator('.assist-hint-float:visible')).toHaveCount(initialCount);
+			await expect(page.locator('.assist-hint:visible')).toHaveCount(initialCount);
 		}
 	});
 });
 
 test.describe('assist element hints (#172): i18n wiring', () => {
-	test('en ロケールで /item の item.edit ヒントが英語テキストで出る', async ({ page }) => {
+	test('en ロケールで /item の item-meta ヒント一覧が英語テキストで出る', async ({ page }) => {
 		await page.goto('/locale?lang=en&next=/login');
 		await signupNewUser(page);
 		const title = `en edit hint ${Date.now()}`;
@@ -456,17 +385,17 @@ test.describe('assist element hints (#172): i18n wiring', () => {
 		await page.waitForLoadState('networkidle');
 		await turnAssistOn(page);
 
-		const editAnchor = page.locator('.item-meta .assist-anchor').filter({ has: page.locator('a[href="#edit"]') });
-		await expect(editAnchor.locator('.assist-hint-float')).toContainText('edit lets you change the post');
+		const hints = page.locator('.item-meta + .assist-hint-list').locator('.assist-hint');
+		await expect(hints.filter({ hasText: 'edit lets you change the post' })).toHaveCount(1);
 	});
 
-	test('en ロケールで一覧の story.hide ヒントが英語テキストで出る', async ({ page }) => {
+	test('en ロケールで一覧の先頭行ヒントが英語テキストで出る', async ({ page }) => {
 		await page.goto('/locale?lang=en&next=/newest');
 		await page.waitForLoadState('networkidle');
 		await turnAssistOn(page);
 
-		const hideAnchor = page.locator('.story-item').first().locator('.story-meta .assist-anchor').first();
-		await expect(hideAnchor.locator('.assist-hint-float')).toContainText('hide removes this post');
+		const hints = page.locator('.story-list > .assist-hint-list').locator('.assist-hint');
+		await expect(hints.filter({ hasText: 'hide removes this post' })).toHaveCount(1);
 	});
 });
 
@@ -486,7 +415,7 @@ test.describe('assist element hints (#172): console error smoke', () => {
 		await page.waitForLoadState('networkidle');
 		await turnAssistOn(page);
 
-		await expect(page.locator('.item-meta .assist-hint-float')).toHaveCount(4);
+		await expect(page.locator('.item-meta + .assist-hint-list').locator('.assist-hint')).toHaveCount(5);
 		expect(errors).toEqual([]);
 	});
 });
