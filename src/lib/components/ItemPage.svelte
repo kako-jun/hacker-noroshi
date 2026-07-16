@@ -503,6 +503,25 @@
 		if (data.user && threadOpen && !isCollapsed) keys.push('item.reply');
 		return keys;
 	}
+
+	// #175: /comment/[id] のアクション行（.comment-head、upvote/edit/flag/vouch）に該当するヒントキーを
+	// itemMetaHintKeys と同じパターンでまとめ、行の直後に assist-hint-list として1回だけ出す。条件は
+	// 各リンクの元の {#if} と同一（canEdit/canFlagItem/targetCommentDead）。comment mode には
+	// delete/hide/favorite に相当するコントロールが元々存在しないので対応するキーも無い。
+	let targetCommentHintKeys = $derived.by(() => {
+		if (data.mode !== 'comment') return [];
+		const keys = ['comment.upvote'];
+		if (canEdit(data.targetComment.created_at, data.targetComment.user_id)) {
+			keys.push('comment.edit');
+		}
+		if (canFlagItem(data.targetComment.user_id)) {
+			keys.push('comment.flag');
+		}
+		if (canFlagItem(data.targetComment.user_id) && targetCommentDead === 1) {
+			keys.push('comment.vouch');
+		}
+		return keys;
+	});
 </script>
 
 {#if data.mode === 'comment'}
@@ -556,6 +575,11 @@
 			{#if canFlagItem(comment.user_id) && targetCommentDead === 1}
 				| <a href="#vouch" title={tooltipJa('vouch')} onclick={(e) => { e.preventDefault(); vouchTargetComment(); }}>vouch</a>
 			{/if}
+		</div>
+		<div class="assist-hint-list">
+			{#each targetCommentHintKeys as key (key)}
+				<div class="assist-hint">{assistHint(key, data.locale)}</div>
+			{/each}
 		</div>
 		{#if editingCommentId === comment.id}
 			<div class="comment-form">
