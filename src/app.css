@@ -707,6 +707,51 @@ a:hover {
 	max-width: 480px;
 }
 
+/* コントロール個別ヒント（#172）。フォーム欄（submit/newpoll/login）は元々1欄=1ヒントで、その欄の直下に
+   ブロックで置いていた。一覧行・投稿操作行は詰まった横並び/インライン文中レイアウトなので、同じブロック配置
+   だと行の横幅を壊す。そこで対象コントロールを .assist-anchor（relative）で包み、ヒントはその真下に浮かせる
+   （.assist-hint-float）。ガラス/フローティングはアシスト層だけの例外許可（DESIGN.md）。
+   ヒントが無い行では assist-anchor は見た目に一切影響しない（position:relative のみ）。 */
+.assist-anchor {
+	position: relative;
+}
+.assist-on .assist-hint.assist-hint-float {
+	position: absolute;
+	top: 100%;
+	left: 0;
+	z-index: 40;
+	margin: 4px 0 0;
+	/* .assist-anchor（対象コントロールぴったりの幅、例: ▲ボタンで14px）が containing block になるため、
+	   width:auto の shrink-to-fit はその狭い幅に張り付いてしまい、文字が縦につぶれて折り返す
+	   （実機 Playwright 確認で発覚）。width:max-content で「中身の一行分の幅」を明示し、
+	   max-width で長い文だけ折り返す上限を掛ける。 */
+	width: max-content;
+	max-width: 200pt;
+	/* 情報表示のみ。下の行の本物のリンク/ボタンのクリックを奪わない。 */
+	pointer-events: none;
+}
+/* item-meta 行（edit/delete/hide/favorite/flag）や story-meta 行（hide/comments/flag）のように
+   1行に複数コントロールが並ぶ場合、素の top:100% だけだと各ヒントがほぼ同じY位置に浮いて重なる
+   （実機 Playwright 確認で発覚）。左から出現する順に固定オフセットを足して階段状にずらす。 */
+.assist-on .assist-hint.assist-hint-float.assist-stagger-1 {
+	top: calc(100% + 48px);
+}
+.assist-on .assist-hint.assist-hint-float.assist-stagger-2 {
+	top: calc(100% + 96px);
+}
+.assist-on .assist-hint.assist-hint-float.assist-stagger-3 {
+	top: calc(100% + 144px);
+}
+/* story.upvote は別アンカー（.story-vote、タイトル行と同じ高さ）だが、flex の baseline 揃えの都合で
+   story-meta 側のヒント群とほぼ同じY帯に浮いて重なってしまう（実機 Playwright 確認で発覚）。
+   meta 側スタック（最大 stagger-2 まで）より確実に下まで逃がす。 */
+.assist-on .assist-hint.assist-hint-float.assist-stagger-below-meta {
+	top: calc(100% + 190px);
+}
+.assist-on .assist-hint.assist-hint-float.assist-stagger-4 {
+	top: calc(100% + 192px);
+}
+
 /* 右下の常設ドック。メタ解説（上・右寄せ）と「ⓘ＋アシストスイッチ」の横並び（下）を縦に積む。
    fixed でスクロール追従（#140・#170）。 */
 .assist-dock {

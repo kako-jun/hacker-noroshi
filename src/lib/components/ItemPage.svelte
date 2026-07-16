@@ -309,6 +309,9 @@
 	let descendantCounts = $derived(
 		Object.fromEntries(commentTree.map((c) => [c.id, countDescendants(c)])) as Record<number, number>
 	);
+	// #172: 折りたたみ[–]/[+]と返信（reply）のヒントは全コメントで連呼すると密集を再発するので、
+	// 描画される最初のコメント行にだけ1回出す（story-mode/comment-mode どちらも commentTree の先頭）。
+	let firstCommentId = $derived(commentTree[0]?.id);
 
 	// DFS 順での「次のコメント」「現在ノードがぶら下がるルートID」を id ごとに引けるよう
 	// マップにしておく。HN 互換の `root | parent | next` リンク用。
@@ -613,14 +616,19 @@
 							| <a href="#item-{nextCommentId[child.id]}" title={tooltipJa('next')} style="color: #828282;">next</a>
 						{/if}
 						<span class="comment-toggle">
-							{' '}<a
-								href="#toggle"
-								onclick={(e) => {
-									e.preventDefault();
-									toggleCollapsed(child.id);
-								}}
-								style="color: #828282;"
-							>{#if collapsed[child.id]}[+]{:else}[&ndash;]{/if}</a>
+							{' '}<span class="assist-anchor">
+								<a
+									href="#toggle"
+									onclick={(e) => {
+										e.preventDefault();
+										toggleCollapsed(child.id);
+									}}
+									style="color: #828282;"
+								>{#if collapsed[child.id]}[+]{:else}[&ndash;]{/if}</a>
+								{#if child.id === firstCommentId}
+									<span class="assist-hint assist-hint-float">{assistHint('item.comment-toggle', data.locale)}</span>
+								{/if}
+							</span>
 							{#if collapsed[child.id] && descendantCounts[child.id] > 0}
 								<span style="color: #828282;"> ({descendantCounts[child.id]} more)</span>
 							{/if}
@@ -661,14 +669,19 @@
 					{#if data.user}
 						<div class="comment-reply">
 							{#if isThreadOpen(data.parentStory.created_at)}
-								<a
-									href="#reply"
-									title={tooltipJa('reply')}
-									onclick={(e) => {
-										e.preventDefault();
-										toggleReply(child.id);
-									}}>reply</a
-								>
+								<span class="assist-anchor">
+									<a
+										href="#reply"
+										title={tooltipJa('reply')}
+										onclick={(e) => {
+											e.preventDefault();
+											toggleReply(child.id);
+										}}>reply</a
+									>
+									{#if child.id === firstCommentId}
+										<span class="assist-hint assist-hint-float">{assistHint('item.reply', data.locale)}</span>
+									{/if}
+								</span>
 							{/if}
 							{#if canEdit(child.created_at, child.user_id)}
 								{#if isThreadOpen(data.parentStory.created_at)}|{/if} <a
@@ -739,49 +752,59 @@
 			<a href="/user/{data.story.username}" style={isNewUser(data.story.user_created_at) ? 'color: #3c963c;' : ''}>{displayUsername({ username: data.story.username, deleted: data.story.user_deleted })}</a>
 			{timeAgo(data.story.created_at)}
 			{#if canEdit(data.story.created_at, data.story.user_id)}
-				| <a
-					href="#edit"
-					title={tooltipJa('edit')}
-					onclick={(e) => {
-						e.preventDefault();
-						editingStory = true;
-					}}>edit</a>
-				| <form method="POST" action="?/deleteStory" class="inline-form" use:enhance={confirmDelete('Delete this story? Text will be replaced with [deleted].')}>
+				| <span class="assist-anchor">
+					<a
+						href="#edit"
+						title={tooltipJa('edit')}
+						onclick={(e) => {
+							e.preventDefault();
+							editingStory = true;
+						}}>edit</a>
+					<span class="assist-hint assist-hint-float">{assistHint('item.edit', data.locale)}</span>
+				</span>
+				| <form method="POST" action="?/deleteStory" class="inline-form assist-anchor" use:enhance={confirmDelete('Delete this story? Text will be replaced with [deleted].')}>
 					<button type="submit" class="link-button" title={tooltipJa('delete')}>delete</button>
+					<span class="assist-hint assist-hint-float assist-stagger-1">{assistHint('item.delete', data.locale)}</span>
 				</form>
 			{/if}
 			{#if data.user}
-				| <a
-					href="#hide"
-					title={tooltipJa(storyHidden ? 'un-hide' : 'hide')}
-					onclick={(e) => {
-						e.preventDefault();
-						toggleHideStory();
-					}}>{storyHidden ? 'un-hide' : 'hide'}</a>
+				| <span class="assist-anchor">
+					<a
+						href="#hide"
+						title={tooltipJa(storyHidden ? 'un-hide' : 'hide')}
+						onclick={(e) => {
+							e.preventDefault();
+							toggleHideStory();
+						}}>{storyHidden ? 'un-hide' : 'hide'}</a>
+					<span class="assist-hint assist-hint-float assist-stagger-2">{assistHint('item.hide', data.locale)}</span>
+				</span>
 			{/if}
 			{#if data.story.url}
 				| <a href="/from?site={extractDomain(data.story.url)}" title={tooltipJa('past')}>past</a>
 			{/if}
 			{#if data.user}
-				| <a
-					href="#favorite"
-					title={tooltipJa(storyFavorited ? 'un-fav' : 'favorite')}
-					onclick={(e) => {
-						e.preventDefault();
-						toggleFavorite();
-					}}>{storyFavorited ? 'un-fav' : 'favorite'}</a>
+				| <span class="assist-anchor">
+					<a
+						href="#favorite"
+						title={tooltipJa(storyFavorited ? 'un-fav' : 'favorite')}
+						onclick={(e) => {
+							e.preventDefault();
+							toggleFavorite();
+						}}>{storyFavorited ? 'un-fav' : 'favorite'}</a>
+					<span class="assist-hint assist-hint-float assist-stagger-3">{assistHint('item.favorite', data.locale)}</span>
+				</span>
 			{/if}
 			{#if canFlagItem(data.story.user_id)}
-				| <a href="#flag" title={tooltipJa(storyFlagged ? 'un-flag' : 'flag')} onclick={(e) => { e.preventDefault(); flagStory(); }}>{storyFlagged ? 'un-flag' : 'flag'}</a>
+				| <span class="assist-anchor">
+					<a href="#flag" title={tooltipJa(storyFlagged ? 'un-flag' : 'flag')} onclick={(e) => { e.preventDefault(); flagStory(); }}>{storyFlagged ? 'un-flag' : 'flag'}</a>
+					<span class="assist-hint assist-hint-float assist-stagger-4">{assistHint('item.flag', data.locale)}</span>
+				</span>
 			{/if}
 			{#if canFlagItem(data.story.user_id) && storyDead === 1}
 				| <a href="#vouch" title={tooltipJa('vouch')} onclick={(e) => { e.preventDefault(); vouchStory(); }}>vouch</a>
 			{/if}
 			| <a href="#comments">{data.comments.length} comment{data.comments.length !== 1 ? "s" : ""}</a>
 		</div>
-
-		<!-- 投稿への操作（favorite/edit窓/hide/コメント操作）の解説。ストーリー操作行の直下に1回。アシスト OFF では消える。 -->
-		<div class="assist-hint">{assistHint('item.controls', data.locale)}</div>
 
 		{#if editingStory}
 			<div class="comment-form">
@@ -904,14 +927,19 @@
 							| <a href="#item-{nextCommentId[comment.id]}" title={tooltipJa('next')} style="color: #828282;">next</a>
 						{/if}
 						<span class="comment-toggle">
-							{' '}<a
-								href="#toggle"
-								onclick={(e) => {
-									e.preventDefault();
-									toggleCollapsed(comment.id);
-								}}
-								style="color: #828282;"
-							>{#if collapsed[comment.id]}[+]{:else}[&ndash;]{/if}</a>
+							{' '}<span class="assist-anchor">
+								<a
+									href="#toggle"
+									onclick={(e) => {
+										e.preventDefault();
+										toggleCollapsed(comment.id);
+									}}
+									style="color: #828282;"
+								>{#if collapsed[comment.id]}[+]{:else}[&ndash;]{/if}</a>
+								{#if comment.id === firstCommentId}
+									<span class="assist-hint assist-hint-float">{assistHint('item.comment-toggle', data.locale)}</span>
+								{/if}
+							</span>
 							{#if collapsed[comment.id] && descendantCounts[comment.id] > 0}
 								<span style="color: #828282;"> ({descendantCounts[comment.id]} more)</span>
 							{/if}
@@ -952,14 +980,19 @@
 					{#if data.user}
 						<div class="comment-reply">
 							{#if isThreadOpen(data.story.created_at)}
-								<a
-									href="#reply"
-									title={tooltipJa('reply')}
-									onclick={(e) => {
-										e.preventDefault();
-										toggleReply(comment.id);
-									}}>reply</a
-								>
+								<span class="assist-anchor">
+									<a
+										href="#reply"
+										title={tooltipJa('reply')}
+										onclick={(e) => {
+											e.preventDefault();
+											toggleReply(comment.id);
+										}}>reply</a
+									>
+									{#if comment.id === firstCommentId}
+										<span class="assist-hint assist-hint-float">{assistHint('item.reply', data.locale)}</span>
+									{/if}
+								</span>
 							{/if}
 							{#if canEdit(comment.created_at, comment.user_id)}
 								{#if isThreadOpen(data.story.created_at)}|{/if} <a
