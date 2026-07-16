@@ -202,8 +202,9 @@ export function cleanIpBans(): void {
  * `wrangler d1 execute ... --json` を実行し、SELECT 結果行の配列を返す。
  * runD1 は戻り値を捨てる fire-and-forget 用途のため、値を読みたいクエリ用に別関数として用意する。
  * 施設内プロキシ下では "Proxy environment variables detected." 等の前置きが出力に混じるため、
- * `[` から末尾までの JSON 部分だけ切り出してパースする（assist-element-hints.spec.ts /
- * api-v0.spec.ts で個別実装されていた fetchD1Scalar 相当のロジックを #179 で helpers.ts に集約）。
+ * `[` から末尾までの JSON 部分だけ切り出してパースする（#179 で新規追加）。
+ * NOTE: api-v0.spec.ts の fetchD1Scalar() が同種の wrangler 呼び出し + JSON 切り出しロジックを
+ * 独自実装のまま持っており、本関数へは未統合（統合は別スコープ）。
  */
 export function queryD1Rows<T = Record<string, unknown>>(sql: string): T[] {
 	const out = execFileSync(

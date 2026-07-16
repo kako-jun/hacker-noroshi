@@ -152,6 +152,9 @@
 			const result: { flagged: boolean; flagCount: number } = await res.json();
 			localTargetCommentFlagged = result.flagged;
 			if (result.flagCount > 4) localTargetCommentDead = 1;
+			// data.targetComment.flag_count を直読みする [flagged] バッジは local state を経由しないため、
+			// vouchTargetComment() と同じく invalidateAll() で server データを更新してバッジを追従させる（#180）。
+			await invalidateAll();
 		} else if (res.status === 403) {
 			const result = (await res.json()) as { error?: string };
 			alert(result.error || 'Permission denied');

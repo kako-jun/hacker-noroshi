@@ -161,6 +161,43 @@ test.describe('flagged badge immediate reflect (#180 regression guard)', () => {
 		// page.reload() を挟まない。flagStory() の invalidateAll() だけで即時反映されることを確認する。
 		await expect(page.locator('.item-title .story-tag', { hasText: '[flagged]' })).toBeVisible();
 	});
+
+	test('comment permalink: flag直後、リロード無しで[flagged]バッジが表示される', async ({ page }) => {
+		await signupNewUser(page);
+		const title = `flagged badge comment ${Date.now()}`;
+		await submitStory(page, { title, text: 'body' });
+		await page.goto('/newest');
+		const storyId = await findStoryIdByTitle(page, title);
+
+		await page.goto(`/item/${storyId}`);
+		await page.waitForLoadState('networkidle');
+		await postComment(page, 'flagged badge target comment');
+		await page.waitForSelector('.comment-text', { state: 'visible', timeout: 15_000 });
+		const commentHref = await page
+			.locator('.comment-item .comment-head a')
+			.filter({ hasText: /ago/ })
+			.first()
+			.getAttribute('href');
+		const commentId = Number(commentHref!.match(/\/comment\/(\d+)/)![1]);
+
+		await page.goto('/logout');
+		const flagger = await signupNewUser(page);
+		updateUserKarma(flagger, 30);
+		await page.goto(`/comment/${commentId}`);
+		await page.waitForLoadState('networkidle');
+
+		await expect(
+			page.locator('.item-detail > .comment-head .story-tag', { hasText: '[flagged]' })
+		).toHaveCount(0);
+		await page
+			.locator('.item-detail > .comment-head')
+			.getByRole('link', { name: 'flag', exact: true })
+			.click();
+		// page.reload() を挟まない。flagTargetComment() の invalidateAll() だけで即時反映されることを確認する。
+		await expect(
+			page.locator('.item-detail > .comment-head .story-tag', { hasText: '[flagged]' })
+		).toBeVisible();
+	});
 });
 
 test.describe('vouch (#179 E6-E9)', () => {
