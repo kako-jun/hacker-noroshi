@@ -122,6 +122,7 @@ const ASSIST_HINT: Record<Locale, Record<string, string>> = {
 		// 一致させる（#170 の方針を継承）。downvote 無しルール等、個別ボタンに紐付かない余談は削った。
 		'story.upvote': '▲ は upvote（投票）。良いと思った投稿を押し上げます。',
 		'story.hide': '非表示（hide）＝この投稿を自分の一覧から消します。',
+		'story.un-hide': '非表示解除（un-hide）＝この一覧に戻し、通常の投稿として再表示します。',
 		'story.flag': '通報（flag）＝規約違反を運営に知らせます。',
 		'story.comments': 'このリンクから議論（コメント）に入れます。',
 		// /item のストーリー操作行・コメント行。旧「item.controls」1段落を同じく要素単位に分割（#172）。
@@ -158,6 +159,7 @@ const ASSIST_HINT: Record<Locale, Record<string, string>> = {
 		'signup.submit': 'Creates your account and logs you in.',
 		'story.upvote': 'The ▲ is upvote — push up posts you like.',
 		'story.hide': 'hide removes this post from your list.',
+		'story.un-hide': 'un-hide brings this post back to that list, showing it as a normal post again.',
 		'story.flag': 'flag reports a rule violation to the mods.',
 		'story.comments': 'This link opens the discussion (comments).',
 		'item.favorite': "favorite bookmarks this post to your profile's favorites.",

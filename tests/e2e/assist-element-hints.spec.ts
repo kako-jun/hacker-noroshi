@@ -205,6 +205,40 @@ test.describe('assist element hints (#172): control-to-hint mapping', () => {
 		await expect(anchors.nth(1).locator('.assist-hint-float')).toContainText('コメント');
 	});
 
+	test('/user/[id]/hidden: un-hide ボタン直下に story.un-hide が出て、story.hide の文言は出ない（#172 must 2）', async ({
+		page
+	}) => {
+		await page.goto('/locale?lang=ja&next=/login');
+		await signupNewUser(page);
+		const title = `mapping unhide hint ${Date.now()}`;
+		await submitStory(page, { title, text: 'body' });
+		await page.goto('/logout');
+
+		const viewer = await signupNewUser(page);
+		await page.goto('/newest');
+		const item = page
+			.locator('.story-item')
+			.filter({ has: page.locator('a.story-title', { hasText: title }) })
+			.first();
+		await item.locator('.story-meta a[href="#hide"]').click();
+		await expect(
+			page.locator('.story-item').filter({ has: page.locator('a.story-title', { hasText: title }) })
+		).toHaveCount(0, { timeout: 5000 });
+
+		await page.goto(`/user/${viewer}/hidden`);
+		await page.waitForLoadState('networkidle');
+		await turnAssistOn(page);
+
+		const unhideAnchor = page
+			.locator('.story-item')
+			.filter({ has: page.locator('a.story-title', { hasText: title }) })
+			.locator('.story-meta .assist-anchor')
+			.filter({ has: page.locator('a[href="#unhide"]') });
+		const hint = unhideAnchor.locator('.assist-hint-float');
+		await expect(hint).toContainText('非表示解除（un-hide）');
+		await expect(hint).not.toContainText('この投稿を自分の一覧から消します');
+	});
+
 	test('/item: item.edit / item.delete が各リンク直下に出る', async ({ page }) => {
 		await page.goto('/locale?lang=ja&next=/login');
 		await signupNewUser(page);

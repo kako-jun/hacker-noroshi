@@ -220,7 +220,7 @@
 					<a href={loginHref} title={tip('hide')}>{l('hide')}</a>
 				{/if}
 				{#if assistFirst}
-					<span class="assist-hint assist-hint-float">{assistHint('story.hide', locale)}</span>
+					<span class="assist-hint assist-hint-float">{assistHint(onunhide ? 'story.un-hide' : 'story.hide', locale)}</span>
 				{/if}
 			</span>
 			{#if story.url}
