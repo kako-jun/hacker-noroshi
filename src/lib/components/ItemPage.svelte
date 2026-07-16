@@ -254,6 +254,7 @@
 		story_id: number;
 		parent_id: number | null;
 		points: number;
+		dead: number;
 		created_at: string;
 		username: string;
 		user_created_at: string;
@@ -674,6 +675,7 @@
 						{#if nextCommentId[child.id]}
 							| <a href="#item-{nextCommentId[child.id]}" title={tooltipJa('next')} style="color: #828282;">next</a>
 						{/if}
+						{#if child.dead === 1} <span class="story-tag">[dead]</span>{/if}
 						<span class="comment-toggle">
 							{' '}<a
 								href="#toggle"
@@ -974,6 +976,7 @@
 						{#if nextCommentId[comment.id]}
 							| <a href="#item-{nextCommentId[comment.id]}" title={tooltipJa('next')} style="color: #828282;">next</a>
 						{/if}
+						{#if comment.dead === 1} <span class="story-tag">[dead]</span>{/if}
 						<span class="comment-toggle">
 							{' '}<a
 								href="#toggle"
