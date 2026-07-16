@@ -309,6 +309,9 @@
 	let descendantCounts = $derived(
 		Object.fromEntries(commentTree.map((c) => [c.id, countDescendants(c)])) as Record<number, number>
 	);
+	// #172: 折りたたみ[–]/[+]と返信（reply）のヒントは全コメントで連呼すると密集を再発するので、
+	// 描画される最初のコメント行にだけ1回出す（story-mode/comment-mode どちらも commentTree の先頭）。
+	let firstCommentId = $derived(commentTree[0]?.id);
 
 	// DFS 順での「次のコメント」「現在ノードがぶら下がるルートID」を id ごとに引けるよう
 	// マップにしておく。HN 互換の `root | parent | next` リンク用。
@@ -468,6 +471,33 @@
 
 	function toggleReply(commentId: number) {
 		replyTo = replyTo === commentId ? null : commentId;
+	}
+
+	// #172 second pass: item-meta 行（と、その上に描画される本体▲）に該当するヒントキーを表示順で
+	// まとめ、item-meta 行の直下に assist-hint-list として1回だけ出す。条件は各リンクの元の {#if} と
+	// 同一（canEdit/data.user/canFlagItem）。
+	let itemMetaHintKeys = $derived.by(() => {
+		if (data.mode !== 'story') return [];
+		const keys = ['item.upvote'];
+		if (canEdit(data.story.created_at, data.story.user_id)) {
+			keys.push('item.edit', 'item.delete');
+		}
+		if (data.user) {
+			keys.push('item.hide', 'item.favorite');
+		}
+		if (canFlagItem(data.story.user_id)) {
+			keys.push('item.flag');
+		}
+		return keys;
+	});
+
+	// 最初のコメント行（firstCommentId）にだけ comment-toggle/reply ヒントを1つの一覧としてまとめる。
+	// reply は data.user かつスレッドが開いている（isThreadOpen）時だけ、元の {#if} と同条件で足す。
+	function firstCommentHintKeys(commentId: number, threadOpen: boolean): string[] {
+		if (commentId !== firstCommentId) return [];
+		const keys = ['item.comment-toggle'];
+		if (data.user && threadOpen) keys.push('item.reply');
+		return keys;
 	}
 </script>
 
@@ -703,6 +733,13 @@
 					{/if}
 					{/if}
 				</div>
+				{#if child.id === firstCommentId}
+					<div class="assist-hint-list">
+						{#each firstCommentHintKeys(child.id, isThreadOpen(data.parentStory.created_at)) as key (key)}
+							<div class="assist-hint">{assistHint(key, data.locale)}</div>
+						{/each}
+					</div>
+				{/if}
 				{/if}
 			{/each}
 		</div>
@@ -779,9 +816,11 @@
 			{/if}
 			| <a href="#comments">{data.comments.length} comment{data.comments.length !== 1 ? "s" : ""}</a>
 		</div>
-
-		<!-- 投稿への操作（favorite/edit窓/hide/コメント操作）の解説。ストーリー操作行の直下に1回。アシスト OFF では消える。 -->
-		<div class="assist-hint">{assistHint('item.controls', data.locale)}</div>
+		<div class="assist-hint-list">
+			{#each itemMetaHintKeys as key (key)}
+				<div class="assist-hint">{assistHint(key, data.locale)}</div>
+			{/each}
+		</div>
 
 		{#if editingStory}
 			<div class="comment-form">
@@ -994,6 +1033,13 @@
 					{/if}
 					{/if}
 				</div>
+				{#if comment.id === firstCommentId}
+					<div class="assist-hint-list">
+						{#each firstCommentHintKeys(comment.id, isThreadOpen(data.story.created_at)) as key (key)}
+							<div class="assist-hint">{assistHint(key, data.locale)}</div>
+						{/each}
+					</div>
+				{/if}
 				{/if}
 			{/each}
 		</div>

@@ -707,6 +707,28 @@ a:hover {
 	max-width: 480px;
 }
 
+/* コントロール個別ヒント一覧（#172 second pass）。フォーム欄（submit/newpoll/login）は元々1欄=1ヒントで、
+   その欄の直下にブロックで置いていた。一覧行・投稿操作行では同じ考え方を「行/コントロール群の直下に、
+   適用されるヒントを縦積みの小さな一覧として挿入する」形に広げる。ボタンの真横に絶対配置で浮かせる
+   （旧 .assist-anchor / .assist-hint-float / .assist-stagger-*）設計は、固定 px オフセットが実際の行の
+   高さ・ページごとのヒント段数・ビューポート幅に追従できず、無関係な行への重なりや狭幅での右はみ出し
+   （#174）を繰り返し起こしたため撤去した。ここでは通常のドキュメントフローに積むだけなので、要素同士が
+   押し合うだけで構造的に重ならず、幅もコンテナ内に自然に収まる。 */
+.assist-hint-list {
+	display: none;
+}
+.assist-on .assist-hint-list {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin: 4px 0 10px 1.5em;
+}
+/* リスト内の各ヒントは .assist-hint の見た目（青地・白枠・白文字）をそのまま使うが、間隔はリスト側の
+   gap/margin が持つので個別マージンは打ち消す。 */
+.assist-on .assist-hint-list .assist-hint {
+	margin: 0;
+}
+
 /* 右下の常設ドック。メタ解説（上・右寄せ）と「ⓘ＋アシストスイッチ」の横並び（下）を縦に積む。
    fixed でスクロール追従（#140・#170）。 */
 .assist-dock {

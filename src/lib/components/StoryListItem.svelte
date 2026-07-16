@@ -160,6 +160,15 @@
 		if (hasLegacyStoryTypePrefix(story.title, story.type)) return '';
 		return storyTypeLabel(story.type, locale);
 	}
+
+	// #172 second pass: このコントロール群に該当するヒントキーを表示順にまとめ、行の直下に
+	// assist-hint-list として1回だけ出す（絶対配置＋固定pxオフセットの旧設計を撤去）。
+	let assistHintKeys = $derived([
+		'story.upvote',
+		onunhide ? 'story.un-hide' : 'story.hide',
+		'story.comments',
+		...(canFlag ? ['story.flag'] : [])
+	]);
 </script>
 
 <div class="story-item">
@@ -233,8 +242,10 @@
 		</div>
 	</div>
 </div>
-
 {#if assistFirst}
-	<!-- 行コントロール（▲/hide/flag/comments）の解説。一覧の描画先頭行に1回だけ。アシスト OFF では CSS で消える。 -->
-	<div class="assist-hint">{assistHint('story.controls', locale)}</div>
+	<div class="assist-hint-list">
+		{#each assistHintKeys as key (key)}
+			<div class="assist-hint">{assistHint(key, locale)}</div>
+		{/each}
+	</div>
 {/if}
