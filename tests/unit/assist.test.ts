@@ -139,28 +139,70 @@ describe('assistIntro は全ルートを網羅する', () => {
  * B. 併記ルールの軽い回帰（#170）。
  * ja ヒントは画面の和名ラベルと英語を「和名（英語）」で併記する。UI 上の語とアシストの語を一致させ、
  * かつ英語へのデビュー練習にする狙い。en 側は英語のままで日本語を混ぜない（ロケール分離）。
+ * #172 で story.controls / item.controls（1段落に複数概念を詰め込んだ画面単位キー）を要素単位のキーへ
+ * 分割したので、ここも新キーで検証する。
  */
 describe('assistHint の和名併記とロケール分離', () => {
-	it("story.controls(ja) は『非表示（hide）』『通報（flag）』を併記する", () => {
-		const hint = assistHint('story.controls', 'ja');
-		expect(hint).toContain('非表示（hide）');
-		expect(hint).toContain('通報（flag）');
+	it("story.hide(ja) は『非表示（hide）』を併記する", () => {
+		expect(assistHint('story.hide', 'ja')).toContain('非表示（hide）');
 	});
 
-	it("item.controls(ja) は『お気に入り（favorite）』『編集（edit）』『削除（delete）』『返信（reply）』を併記する", () => {
-		const hint = assistHint('item.controls', 'ja');
-		expect(hint).toContain('お気に入り（favorite）');
-		expect(hint).toContain('編集（edit）');
-		expect(hint).toContain('削除（delete）');
-		expect(hint).toContain('返信（reply）');
+	it("story.flag(ja) は『通報（flag）』を併記する", () => {
+		expect(assistHint('story.flag', 'ja')).toContain('通報（flag）');
 	});
 
-	it("item.controls(en) は英語のまま＝日本語ラベルを含まない（ロケール分離）", () => {
-		const hint = assistHint('item.controls', 'en');
-		expect(hint).not.toBe('');
-		expect(hint).not.toContain('お気に入り');
-		expect(hint).not.toContain('編集');
-		expect(hint).not.toContain('削除');
-		expect(hint).not.toContain('返信');
+	it("item.favorite/edit/delete/reply(ja) はそれぞれ『和名（英語）』を併記する", () => {
+		expect(assistHint('item.favorite', 'ja')).toContain('お気に入り（favorite）');
+		expect(assistHint('item.edit', 'ja')).toContain('編集（edit）');
+		expect(assistHint('item.delete', 'ja')).toContain('削除（delete）');
+		expect(assistHint('item.reply', 'ja')).toContain('返信（reply）');
+	});
+
+	it("item.favorite/edit/delete/reply(en) は英語のまま＝日本語ラベルを含まない（ロケール分離）", () => {
+		const keys = ['item.favorite', 'item.edit', 'item.delete', 'item.reply'] as const;
+		for (const key of keys) {
+			const hint = assistHint(key, 'en');
+			expect(hint).not.toBe('');
+			expect(hint).not.toContain('お気に入り');
+			expect(hint).not.toContain('編集');
+			expect(hint).not.toContain('削除');
+			expect(hint).not.toContain('返信');
+		}
+	});
+});
+
+/**
+ * C. 要素単位への分割そのものの回帰ガード（#172）。
+ * 旧 story.controls / item.controls（画面単位・1段落詰め込み）キーはもう存在せず、代わりに
+ * ボタン/リンク単位の granular キーが揃っていることを保証する。将来また画面単位の1キーに
+ * 巻き戻す（再び密集させる）リグレッションを検出する。
+ */
+describe('assistHint はコントロール要素単位に分割されている（#172）', () => {
+	const granularKeys = [
+		'story.upvote',
+		'story.hide',
+		'story.flag',
+		'story.comments',
+		'item.favorite',
+		'item.hide',
+		'item.flag',
+		'item.edit',
+		'item.delete',
+		'item.comment-toggle',
+		'item.reply'
+	] as const;
+
+	it('全 granular キーが ja/en 両方で非空文字を返す', () => {
+		for (const key of granularKeys) {
+			expect(assistHint(key, 'ja'), `ja: ${key}`).not.toBe('');
+			expect(assistHint(key, 'en'), `en: ${key}`).not.toBe('');
+		}
+	});
+
+	it('旧・画面単位キー story.controls / item.controls はもう存在しない（空文字＝未定義）', () => {
+		expect(assistHint('story.controls', 'ja')).toBe('');
+		expect(assistHint('item.controls', 'ja')).toBe('');
+		expect(assistHint('story.controls', 'en')).toBe('');
+		expect(assistHint('item.controls', 'en')).toBe('');
 	});
 });
