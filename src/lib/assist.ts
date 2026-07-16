@@ -117,12 +117,23 @@ const ASSIST_HINT: Record<Locale, Record<string, string>> = {
 		'signup.password': '新しいパスワード。忘れないものを設定しましょう。',
 		'signup.submit': '押すとアカウントが作られ、ログインした状態になります。',
 		// 一覧の描画先頭可視行に1回だけ出す行コントロールの解説（StoryList が firstVisibleId の行に assistFirst を渡す）。
-		// 画面の和名ラベル（非表示/通報）に「和名（英語）」で併記し、UI の語とアシストの語を一致させる（#170）。
-		'story.controls':
-			'各行の左の ▲ は upvote（投票）。良いと思った投稿を押し上げます。本家 Hacker News と同じく、ストーリーに downvote（反対票）はありません（コメントの downvote はカルマ 500 以上で解禁）。点数の下にある 非表示（hide）＝自分の一覧から消す、通報（flag）＝規約違反を運営に知らせる、コメント数のリンクで議論に入れます。',
-		// /item のストーリー操作行の直下に1回。
-		'item.controls':
-			'この投稿への操作です。お気に入り（favorite）＝お気に入り登録（自分のページの favorites に並びます）、非表示（hide）＝一覧から隠す、通報（flag）＝規約違反を運営に知らせる。自分の投稿なら 編集（edit）／削除（delete）も出ますが、編集できるのは投稿から2時間だけ（本家 HN の編集窓と同じ作法）。下のコメントは [–] で畳め、返信（reply）で返信できます。',
+		// #172: 旧「story.controls」1段落を要素単位に分割。各ヒントはそのボタン/リンクの直下にフロート表示する
+		// （.assist-hint-float、app.css）。画面の和名ラベルに「和名（英語）」で併記し、UI の語とアシストの語を
+		// 一致させる（#170 の方針を継承）。downvote 無しルール等、個別ボタンに紐付かない余談は削った。
+		'story.upvote': '▲ は upvote（投票）。良いと思った投稿を押し上げます。',
+		'story.hide': '非表示（hide）＝この投稿を自分の一覧から消します。',
+		'story.flag': '通報（flag）＝規約違反を運営に知らせます。',
+		'story.comments': 'このリンクから議論（コメント）に入れます。',
+		// /item のストーリー操作行・コメント行。旧「item.controls」1段落を同じく要素単位に分割（#172）。
+		// favorite/hide/flag/edit/delete は item-meta 行の各リンク直下、comment-toggle/reply は
+		// 連呼を避けるため最初のコメント行にだけ1回出す。
+		'item.favorite': 'お気に入り（favorite）＝あなたのプロフィールの favorites に登録します。',
+		'item.hide': '非表示（hide）＝この投稿を一覧から隠します。',
+		'item.flag': '通報（flag）＝規約違反を運営に知らせます。',
+		'item.edit': '編集（edit）＝投稿から2時間だけ内容を書き換えられます（本家 HN と同じ編集期限）。',
+		'item.delete': '削除（delete）＝本文が [deleted] に置き換わります（取り消せません）。',
+		'item.comment-toggle': '[–] でこのコメントの返信をたたみ、[+] で開き直せます。',
+		'item.reply': '返信（reply）＝このコメントに返信します。',
 		// 右下ドック（ⓘ＋アシストスイッチ）の真上に右寄せで1回（#170 で最上部から移設）。メタ操作（言語・
 		// アシスト本体）への気づき。カルマは meta.karma に分離し、ログイン中（= 実際に (123) が見える）ときだけ
 		// layout が後段に足す。
@@ -145,10 +156,18 @@ const ASSIST_HINT: Record<Locale, Record<string, string>> = {
 		'signup.username': 'New username. If you are registering, pick any name you like here.',
 		'signup.password': 'New password. Choose one you will not forget.',
 		'signup.submit': 'Creates your account and logs you in.',
-		'story.controls':
-			'The ▲ on the left of each row is upvote — push up posts you like. As on the real Hacker News, there is no downvote on stories (downvoting comments unlocks at 500 karma). Below the score, hide removes it from your list, flag reports rule-breaking, and the comments link opens the discussion.',
-		'item.controls':
-			'Actions for this post. favorite bookmarks it (it appears under favorites on your profile), hide removes it from your list, flag reports it. If it is your own post, edit / delete also appear — but you can only edit within 2 hours of posting (the same edit-window convention as the real HN). Below, collapse comments with [–] and reply to join in.',
+		'story.upvote': 'The ▲ is upvote — push up posts you like.',
+		'story.hide': 'hide removes this post from your list.',
+		'story.flag': 'flag reports a rule violation to the mods.',
+		'story.comments': 'This link opens the discussion (comments).',
+		'item.favorite': "favorite bookmarks this post to your profile's favorites.",
+		'item.hide': 'hide removes this post from your list.',
+		'item.flag': 'flag reports a rule violation to the mods.',
+		'item.edit':
+			'edit lets you change the post — only within 2 hours of posting (same window as the real HN).',
+		'item.delete': 'delete replaces the text with [deleted] (cannot be undone).',
+		'item.comment-toggle': "[–] collapses this comment's replies; [+] reopens them.",
+		'item.reply': 'reply lets you respond to this comment.',
 		'meta.controls':
 			'Just below sit a round ⓘ button and a switch labeled "Assist". The "Assist" switch is this assist itself — turn it off and the guides disappear, leaving the plain screen identical to the real Hacker News. Once you are comfortable, switch it off and graduate to the real thing. The ⓘ opens an explanation of what this site is for. Use the 「日本語」 link at the top-right to switch the display language.',
 		'meta.karma': 'Also, when you are logged in, the number (123) next to your name in the header is your karma (reputation).'
