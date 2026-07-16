@@ -197,3 +197,115 @@ export function cleanIpBans(): void {
 		console.warn('[cleanIpBans] failed', e);
 	}
 }
+
+/**
+ * `wrangler d1 execute ... --json` を実行し、SELECT 結果行の配列を返す。
+ * runD1 は戻り値を捨てる fire-and-forget 用途のため、値を読みたいクエリ用に別関数として用意する。
+ * 施設内プロキシ下では "Proxy environment variables detected." 等の前置きが出力に混じるため、
+ * `[` から末尾までの JSON 部分だけ切り出してパースする（assist-element-hints.spec.ts /
+ * api-v0.spec.ts で個別実装されていた fetchD1Scalar 相当のロジックを #179 で helpers.ts に集約）。
+ */
+export function queryD1Rows<T = Record<string, unknown>>(sql: string): T[] {
+	const out = execFileSync(
+		'npx',
+		['wrangler', 'd1', 'execute', 'hacker-noroshi-db', '--local', '--json', '--command', sql],
+		{ cwd: process.cwd(), stdio: 'pipe', timeout: 30_000 }
+	).toString();
+	const start = out.indexOf('[');
+	if (start < 0) throw new Error(`No JSON in wrangler output: ${out}`);
+	const parsed = JSON.parse(out.slice(start));
+	return (parsed[0]?.results ?? []) as T[];
+}
+
+/**
+ * 既存ユーザーの showdead を直接書き換える（#179）。updateUserKarma と同じ流儀。
+ * UI（プロフィール画面のフォーム）経由の変更フロー自体を確認したいテストは
+ * 代わりに setShowDeadViaProfile を使うこと。
+ */
+export function setUserShowdead(username: string, value: 0 | 1): void {
+	const escaped = username.replace(/'/g, "''");
+	runD1(`UPDATE users SET showdead = ${value} WHERE username = '${escaped}'`);
+}
+
+/**
+ * 現在ログイン中ユーザーの showdead 設定を /user/{username} のプロフィール画面
+ * フォーム（action="?/update"）から変更する（#179 E11: 設定変更フロー自体の検証用）。
+ * about/delay 等の他フィールドは既存値のまま送信されるため副作用は無い。
+ */
+export async function setShowDeadViaProfile(
+	page: Page,
+	username: string,
+	value: 'yes' | 'no'
+): Promise<void> {
+	await page.goto(`/user/${username}`);
+	await page.waitForLoadState('networkidle');
+	const form = page.locator('form[action="?/update"]');
+	await form.locator('select[name="showdead"]').selectOption(value);
+	await form.locator('button[type="submit"]').click();
+	await page.waitForLoadState('networkidle');
+}
+
+/**
+ * ログイン中のページから `page.evaluate` 経由で /api/flag を叩く（#179）。
+ * UI クリックを介さないため、複数ユーザーでの一括 flag シナリオ（flagItemNTimes）を
+ * 高速化するための土台。呼び出し前に該当ユーザーとしてログイン済みであること。
+ */
+export async function flagAsUser(
+	page: Page,
+	itemId: number,
+	itemType: 'story' | 'comment'
+): Promise<{ flagged: boolean; flagCount: number; dead: boolean }> {
+	return page.evaluate(
+		async ({ itemId, itemType }) => {
+			const res = await fetch('/api/flag', {
+				method: 'POST',
+				headers: { 'Content-Type': 'application/json' },
+				body: JSON.stringify({ itemId, itemType })
+			});
+			return res.json();
+		},
+		{ itemId, itemType }
+	);
+}
+
+/**
+ * n人の異なる新規ユーザー（karma=30 に引き上げ済み）で item を順に flag する（#179）。
+ * DEAD_FLAG_THRESHOLD を跨ぐシナリオ（n件目で自動 dead 化）を UI クリック無しで
+ * 高速に再現するための一括ヘルパ。内部で signupNewUser → updateUserKarma(30) →
+ * flagAsUser を n 回ループする。最後の flag 呼び出しのレスポンスを返す
+ * （n が閾値を超えていれば dead:true が返る）。
+ *
+ * 呼び出し後、ページは n 人目の flagger としてログインした状態のまま残る。
+ */
+export async function flagItemNTimes(
+	page: Page,
+	itemId: number,
+	itemType: 'story' | 'comment',
+	n: number
+): Promise<{ flagged: boolean; flagCount: number; dead: boolean }> {
+	let last: { flagged: boolean; flagCount: number; dead: boolean } | null = null;
+	for (let i = 0; i < n; i++) {
+		await page.goto('/logout').catch(() => {});
+		const username = await signupNewUser(page);
+		updateUserKarma(username, 30);
+		await page.goto('/');
+		last = await flagAsUser(page, itemId, itemType);
+	}
+	if (!last) throw new Error('flagItemNTimes called with n <= 0');
+	return last;
+}
+
+/** flags テーブルの該当 item の行数を返す（#179）。 */
+export function getFlagCount(itemId: number, itemType: 'story' | 'comment'): number {
+	const rows = queryD1Rows<{ n: number }>(
+		`SELECT COUNT(*) AS n FROM flags WHERE item_id = ${itemId} AND item_type = '${itemType}'`
+	);
+	return rows.length ? Number(rows[0].n) : 0;
+}
+
+/** stories/comments の dead 値 (0|1) を返す（#179）。該当行が無ければ throw する。 */
+export function getItemDeadState(table: 'stories' | 'comments', itemId: number): number {
+	const rows = queryD1Rows<{ dead: number }>(`SELECT dead FROM ${table} WHERE id = ${itemId}`);
+	if (rows.length === 0) throw new Error(`No row in ${table} with id ${itemId}`);
+	return Number(rows[0].dead);
+}
