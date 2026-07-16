@@ -65,11 +65,15 @@
 	let localFlagged = $state<boolean | null>(null);
 	let localPoints = $state<number | null>(null);
 	let localFlagCount = $state<number | null>(null);
+	// flag API のレスポンスに含まれる dead（#180）。ItemPage の localStoryDead と同じ役割で、
+	// 5件目の flag クリック直後にリロード無しで [dead] タグへ切り替えるための local state。
+	let localDead = $state<number | null>(null);
 
 	let voted = $derived(localVoted ?? initialVoted);
 	let flagged = $derived(localFlagged ?? initialFlagged);
 	let points = $derived(localPoints ?? story.points);
 	let flagCount = $derived(localFlagCount ?? story.flag_count ?? 0);
+	let dead = $derived(localDead ?? story.dead ?? 0);
 
 	let canFlag = $derived(canFlagStory(user, story));
 	let showPollTag = $derived(shouldShowPollTag(story, forcePollTag));
@@ -109,9 +113,10 @@
 			body: JSON.stringify({ itemId: story.id, itemType: 'story' })
 		});
 		if (res.ok) {
-			const result: { flagged: boolean; flagCount: number } = await res.json();
+			const result: { flagged: boolean; flagCount: number; dead: boolean } = await res.json();
 			localFlagged = result.flagged;
 			localFlagCount = result.flagCount;
+			localDead = result.dead ? 1 : 0;
 		} else if (res.status === 403) {
 			const result = (await res.json()) as { error?: string };
 			alert(result.error || 'Permission denied');
@@ -180,7 +185,7 @@
 			&#9650;
 		</button>
 	</span>
-	<div class="story-content" class:faded={story.dead === 1}>
+	<div class="story-content" class:faded={dead === 1}>
 		<div class="story-title-line">
 			{#if story.url}
 				<a href={story.url} class="story-title">{story.title}</a>
@@ -191,7 +196,7 @@
 			{#if assistedTypeLabel()} <span class="story-tag">[{assistedTypeLabel()}]</span>{/if}
 			{#if showPollTag} <span class="story-tag">[poll]</span>{/if}
 			{#if flagCount > 0} <span class="story-tag">[flagged]</span>{/if}
-			{#if story.dead === 1} <span class="story-tag">[dead]</span>{/if}
+			{#if dead === 1} <span class="story-tag">[dead]</span>{/if}
 		</div>
 		<div class="story-meta">
 			{points} {l(points === 1 ? 'point' : 'points')} {l('by')}
