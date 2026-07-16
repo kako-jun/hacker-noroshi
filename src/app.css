@@ -707,77 +707,26 @@ a:hover {
 	max-width: 480px;
 }
 
-/* コントロール個別ヒント（#172）。フォーム欄（submit/newpoll/login）は元々1欄=1ヒントで、その欄の直下に
-   ブロックで置いていた。一覧行・投稿操作行は詰まった横並び/インライン文中レイアウトなので、同じブロック配置
-   だと行の横幅を壊す。そこで対象コントロールを .assist-anchor（relative）で包み、ヒントはその真下に浮かせる
-   （.assist-hint-float）。ガラス/フローティングはアシスト層だけの例外許可（DESIGN.md）。
-   ヒントが無い行では assist-anchor は見た目に一切影響しない（position:relative のみ）。 */
-.assist-anchor {
-	position: relative;
+/* コントロール個別ヒント一覧（#172 second pass）。フォーム欄（submit/newpoll/login）は元々1欄=1ヒントで、
+   その欄の直下にブロックで置いていた。一覧行・投稿操作行では同じ考え方を「行/コントロール群の直下に、
+   適用されるヒントを縦積みの小さな一覧として挿入する」形に広げる。ボタンの真横に絶対配置で浮かせる
+   （旧 .assist-anchor / .assist-hint-float / .assist-stagger-*）設計は、固定 px オフセットが実際の行の
+   高さ・ページごとのヒント段数・ビューポート幅に追従できず、無関係な行への重なりや狭幅での右はみ出し
+   （#174）を繰り返し起こしたため撤去した。ここでは通常のドキュメントフローに積むだけなので、要素同士が
+   押し合うだけで構造的に重ならず、幅もコンテナ内に自然に収まる。 */
+.assist-hint-list {
+	display: none;
 }
-.assist-on .assist-hint.assist-hint-float {
-	position: absolute;
-	top: 100%;
-	left: 0;
-	z-index: 40;
-	margin: 4px 0 0;
-	/* .assist-anchor（対象コントロールぴったりの幅、例: ▲ボタンで14px）が containing block になるため、
-	   width:auto の shrink-to-fit はその狭い幅に張り付いてしまい、文字が縦につぶれて折り返す
-	   （実機 Playwright 確認で発覚）。width:max-content で「中身の一行分の幅」を明示し、
-	   max-width で長い文だけ折り返す上限を掛ける。 */
-	width: max-content;
-	max-width: 200pt;
-	/* 情報表示のみ。下の行の本物のリンク/ボタンのクリックを奪わない。 */
-	pointer-events: none;
+.assist-on .assist-hint-list {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin: 4px 0 10px 1.5em;
 }
-/* item-meta 行（edit/delete/hide/favorite/flag）や story-meta 行（hide/comments/flag）のように
-   1行に複数コントロールが並ぶ場合、素の top:100% だけだと各ヒントがほぼ同じY位置に浮いて重なる
-   （実機 Playwright 確認で発覚）。左から出現する順に固定オフセットを足して階段状にずらす。 */
-.assist-on .assist-hint.assist-hint-float.assist-stagger-1 {
-	top: calc(100% + 48px);
-}
-.assist-on .assist-hint.assist-hint-float.assist-stagger-2 {
-	top: calc(100% + 96px);
-}
-.assist-on .assist-hint.assist-hint-float.assist-stagger-3 {
-	top: calc(100% + 144px);
-}
-/* story.upvote は別アンカー（.story-vote、タイトル行と同じ高さ）だが、flex の baseline 揃えの都合で
-   story-meta 側のヒント群とほぼ同じY帯に浮いて重なってしまう（実機 Playwright 確認で発覚）。
-   meta 側スタック（最大 stagger-2 まで）より確実に下まで逃がす。
-   数値根拠（実機 Playwright 計測、#172 must 1）: この 140px は
-     stagger-2 の固定オフセット 96px
-   + .story-vote アンカーと story-meta 側 .assist-anchor の「top:100%」基準点の高さ差 11px
-     （story-vote は▲ボタン込みで height:22px、meta 側の各 assist-anchor は文字高さのみで height:14px。
-      同じ行内でもベースライン揃えにより後者の下端が 11px 下にずれる）
-   + stagger-2（flag）ヒント自体の高さ 約27px（2行文言の実測値）
-   + 余白 6px（サブピクセル丸めで meta 側ヒントに接触しないための安全マージン）
-   の合計。旧 190px は meta 側スタックの下端から実測 +55px も離れすぎており、無関係な行（5行下）に
-   ヒントが重なる不具合の原因だった。140px は meta 側スタックの直下（隙間 約10px）に収まり、かつ
-   meta 側の flag ヒント（stagger-2）が既に及んでいる行数（2行分）と同水準に留まる＝既存パターンと
-   整合する。 */
-.assist-on .assist-hint.assist-hint-float.assist-stagger-below-meta {
-	top: calc(100% + 140px);
-}
-.assist-on .assist-hint.assist-hint-float.assist-stagger-4 {
-	top: calc(100% + 192px);
-}
-/* item.upvote（/item 詳細ページ本体の▲、ItemPage.svelte）専用。story.upvote の below-meta と同じ問題
-   （ボタンの真上のアンカーから top:100% するとタイトル行の次に来る item-meta 行の上に落ちる）だが、
-   item-meta 側の最大スタックは stagger-4（flag、他人の投稿かつ karma 条件を満たす時のみ表示）まで
-   使うため、below-meta（story-meta 側の最大 stagger-2 基準）とは必要オフセットが異なる。同じクラスを
-   使い回さず専用クラスを切る。
-   数値根拠（実機 Playwright 計測、#172 should）: 242px は
-     stagger-4 の固定オフセット 192px
-   + .story-vote アンカーと item-meta 側 .assist-anchor の「top:100%」基準点の高さ差 16px
-     （story-vote は▲ボタン込みで height:22px、item-meta 側の各 assist-anchor は文字高さのみで
-      height:14px。ベースライン揃えで後者の下端が 16px 下にずれる。story-meta 側の 11px とは
-      レイアウトが異なるため値も異なる）
-   + stagger-4（flag）ヒント自体の高さ 約27px（2行文言の実測値）
-   + 余白 6px（サブピクセル丸めで item-meta 側ヒントに接触しないための安全マージン）
-   の合計。 */
-.assist-on .assist-hint.assist-hint-float.assist-stagger-below-item-meta {
-	top: calc(100% + 242px);
+/* リスト内の各ヒントは .assist-hint の見た目（青地・白枠・白文字）をそのまま使うが、間隔はリスト側の
+   gap/margin が持つので個別マージンは打ち消す。 */
+.assist-on .assist-hint-list .assist-hint {
+	margin: 0;
 }
 
 /* 右下の常設ドック。メタ解説（上・右寄せ）と「ⓘ＋アシストスイッチ」の横並び（下）を縦に積む。

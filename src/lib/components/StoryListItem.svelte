@@ -160,19 +160,25 @@
 		if (hasLegacyStoryTypePrefix(story.title, story.type)) return '';
 		return storyTypeLabel(story.type, locale);
 	}
+
+	// #172 second pass: このコントロール群に該当するヒントキーを表示順にまとめ、行の直下に
+	// assist-hint-list として1回だけ出す（絶対配置＋固定pxオフセットの旧設計を撤去）。
+	let assistHintKeys = $derived([
+		'story.upvote',
+		onunhide ? 'story.un-hide' : 'story.hide',
+		'story.comments',
+		...(canFlag ? ['story.flag'] : [])
+	]);
 </script>
 
 <div class="story-item">
 	{#if rank !== null && rank !== undefined}
 		<span class="story-rank">{rank}.</span>
 	{/if}
-	<span class="story-vote assist-anchor">
+	<span class="story-vote">
 		<button class="upvote" class:voted onclick={vote} aria-label="upvote">
 			&#9650;
 		</button>
-		{#if assistFirst}
-			<span class="assist-hint assist-hint-float assist-stagger-below-meta">{assistHint('story.upvote', locale)}</span>
-		{/if}
 	</span>
 	<div class="story-content" class:faded={story.dead === 1}>
 		<div class="story-title-line">
@@ -197,57 +203,49 @@
 					deleted: story.user_deleted === 1 ? 1 : story.user_deleted === 0 ? 0 : null
 				})}</a>
 			<a href="/item/{story.id}">{timeAgo(story.created_at)}</a> |
-			<span class="assist-anchor">
-				{#if onunhide}
-					<a
-						href="#unhide"
-						title={tip('un-hide')}
-						onclick={(e) => {
-							e.preventDefault();
-							unhide();
-						}}>{l('un-hide')}</a
-					>
-				{:else if user}
-					<a
-						href="#hide"
-						title={tip('hide')}
-						onclick={(e) => {
-							e.preventDefault();
-							hide();
-						}}>{l('hide')}</a
-					>
-				{:else}
-					<a href={loginHref} title={tip('hide')}>{l('hide')}</a>
-				{/if}
-				{#if assistFirst}
-					<span class="assist-hint assist-hint-float">{assistHint(onunhide ? 'story.un-hide' : 'story.hide', locale)}</span>
-				{/if}
-			</span>
+			{#if onunhide}
+				<a
+					href="#unhide"
+					title={tip('un-hide')}
+					onclick={(e) => {
+						e.preventDefault();
+						unhide();
+					}}>{l('un-hide')}</a
+				>
+			{:else if user}
+				<a
+					href="#hide"
+					title={tip('hide')}
+					onclick={(e) => {
+						e.preventDefault();
+						hide();
+					}}>{l('hide')}</a
+				>
+			{:else}
+				<a href={loginHref} title={tip('hide')}>{l('hide')}</a>
+			{/if}
 			{#if story.url}
 				| <a href="/from?site={extractDomain(story.url)}" title={tip('past')}>{l('past')}</a>
 			{/if}
 			|
-			<span class="assist-anchor">
-				<a href="/item/{story.id}">{commentText(story.comment_count)}</a>
-				{#if assistFirst}
-					<span class="assist-hint assist-hint-float assist-stagger-1">{assistHint('story.comments', locale)}</span>
-				{/if}
-			</span>
+			<a href="/item/{story.id}">{commentText(story.comment_count)}</a>
 			{#if canFlag}
-				| <span class="assist-anchor">
-					<a
-						href="#flag"
-						title={tip(flagged ? 'un-flag' : 'flag')}
-						onclick={(e) => {
-							e.preventDefault();
-							flag();
-						}}>{l(flagged ? 'un-flag' : 'flag')}</a
-					>
-					{#if assistFirst}
-						<span class="assist-hint assist-hint-float assist-stagger-2">{assistHint('story.flag', locale)}</span>
-					{/if}
-				</span>
+				| <a
+					href="#flag"
+					title={tip(flagged ? 'un-flag' : 'flag')}
+					onclick={(e) => {
+						e.preventDefault();
+						flag();
+					}}>{l(flagged ? 'un-flag' : 'flag')}</a
+				>
 			{/if}
 		</div>
 	</div>
 </div>
+{#if assistFirst}
+	<div class="assist-hint-list">
+		{#each assistHintKeys as key (key)}
+			<div class="assist-hint">{assistHint(key, locale)}</div>
+		{/each}
+	</div>
+{/if}

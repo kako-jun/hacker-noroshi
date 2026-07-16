@@ -472,6 +472,33 @@
 	function toggleReply(commentId: number) {
 		replyTo = replyTo === commentId ? null : commentId;
 	}
+
+	// #172 second pass: item-meta 行（と、その上に描画される本体▲）に該当するヒントキーを表示順で
+	// まとめ、item-meta 行の直下に assist-hint-list として1回だけ出す。条件は各リンクの元の {#if} と
+	// 同一（canEdit/data.user/canFlagItem）。
+	let itemMetaHintKeys = $derived.by(() => {
+		if (data.mode !== 'story') return [];
+		const keys = ['item.upvote'];
+		if (canEdit(data.story.created_at, data.story.user_id)) {
+			keys.push('item.edit', 'item.delete');
+		}
+		if (data.user) {
+			keys.push('item.hide', 'item.favorite');
+		}
+		if (canFlagItem(data.story.user_id)) {
+			keys.push('item.flag');
+		}
+		return keys;
+	});
+
+	// 最初のコメント行（firstCommentId）にだけ comment-toggle/reply ヒントを1つの一覧としてまとめる。
+	// reply は data.user かつスレッドが開いている（isThreadOpen）時だけ、元の {#if} と同条件で足す。
+	function firstCommentHintKeys(commentId: number, threadOpen: boolean): string[] {
+		if (commentId !== firstCommentId) return [];
+		const keys = ['item.comment-toggle'];
+		if (data.user && threadOpen) keys.push('item.reply');
+		return keys;
+	}
 </script>
 
 {#if data.mode === 'comment'}
@@ -616,19 +643,14 @@
 							| <a href="#item-{nextCommentId[child.id]}" title={tooltipJa('next')} style="color: #828282;">next</a>
 						{/if}
 						<span class="comment-toggle">
-							{' '}<span class="assist-anchor">
-								<a
-									href="#toggle"
-									onclick={(e) => {
-										e.preventDefault();
-										toggleCollapsed(child.id);
-									}}
-									style="color: #828282;"
-								>{#if collapsed[child.id]}[+]{:else}[&ndash;]{/if}</a>
-								{#if child.id === firstCommentId}
-									<span class="assist-hint assist-hint-float">{assistHint('item.comment-toggle', data.locale)}</span>
-								{/if}
-							</span>
+							{' '}<a
+								href="#toggle"
+								onclick={(e) => {
+									e.preventDefault();
+									toggleCollapsed(child.id);
+								}}
+								style="color: #828282;"
+							>{#if collapsed[child.id]}[+]{:else}[&ndash;]{/if}</a>
 							{#if collapsed[child.id] && descendantCounts[child.id] > 0}
 								<span style="color: #828282;"> ({descendantCounts[child.id]} more)</span>
 							{/if}
@@ -669,19 +691,14 @@
 					{#if data.user}
 						<div class="comment-reply">
 							{#if isThreadOpen(data.parentStory.created_at)}
-								<span class="assist-anchor">
-									<a
-										href="#reply"
-										title={tooltipJa('reply')}
-										onclick={(e) => {
-											e.preventDefault();
-											toggleReply(child.id);
-										}}>reply</a
-									>
-									{#if child.id === firstCommentId}
-										<span class="assist-hint assist-hint-float">{assistHint('item.reply', data.locale)}</span>
-									{/if}
-								</span>
+								<a
+									href="#reply"
+									title={tooltipJa('reply')}
+									onclick={(e) => {
+										e.preventDefault();
+										toggleReply(child.id);
+									}}>reply</a
+								>
 							{/if}
 							{#if canEdit(child.created_at, child.user_id)}
 								{#if isThreadOpen(data.parentStory.created_at)}|{/if} <a
@@ -716,6 +733,13 @@
 					{/if}
 					{/if}
 				</div>
+				{#if child.id === firstCommentId}
+					<div class="assist-hint-list">
+						{#each firstCommentHintKeys(child.id, isThreadOpen(data.parentStory.created_at)) as key (key)}
+							<div class="assist-hint">{assistHint(key, data.locale)}</div>
+						{/each}
+					</div>
+				{/if}
 				{/if}
 			{/each}
 		</div>
@@ -723,7 +747,7 @@
 {:else}
 	<div class="item-detail" style="padding-left: 40px;">
 		<div style="display: flex; align-items: baseline;">
-			<span class="story-vote assist-anchor" style="margin-right: 4px;">
+			<span class="story-vote" style="margin-right: 4px;">
 				<button
 					class="upvote"
 					class:voted={storyVoted}
@@ -732,7 +756,6 @@
 				>
 					&#9650;
 				</button>
-				<span class="assist-hint assist-hint-float assist-stagger-below-item-meta">{assistHint('item.upvote', data.locale)}</span>
 			</span>
 			<span class="item-title">
 				{#if data.story.url}
@@ -753,58 +776,50 @@
 			<a href="/user/{data.story.username}" style={isNewUser(data.story.user_created_at) ? 'color: #3c963c;' : ''}>{displayUsername({ username: data.story.username, deleted: data.story.user_deleted })}</a>
 			{timeAgo(data.story.created_at)}
 			{#if canEdit(data.story.created_at, data.story.user_id)}
-				| <span class="assist-anchor">
-					<a
-						href="#edit"
-						title={tooltipJa('edit')}
-						onclick={(e) => {
-							e.preventDefault();
-							editingStory = true;
-						}}>edit</a>
-					<span class="assist-hint assist-hint-float">{assistHint('item.edit', data.locale)}</span>
-				</span>
-				| <form method="POST" action="?/deleteStory" class="inline-form assist-anchor" use:enhance={confirmDelete('Delete this story? Text will be replaced with [deleted].')}>
+				| <a
+					href="#edit"
+					title={tooltipJa('edit')}
+					onclick={(e) => {
+						e.preventDefault();
+						editingStory = true;
+					}}>edit</a>
+				| <form method="POST" action="?/deleteStory" class="inline-form" use:enhance={confirmDelete('Delete this story? Text will be replaced with [deleted].')}>
 					<button type="submit" class="link-button" title={tooltipJa('delete')}>delete</button>
-					<span class="assist-hint assist-hint-float assist-stagger-1">{assistHint('item.delete', data.locale)}</span>
 				</form>
 			{/if}
 			{#if data.user}
-				| <span class="assist-anchor">
-					<a
-						href="#hide"
-						title={tooltipJa(storyHidden ? 'un-hide' : 'hide')}
-						onclick={(e) => {
-							e.preventDefault();
-							toggleHideStory();
-						}}>{storyHidden ? 'un-hide' : 'hide'}</a>
-					<span class="assist-hint assist-hint-float assist-stagger-2">{assistHint('item.hide', data.locale)}</span>
-				</span>
+				| <a
+					href="#hide"
+					title={tooltipJa(storyHidden ? 'un-hide' : 'hide')}
+					onclick={(e) => {
+						e.preventDefault();
+						toggleHideStory();
+					}}>{storyHidden ? 'un-hide' : 'hide'}</a>
 			{/if}
 			{#if data.story.url}
 				| <a href="/from?site={extractDomain(data.story.url)}" title={tooltipJa('past')}>past</a>
 			{/if}
 			{#if data.user}
-				| <span class="assist-anchor">
-					<a
-						href="#favorite"
-						title={tooltipJa(storyFavorited ? 'un-fav' : 'favorite')}
-						onclick={(e) => {
-							e.preventDefault();
-							toggleFavorite();
-						}}>{storyFavorited ? 'un-fav' : 'favorite'}</a>
-					<span class="assist-hint assist-hint-float assist-stagger-3">{assistHint('item.favorite', data.locale)}</span>
-				</span>
+				| <a
+					href="#favorite"
+					title={tooltipJa(storyFavorited ? 'un-fav' : 'favorite')}
+					onclick={(e) => {
+						e.preventDefault();
+						toggleFavorite();
+					}}>{storyFavorited ? 'un-fav' : 'favorite'}</a>
 			{/if}
 			{#if canFlagItem(data.story.user_id)}
-				| <span class="assist-anchor">
-					<a href="#flag" title={tooltipJa(storyFlagged ? 'un-flag' : 'flag')} onclick={(e) => { e.preventDefault(); flagStory(); }}>{storyFlagged ? 'un-flag' : 'flag'}</a>
-					<span class="assist-hint assist-hint-float assist-stagger-4">{assistHint('item.flag', data.locale)}</span>
-				</span>
+				| <a href="#flag" title={tooltipJa(storyFlagged ? 'un-flag' : 'flag')} onclick={(e) => { e.preventDefault(); flagStory(); }}>{storyFlagged ? 'un-flag' : 'flag'}</a>
 			{/if}
 			{#if canFlagItem(data.story.user_id) && storyDead === 1}
 				| <a href="#vouch" title={tooltipJa('vouch')} onclick={(e) => { e.preventDefault(); vouchStory(); }}>vouch</a>
 			{/if}
 			| <a href="#comments">{data.comments.length} comment{data.comments.length !== 1 ? "s" : ""}</a>
+		</div>
+		<div class="assist-hint-list">
+			{#each itemMetaHintKeys as key (key)}
+				<div class="assist-hint">{assistHint(key, data.locale)}</div>
+			{/each}
 		</div>
 
 		{#if editingStory}
@@ -928,19 +943,14 @@
 							| <a href="#item-{nextCommentId[comment.id]}" title={tooltipJa('next')} style="color: #828282;">next</a>
 						{/if}
 						<span class="comment-toggle">
-							{' '}<span class="assist-anchor">
-								<a
-									href="#toggle"
-									onclick={(e) => {
-										e.preventDefault();
-										toggleCollapsed(comment.id);
-									}}
-									style="color: #828282;"
-								>{#if collapsed[comment.id]}[+]{:else}[&ndash;]{/if}</a>
-								{#if comment.id === firstCommentId}
-									<span class="assist-hint assist-hint-float">{assistHint('item.comment-toggle', data.locale)}</span>
-								{/if}
-							</span>
+							{' '}<a
+								href="#toggle"
+								onclick={(e) => {
+									e.preventDefault();
+									toggleCollapsed(comment.id);
+								}}
+								style="color: #828282;"
+							>{#if collapsed[comment.id]}[+]{:else}[&ndash;]{/if}</a>
 							{#if collapsed[comment.id] && descendantCounts[comment.id] > 0}
 								<span style="color: #828282;"> ({descendantCounts[comment.id]} more)</span>
 							{/if}
@@ -981,19 +991,14 @@
 					{#if data.user}
 						<div class="comment-reply">
 							{#if isThreadOpen(data.story.created_at)}
-								<span class="assist-anchor">
-									<a
-										href="#reply"
-										title={tooltipJa('reply')}
-										onclick={(e) => {
-											e.preventDefault();
-											toggleReply(comment.id);
-										}}>reply</a
-									>
-									{#if comment.id === firstCommentId}
-										<span class="assist-hint assist-hint-float">{assistHint('item.reply', data.locale)}</span>
-									{/if}
-								</span>
+								<a
+									href="#reply"
+									title={tooltipJa('reply')}
+									onclick={(e) => {
+										e.preventDefault();
+										toggleReply(comment.id);
+									}}>reply</a
+								>
 							{/if}
 							{#if canEdit(comment.created_at, comment.user_id)}
 								{#if isThreadOpen(data.story.created_at)}|{/if} <a
@@ -1028,6 +1033,13 @@
 					{/if}
 					{/if}
 				</div>
+				{#if comment.id === firstCommentId}
+					<div class="assist-hint-list">
+						{#each firstCommentHintKeys(comment.id, isThreadOpen(data.story.created_at)) as key (key)}
+							<div class="assist-hint">{assistHint(key, data.locale)}</div>
+						{/each}
+					</div>
+				{/if}
 				{/if}
 			{/each}
 		</div>
