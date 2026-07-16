@@ -492,11 +492,15 @@
 	});
 
 	// 最初のコメント行（firstCommentId）にだけ comment-toggle/reply ヒントを1つの一覧としてまとめる。
-	// reply は data.user かつスレッドが開いている（isThreadOpen）時だけ、元の {#if} と同条件で足す。
-	function firstCommentHintKeys(commentId: number, threadOpen: boolean): string[] {
+	// reply は data.user かつスレッドが開いている（isThreadOpen）かつ、そのコメント自身が畳まれていない
+	// （!isCollapsed）時だけ、元の {#if} と同条件で足す（#175: 畳むと実際の reply リンク（と
+	// comment-text/comment-reply 一式）も DOM から消えるので、ヒントだけ存在しないリンクを指し続ける
+	// 事故を防ぐ）。comment-toggle 自体は畳んでいても [+] として常に表示され続けるコントロールなので
+	// 無条件で出す（文言も既に [–]/[+] 両方向を説明している＝畳んだ後専用の文言分岐は不要と判断）。
+	function firstCommentHintKeys(commentId: number, threadOpen: boolean, isCollapsed: boolean): string[] {
 		if (commentId !== firstCommentId) return [];
 		const keys = ['item.comment-toggle'];
-		if (data.user && threadOpen) keys.push('item.reply');
+		if (data.user && threadOpen && !isCollapsed) keys.push('item.reply');
 		return keys;
 	}
 </script>
@@ -735,7 +739,7 @@
 				</div>
 				{#if child.id === firstCommentId}
 					<div class="assist-hint-list">
-						{#each firstCommentHintKeys(child.id, isThreadOpen(data.parentStory.created_at)) as key (key)}
+						{#each firstCommentHintKeys(child.id, isThreadOpen(data.parentStory.created_at), collapsed[child.id]) as key (key)}
 							<div class="assist-hint">{assistHint(key, data.locale)}</div>
 						{/each}
 					</div>
@@ -1035,7 +1039,7 @@
 				</div>
 				{#if comment.id === firstCommentId}
 					<div class="assist-hint-list">
-						{#each firstCommentHintKeys(comment.id, isThreadOpen(data.story.created_at)) as key (key)}
+						{#each firstCommentHintKeys(comment.id, isThreadOpen(data.story.created_at), collapsed[comment.id]) as key (key)}
 							<div class="assist-hint">{assistHint(key, data.locale)}</div>
 						{/each}
 					</div>
