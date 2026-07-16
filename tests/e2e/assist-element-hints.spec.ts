@@ -4,7 +4,10 @@ import {
 	submitStory,
 	findStoryIdByTitle,
 	updateUserKarma,
-	setStoryCreatedAt
+	setStoryCreatedAt,
+	postComment,
+	runD1,
+	setCommentCreatedAt
 } from './helpers';
 
 /**
@@ -417,5 +420,313 @@ test.describe('assist element hints (#172): console error smoke', () => {
 
 		await expect(page.locator('.item-meta + .assist-hint-list').locator('.assist-hint')).toHaveCount(5);
 		expect(errors).toEqual([]);
+	});
+});
+
+/**
+ * Issue #175 (ギャップ1): 最初のコメントを畳んだら item.reply ヒントも消える。
+ *
+ * #172 の firstCommentHintKeys は data.user / isThreadOpen だけを見て item.reply ヒントを出しており、
+ * その最初のコメント自身が畳まれている（collapsed[id] === true）かどうかを見ていなかった。畳むと実際の
+ * reply リンク（.comment-reply 一式）は DOM から消えるのに、ヒントだけ「reply で参加できます」と存在
+ * しないリンクを指したまま残っていた。#175 で collapsed state を引数に追加し、畳んでいる間は item.reply
+ * を除外するよう修正した。ここではその挙動と、実物の reply リンクも一緒に消えていることを確認する。
+ *
+ * seed story id=8（BBS）は 5段ネストのコメントツリー（id 15→16→19）を持ち、DFS 平坦化順の先頭
+ * （firstCommentId）は id=15。既存テスト（229-259行）は「開いている間」の表示をカバー済みなので、
+ * ここでは「畳んだ後」の状態遷移だけを追加する。
+ */
+test.describe('assist element hints (#175): first comment collapse gates item.reply', () => {
+	test('最初のコメントを畳むと item.reply ヒントが消え、item.comment-toggle だけが残る（#175 主目的）', async ({
+		page
+	}) => {
+		await page.goto('/locale?lang=ja&next=/login');
+		await signupNewUser(page);
+		await page.goto('/item/8');
+		await page.waitForLoadState('networkidle');
+		await turnAssistOn(page);
+
+		const list = page.locator('#item-15 + .assist-hint-list');
+		await expect(list.locator('.assist-hint')).toHaveCount(2);
+
+		await page.locator('#item-15 .comment-toggle a').click();
+
+		await expect(list.locator('.assist-hint')).toHaveCount(1);
+		await expect(list.locator('.assist-hint').first()).toContainText('たたみ');
+		await expect(list.locator('.assist-hint', { hasText: '返信（reply）' })).toHaveCount(0);
+	});
+
+	test('畳んだ状態から再展開すると item.reply ヒントが復活する', async ({ page }) => {
+		await page.goto('/locale?lang=ja&next=/login');
+		await signupNewUser(page);
+		await page.goto('/item/8');
+		await page.waitForLoadState('networkidle');
+		await turnAssistOn(page);
+
+		const list = page.locator('#item-15 + .assist-hint-list');
+		await page.locator('#item-15 .comment-toggle a').click();
+		await expect(list.locator('.assist-hint')).toHaveCount(1);
+
+		// [+] を押して再展開。
+		await page.locator('#item-15 .comment-toggle a').click();
+		await expect(list.locator('.assist-hint')).toHaveCount(2);
+		await expect(list.locator('.assist-hint').nth(1)).toContainText('返信（reply）');
+	});
+
+	test('畳んだ状態では本物の reply リンクも DOM から消えている（ヒントだけが残る事故の直接検証）', async ({
+		page
+	}) => {
+		await page.goto('/locale?lang=ja&next=/login');
+		await signupNewUser(page);
+		await page.goto('/item/8');
+		await page.waitForLoadState('networkidle');
+		await turnAssistOn(page);
+
+		const row = page.locator('#item-15');
+		await expect(row.locator('.comment-reply a', { hasText: /^reply$/ })).toHaveCount(1);
+
+		await row.locator('.comment-toggle a').click();
+		await expect(row.locator('.comment-reply a', { hasText: /^reply$/ })).toHaveCount(0);
+		await expect(
+			page.locator('#item-15 + .assist-hint-list .assist-hint', { hasText: '返信（reply）' })
+		).toHaveCount(0);
+	});
+});
+
+/**
+ * Issue #175 (ギャップ2): /comment/[id]（コメント単独表示）のアクション行に
+ * comment.upvote/edit/flag/vouch のヒントを追加。
+ *
+ * targetCommentHintKeys の条件は各リンクの元の {#if} と同一（canEdit/canFlagItem/targetCommentDead）。
+ * canEdit（自分のコメント必須）と canFlagItem（他人のコメント必須）は論理的に排他なので、同一閲覧者に
+ * comment.edit と comment.flag/comment.vouch が同時に出ることはない（own-exclusion）。
+ *
+ * `.comment-head` はページ内に複数出る（対象コメント1 + 返信ツリー）ため、対象コメントのヒントリストだけを
+ * `.item-detail > .comment-head + .assist-hint-list` でスコープする（誤爆防止）。
+ */
+test.describe('assist element hints (#175): /comment/[id] target-comment action hints', () => {
+	/** 新規 user に story + 1コメントを作らせ、生成したコメントの id を返す。page は投稿者でログイン済みのまま。 */
+	async function createStoryWithComment(
+		page: Page,
+		label: string,
+		locale: 'ja' | 'en' = 'ja'
+	): Promise<number> {
+		await page.goto(`/locale?lang=${locale}&next=/login`);
+		await signupNewUser(page);
+		const title = `${label} ${Date.now()}`;
+		await submitStory(page, { title, text: 'body' });
+		await page.goto('/newest');
+		const storyId = await findStoryIdByTitle(page, title);
+		await page.goto(`/item/${storyId}`);
+		await page.waitForLoadState('networkidle');
+		await postComment(page, `${label} comment body`);
+		await page.waitForSelector('.comment-text', { state: 'visible', timeout: 15_000 });
+		const href = await page
+			.locator('.comment-item .comment-head a')
+			.filter({ hasText: /ago/ })
+			.first()
+			.getAttribute('href');
+		const m = href?.match(/\/comment\/(\d+)/);
+		if (!m) throw new Error(`Bad /comment href: ${href}`);
+		return Number(m[1]);
+	}
+
+	/** 対象コメント（.item-detail 直下）のヒント一覧だけを見るスコープ済み locator。 */
+	function targetHints(page: Page) {
+		return page.locator('.item-detail > .comment-head + .assist-hint-list').locator('.assist-hint');
+	}
+
+	test('未ログイン: comment.upvote ヒントのみ1件', async ({ page }) => {
+		const commentId = await createStoryWithComment(page, 'e175 guest');
+		await page.goto('/logout');
+		await page.goto(`/comment/${commentId}`);
+		await page.waitForLoadState('networkidle');
+		await turnAssistOn(page);
+
+		const hints = targetHints(page);
+		await expect(hints).toHaveCount(1);
+		await expect(hints.first()).toContainText('▲ は upvote（投票）');
+	});
+
+	test('自分のコメント・編集窓内: upvote, edit の2件がこの順に並ぶ', async ({ page }) => {
+		const commentId = await createStoryWithComment(page, 'e175 own edit window');
+		await page.goto(`/comment/${commentId}`);
+		await page.waitForLoadState('networkidle');
+		await turnAssistOn(page);
+
+		const hints = targetHints(page);
+		await expect(hints).toHaveCount(2);
+		await expect(hints.nth(0)).toContainText('▲ は upvote（投票）');
+		await expect(hints.nth(1)).toContainText('編集（edit）');
+	});
+
+	test('自分のコメント・編集窓超過: upvote のみ1件（edit ヒントは消える）', async ({ page }) => {
+		const commentId = await createStoryWithComment(page, 'e175 own edit expired');
+		setCommentCreatedAt(commentId, 3);
+		await page.goto(`/comment/${commentId}`);
+		await page.waitForLoadState('networkidle');
+		await turnAssistOn(page);
+
+		const hints = targetHints(page);
+		await expect(hints).toHaveCount(1);
+		await expect(hints.first()).toContainText('▲ は upvote（投票）');
+	});
+
+	test('他人のコメント・karma不足・alive: upvote のみ1件', async ({ page }) => {
+		const commentId = await createStoryWithComment(page, 'e175 other low karma alive');
+		await page.goto('/logout');
+		await signupNewUser(page); // 新規 signup は karma=1（既定で不足）
+		await page.goto(`/comment/${commentId}`);
+		await page.waitForLoadState('networkidle');
+		await turnAssistOn(page);
+
+		const hints = targetHints(page);
+		await expect(hints).toHaveCount(1);
+		await expect(hints.first()).toContainText('▲ は upvote（投票）');
+	});
+
+	test('他人のコメント・karma不足・dead: upvote のみ1件（flag/vouch は karma gate 優先で出ない・回帰ガード）', async ({
+		page
+	}) => {
+		const commentId = await createStoryWithComment(page, 'e175 other low karma dead');
+		runD1(`UPDATE comments SET dead = 1 WHERE id = ${commentId}`);
+		await page.goto('/logout');
+		await signupNewUser(page);
+		await page.goto(`/comment/${commentId}`);
+		await page.waitForLoadState('networkidle');
+		await turnAssistOn(page);
+
+		const hints = targetHints(page);
+		await expect(hints).toHaveCount(1);
+		await expect(hints.first()).toContainText('▲ は upvote（投票）');
+	});
+
+	test('他人のコメント・karma≥30・alive: upvote, flag の2件', async ({ page }) => {
+		const commentId = await createStoryWithComment(page, 'e175 other karma alive');
+		await page.goto('/logout');
+		const viewer = await signupNewUser(page);
+		updateUserKarma(viewer, 50);
+		await page.goto(`/comment/${commentId}`);
+		await page.waitForLoadState('networkidle');
+		await turnAssistOn(page);
+
+		const hints = targetHints(page);
+		await expect(hints).toHaveCount(2);
+		await expect(hints.nth(0)).toContainText('▲ は upvote（投票）');
+		await expect(hints.nth(1)).toContainText('通報（flag）');
+	});
+
+	test('他人のコメント・karma≥30・dead: upvote, flag, vouch の3件がこの順に並ぶ（本Issueの主目的シナリオ）', async ({
+		page
+	}) => {
+		const commentId = await createStoryWithComment(page, 'e175 other karma dead');
+		runD1(`UPDATE comments SET dead = 1 WHERE id = ${commentId}`);
+		await page.goto('/logout');
+		const viewer = await signupNewUser(page);
+		updateUserKarma(viewer, 50);
+		await page.goto(`/comment/${commentId}`);
+		await page.waitForLoadState('networkidle');
+		await turnAssistOn(page);
+
+		const hints = targetHints(page);
+		await expect(hints).toHaveCount(3);
+		await expect(hints.nth(0)).toContainText('▲ は upvote（投票）');
+		await expect(hints.nth(1)).toContainText('通報（flag）');
+		await expect(hints.nth(2)).toContainText('復活（vouch）');
+	});
+
+	test('自分のコメントが dead でも vouch ヒントは出ない（own-exclusion 回帰ガード）', async ({ page }) => {
+		const commentId = await createStoryWithComment(page, 'e175 own dead');
+		runD1(`UPDATE comments SET dead = 1 WHERE id = ${commentId}`);
+		await page.goto(`/comment/${commentId}`);
+		await page.waitForLoadState('networkidle');
+		await turnAssistOn(page);
+
+		const hints = targetHints(page);
+		await expect(hints).toHaveCount(2);
+		await expect(hints.nth(0)).toContainText('▲ は upvote（投票）');
+		await expect(hints.nth(1)).toContainText('編集（edit）');
+		await expect(hints.filter({ hasText: '復活（vouch）' })).toHaveCount(0);
+	});
+
+	test('en ロケールで comment.edit ヒントが英語で実配線される', async ({ page }) => {
+		const commentId = await createStoryWithComment(page, 'e175 en edit', 'en');
+		await page.goto(`/comment/${commentId}`);
+		await page.waitForLoadState('networkidle');
+		await turnAssistOn(page);
+
+		const hints = targetHints(page);
+		await expect(hints.filter({ hasText: 'edit lets you change the comment' })).toHaveCount(1);
+	});
+
+	test('upvote+flag+vouch の最大表示シナリオで console error が出ない', async ({ page }) => {
+		const errors: string[] = [];
+		page.on('console', (msg) => {
+			if (msg.type() === 'error') errors.push(msg.text());
+		});
+
+		const commentId = await createStoryWithComment(page, 'e175 console smoke');
+		runD1(`UPDATE comments SET dead = 1 WHERE id = ${commentId}`);
+		await page.goto('/logout');
+		const viewer = await signupNewUser(page);
+		updateUserKarma(viewer, 50);
+		await page.goto(`/comment/${commentId}`);
+		await page.waitForLoadState('networkidle');
+		await turnAssistOn(page);
+
+		await expect(targetHints(page)).toHaveCount(3);
+		expect(errors).toEqual([]);
+	});
+
+	test('vouch クリックで comment.vouch ヒントが消え、comment.flag は残る', async ({ page }) => {
+		const commentId = await createStoryWithComment(page, 'e175 revival click');
+		runD1(`UPDATE comments SET dead = 1 WHERE id = ${commentId}`);
+		await page.goto('/logout');
+		const viewer = await signupNewUser(page);
+		updateUserKarma(viewer, 50);
+		await page.goto(`/comment/${commentId}`);
+		await page.waitForLoadState('networkidle');
+		await turnAssistOn(page);
+
+		const hints = targetHints(page);
+		await expect(hints).toHaveCount(3);
+
+		// 完全一致 (exact) で絞る。story title リンクのテキストがたまたま "vouch" を含む場合に
+		// hasText の部分一致で誤爆しないようにする（story title には投稿者が任意の語を書けるため）。
+		await page
+			.locator('.item-detail > .comment-head')
+			.getByRole('link', { name: 'vouch', exact: true })
+			.click();
+		await page.waitForLoadState('networkidle');
+
+		await expect(hints).toHaveCount(2);
+		await expect(hints.filter({ hasText: '通報（flag）' })).toHaveCount(1);
+		await expect(hints.filter({ hasText: '復活（vouch）' })).toHaveCount(0);
+	});
+
+	test('375×667 幅でも comment.* 3件のヒント表示が画面右にはみ出さない', async ({ page }) => {
+		await page.setViewportSize({ width: 375, height: 667 });
+		const commentId = await createStoryWithComment(page, 'e175 narrow viewport');
+		runD1(`UPDATE comments SET dead = 1 WHERE id = ${commentId}`);
+		await page.goto('/logout');
+		const viewer = await signupNewUser(page);
+		updateUserKarma(viewer, 50);
+		await page.goto(`/comment/${commentId}`);
+		await page.waitForLoadState('networkidle');
+		await turnAssistOn(page);
+
+		const hints = targetHints(page);
+		await expect(hints).toHaveCount(3);
+		for (let i = 0; i < 3; i++) {
+			const box = await hints.nth(i).boundingBox();
+			expect(box, `hint ${i} has no boundingBox`).not.toBeNull();
+			expect(
+				box!.x + box!.width,
+				`hint ${i} が画面右(375px)からはみ出している: ${JSON.stringify(box)}`
+			).toBeLessThanOrEqual(375);
+			expect(box!.x, `hint ${i} が画面左からはみ出している: ${JSON.stringify(box)}`).toBeGreaterThanOrEqual(
+				0
+			);
+		}
 	});
 });

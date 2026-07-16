@@ -136,6 +136,12 @@ const ASSIST_HINT: Record<Locale, Record<string, string>> = {
 		'item.delete': '削除（delete）＝本文が [deleted] に置き換わります（取り消せません）。',
 		'item.comment-toggle': '[–] でこのコメントの返信をたたみ、[+] で開き直せます。',
 		'item.reply': '返信（reply）＝このコメントに返信します。',
+		// #175: /comment/[id]（コメント単独表示）のアクション行（upvote/edit/flag/vouch）用。
+		// item.* と同じトーンだが、対象が「投稿」ではなく「コメント」であることに合わせて文言を書き分ける。
+		'comment.upvote': '▲ は upvote（投票）。良いと思ったコメントを押し上げます。',
+		'comment.edit': '編集（edit）＝コメントから2時間だけ内容を書き換えられます（本家 HN と同じ編集期限）。',
+		'comment.flag': '通報（flag）＝規約違反を運営に知らせます。',
+		'comment.vouch': '復活（vouch）＝通報（flag）の蓄積で dead になったコメントを取り消し、また表示させます。',
 		// 右下ドック（ⓘ＋アシストスイッチ）の真上に右寄せで1回（#170 で最上部から移設）。メタ操作（言語・
 		// アシスト本体）への気づき。カルマは meta.karma に分離し、ログイン中（= 実際に (123) が見える）ときだけ
 		// layout が後段に足す。
@@ -172,6 +178,12 @@ const ASSIST_HINT: Record<Locale, Record<string, string>> = {
 		'item.delete': 'delete replaces the text with [deleted] (cannot be undone).',
 		'item.comment-toggle': "[–] collapses this comment's replies; [+] reopens them.",
 		'item.reply': 'reply lets you respond to this comment.',
+		'comment.upvote': 'The ▲ is upvote — push up comments you like.',
+		'comment.edit':
+			'edit lets you change the comment — only within 2 hours of posting (same window as the real HN).',
+		'comment.flag': 'flag reports a rule violation to the mods.',
+		'comment.vouch':
+			'vouch reverses being marked dead from flags, making the comment visible again.',
 		'meta.controls':
 			'Just below sit a round ⓘ button and a switch labeled "Assist". The "Assist" switch is this assist itself — turn it off and the guides disappear, leaving the plain screen identical to the real Hacker News. Once you are comfortable, switch it off and graduate to the real thing. The ⓘ opens an explanation of what this site is for. Use the 「日本語」 link at the top-right to switch the display language.',
 		'meta.karma': 'Also, when you are logged in, the number (123) next to your name in the header is your karma (reputation).'
