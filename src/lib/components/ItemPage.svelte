@@ -128,6 +128,9 @@
 			const result: { flagged: boolean; flagCount: number } = await res.json();
 			localStoryFlagged = result.flagged;
 			if (result.flagCount > 4) localStoryDead = 1;
+			// data.story.flag_count を直読みする [flagged] バッジは local state を経由しないため、
+			// vouchStory() と同じく invalidateAll() で server データを更新してバッジを追従させる（#180）。
+			await invalidateAll();
 		} else if (res.status === 403) {
 			const result = (await res.json()) as { error?: string };
 			alert(result.error || 'Permission denied');
@@ -149,6 +152,9 @@
 			const result: { flagged: boolean; flagCount: number } = await res.json();
 			localTargetCommentFlagged = result.flagged;
 			if (result.flagCount > 4) localTargetCommentDead = 1;
+			// data.targetComment.flag_count を直読みする [flagged] バッジは local state を経由しないため、
+			// vouchTargetComment() と同じく invalidateAll() で server データを更新してバッジを追従させる（#180）。
+			await invalidateAll();
 		} else if (res.status === 403) {
 			const result = (await res.json()) as { error?: string };
 			alert(result.error || 'Permission denied');
@@ -251,6 +257,7 @@
 		story_id: number;
 		parent_id: number | null;
 		points: number;
+		dead: number;
 		created_at: string;
 		username: string;
 		user_created_at: string;
@@ -671,6 +678,7 @@
 						{#if nextCommentId[child.id]}
 							| <a href="#item-{nextCommentId[child.id]}" title={tooltipJa('next')} style="color: #828282;">next</a>
 						{/if}
+						{#if child.dead === 1} <span class="story-tag">[dead]</span>{/if}
 						<span class="comment-toggle">
 							{' '}<a
 								href="#toggle"
@@ -971,6 +979,7 @@
 						{#if nextCommentId[comment.id]}
 							| <a href="#item-{nextCommentId[comment.id]}" title={tooltipJa('next')} style="color: #828282;">next</a>
 						{/if}
+						{#if comment.dead === 1} <span class="story-tag">[dead]</span>{/if}
 						<span class="comment-toggle">
 							{' '}<a
 								href="#toggle"

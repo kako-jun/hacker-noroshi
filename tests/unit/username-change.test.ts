@@ -589,4 +589,22 @@ describe('validateUsernameFormat', () => {
 		expect(validateUsernameFormat('a'.repeat(16))).toMatch(/3 and 15/);
 		expect(validateUsernameFormat('alice!')).toMatch(/letters, numbers/);
 	});
+
+	// #179 バッチB: 3-15文字境界・16文字超・記号1件は上のテストで既にカバー済みなので、
+	// ここでは非ASCII文字クラス（日本語・絵文字・全角英数字）を追加する。
+	// いずれも文字数制限（3-15）自体は満たすため、文字種エラーの分岐に落ちることを確認する。
+	it('日本語ユーザー名は文字種エラーになる', async () => {
+		const { validateUsernameFormat } = await import('../../src/lib/server/db');
+		expect(validateUsernameFormat('たなか')).toMatch(/letters, numbers/);
+	});
+
+	it('絵文字混入は文字種エラーになる', async () => {
+		const { validateUsernameFormat } = await import('../../src/lib/server/db');
+		expect(validateUsernameFormat('abc😀')).toMatch(/letters, numbers/);
+	});
+
+	it('全角英数字は文字種エラーになる', async () => {
+		const { validateUsernameFormat } = await import('../../src/lib/server/db');
+		expect(validateUsernameFormat('ａｂｃ')).toMatch(/letters, numbers/);
+	});
 });

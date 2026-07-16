@@ -66,7 +66,7 @@ export const actions = {
 
 		const elapsed = Date.now() - new Date(story.created_at).getTime();
 		if (elapsed >= TWO_WEEKS_MS) {
-			return fail(403, { error: 'Thread is closed' });
+			return fail(403, { error: 'Thread is closed', errorFor: 'comment' });
 		}
 
 		await db

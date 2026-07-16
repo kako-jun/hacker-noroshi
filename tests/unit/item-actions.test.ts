@@ -11,11 +11,12 @@
  *   - SvelteKit の error/redirect/fail は callAction が吸収して { status, body, ... } に統一。
  *   - production コードはいじらない。テストのみ追加。
  */
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import type { RequestEvent } from '@sveltejs/kit';
 import { actions } from '../../src/routes/item/[id]/+page.server';
 import { callAction } from './helpers/action-helpers';
 import { makeMockDB } from './helpers/mock-db';
+import { TWO_WEEKS_MS } from '../../src/lib/ranking';
 
 // SvelteKit が生成する Action 型は RouteParams（id: string 必須）を要求するが、
 // callAction はテスト用の汎用 RequestEvent を受け取るので、ここで一段ゆるめる。
@@ -23,6 +24,7 @@ import { makeMockDB } from './helpers/mock-db';
 type AnyAction = (event: RequestEvent) => Promise<unknown> | unknown;
 const editStory = actions.editStory as unknown as AnyAction;
 const deleteStory = actions.deleteStory as unknown as AnyAction;
+const comment = actions.comment as unknown as AnyAction;
 
 const ALICE = { id: 1, username: 'alice' };
 const BOB = { id: 2, username: 'bob' };
@@ -328,5 +330,225 @@ describe('deleteStory action', () => {
 		expect(state.stories[0].title).toBe('[deleted]');
 		expect(state.stories[0].text).toBe('[deleted]');
 		expect(state.stories[0].type).toBe('poll');
+	});
+});
+
+// #179 バッチB + #181: comment action の実動作（text 必須 / レート制限2分 /
+// スレッドクローズ14日）をロックする。#181 でスレッドクローズの fail() に
+// errorFor: 'comment' が追加された後の正しい挙動をアサートする（バグを仕様として
+// 固定しない）。
+//
+// elapsed のミリ秒境界を正確に固定するため vi.useFakeTimers + vi.setSystemTime で
+// 時刻を凍結する。実時間で created_at を計算すると、テスト実行のレイテンシで
+// 境界のミリ秒がずれてフレークする（実行時間が数ms でも境界テストには致命的）。
+describe('comment action', () => {
+	const FIXED_NOW = new Date('2026-06-15T12:00:00.000Z').getTime();
+	// itemActions.ts 内のインラインリテラル `2 * 60 * 1000` をテスト側で明示的に固定。
+	// 実装が変わったらここも一緒に見直す（rate-limit.test.ts の SUBMIT_COOLDOWN_MS と同じ方針）。
+	const COMMENT_RATE_LIMIT_MS = 2 * 60 * 1000;
+
+	beforeEach(() => {
+		vi.useFakeTimers();
+		vi.setSystemTime(FIXED_NOW);
+	});
+
+	afterEach(() => {
+		vi.useRealTimers();
+	});
+
+	// FIXED_NOW から ms 前の ISO 文字列を作る。
+	function isoBefore(ms: number): string {
+		return new Date(FIXED_NOW - ms).toISOString();
+	}
+
+	it('text が空/空白のみなら fail(400, errorFor: comment)', async () => {
+		const { db } = makeMockDB({
+			users: [ALICE],
+			stories: [{ id: 10, user_id: 1, created_at: isoBefore(1000) }]
+		});
+		for (const text of ['', '   ']) {
+			const r = await callAction(comment, {
+				user: ALICE,
+				params: { id: '10' },
+				platform: platformOf(db),
+				formData: { text }
+			});
+			expect(r.status).toBe(400);
+			const body = r.body as { error: string; errorFor: string };
+			expect(body.errorFor).toBe('comment');
+			expect(body.error).toMatch(/required/i);
+		}
+	});
+
+	it('レート制限: 前回コメントから2分-1msなら fail(429)', async () => {
+		const { db } = makeMockDB({
+			users: [ALICE],
+			stories: [{ id: 10, user_id: 1, created_at: isoBefore(1000) }],
+			comments: [
+				{ id: 1, user_id: 1, story_id: 10, created_at: isoBefore(COMMENT_RATE_LIMIT_MS - 1) }
+			]
+		});
+		const r = await callAction(comment, {
+			user: ALICE,
+			params: { id: '10' },
+			platform: platformOf(db),
+			formData: { text: 'too fast' }
+		});
+		expect(r.status).toBe(429);
+	});
+
+	it('レート制限: 前回コメントから2分ちょうどなら成功する（境界）', async () => {
+		const { db } = makeMockDB({
+			users: [ALICE],
+			stories: [{ id: 10, user_id: 1, created_at: isoBefore(1000) }],
+			comments: [
+				{ id: 1, user_id: 1, story_id: 10, created_at: isoBefore(COMMENT_RATE_LIMIT_MS) }
+			]
+		});
+		const r = await callAction(comment, {
+			user: ALICE,
+			params: { id: '10' },
+			platform: platformOf(db),
+			formData: { text: 'right on time' }
+		});
+		expect(r.status).toBe(200);
+	});
+
+	it('レート制限: 前回コメントから2分+1msなら成功する', async () => {
+		const { db } = makeMockDB({
+			users: [ALICE],
+			stories: [{ id: 10, user_id: 1, created_at: isoBefore(1000) }],
+			comments: [
+				{ id: 1, user_id: 1, story_id: 10, created_at: isoBefore(COMMENT_RATE_LIMIT_MS + 1) }
+			]
+		});
+		const r = await callAction(comment, {
+			user: ALICE,
+			params: { id: '10' },
+			platform: platformOf(db),
+			formData: { text: 'just cleared' }
+		});
+		expect(r.status).toBe(200);
+	});
+
+	it('レート制限はスレッド横断で効く: 別 story への直後のコメントも fail(429)', async () => {
+		const { db } = makeMockDB({
+			users: [ALICE],
+			stories: [
+				{ id: 10, user_id: 1, created_at: isoBefore(1000) },
+				{ id: 11, user_id: 1, created_at: isoBefore(1000) }
+			],
+			comments: [
+				// story 10 への直近コメント（1秒前）。判定は user_id のみで行われるため
+				// 全く別の story 11 への投稿でもブロックされる。
+				{ id: 1, user_id: 1, story_id: 10, created_at: isoBefore(1000) }
+			]
+		});
+		const r = await callAction(comment, {
+			user: ALICE,
+			params: { id: '11' },
+			platform: platformOf(db),
+			formData: { text: 'cross-thread attempt' }
+		});
+		expect(r.status).toBe(429);
+	});
+
+	it('スレッドクローズ: story作成から14日-1msなら成功する（境界）', async () => {
+		const { db } = makeMockDB({
+			users: [ALICE],
+			stories: [{ id: 10, user_id: 1, created_at: isoBefore(TWO_WEEKS_MS - 1) }]
+		});
+		const r = await callAction(comment, {
+			user: ALICE,
+			params: { id: '10' },
+			platform: platformOf(db),
+			formData: { text: 'still open' }
+		});
+		expect(r.status).toBe(200);
+	});
+
+	it('スレッドクローズ: story作成から14日ちょうどなら fail(403, "Thread is closed", errorFor: comment)（#181修正後の挙動）', async () => {
+		const { db } = makeMockDB({
+			users: [ALICE],
+			stories: [{ id: 10, user_id: 1, created_at: isoBefore(TWO_WEEKS_MS) }]
+		});
+		const r = await callAction(comment, {
+			user: ALICE,
+			params: { id: '10' },
+			platform: platformOf(db),
+			formData: { text: 'too late' }
+		});
+		expect(r.status).toBe(403);
+		const body = r.body as { error: string; errorFor: string };
+		expect(body.error).toBe('Thread is closed');
+		expect(body.errorFor).toBe('comment');
+	});
+
+	it('スレッドクローズ: story作成から14日+1msなら fail(403, errorFor: comment)', async () => {
+		const { db } = makeMockDB({
+			users: [ALICE],
+			stories: [{ id: 10, user_id: 1, created_at: isoBefore(TWO_WEEKS_MS + 1) }]
+		});
+		const r = await callAction(comment, {
+			user: ALICE,
+			params: { id: '10' },
+			platform: platformOf(db),
+			formData: { text: 'way too late' }
+		});
+		expect(r.status).toBe(403);
+		expect((r.body as { errorFor: string }).errorFor).toBe('comment');
+	});
+
+	it('reply（parent_idあり）でも親コメント経由で story を解決し、スレッドクローズが効く', async () => {
+		const { db } = makeMockDB({
+			users: [ALICE, BOB],
+			stories: [{ id: 10, user_id: 2, created_at: isoBefore(TWO_WEEKS_MS + 60 * 60 * 1000) }],
+			comments: [{ id: 5, user_id: 2, story_id: 10, created_at: isoBefore(60 * 60 * 1000) }]
+		});
+		// params.id はわざと story と無関係な値にし、story 解決が params.id ではなく
+		// parent_id → getCommentById → story_id 経由で行われることを示す（#164 の設計どおり）。
+		const r = await callAction(comment, {
+			user: ALICE,
+			params: { id: '99999' },
+			platform: platformOf(db),
+			formData: { text: 'a late reply', parent_id: '5' }
+		});
+		expect(r.status).toBe(403);
+		const body = r.body as { error: string; errorFor: string };
+		expect(body.error).toBe('Thread is closed');
+		expect(body.errorFor).toBe('comment');
+	});
+
+	it('parent_id が存在しない comment を指すなら fail(404)', async () => {
+		const { db } = makeMockDB({
+			users: [ALICE],
+			stories: [{ id: 10, user_id: 1, created_at: isoBefore(1000) }]
+		});
+		const r = await callAction(comment, {
+			user: ALICE,
+			params: { id: '10' },
+			platform: platformOf(db),
+			formData: { text: 'orphan reply', parent_id: '9999' }
+		});
+		expect(r.status).toBe(404);
+		expect((r.body as { errorFor: string }).errorFor).toBe('comment');
+	});
+
+	it('正常系: レート制限もスレッドクローズも該当しなければ成功し、comment_countが+1される', async () => {
+		const { db, state } = makeMockDB({
+			users: [ALICE],
+			stories: [{ id: 10, user_id: 1, comment_count: 3, created_at: isoBefore(1000) }]
+		});
+		const r = await callAction(comment, {
+			user: ALICE,
+			params: { id: '10' },
+			platform: platformOf(db),
+			formData: { text: 'a normal comment' }
+		});
+		expect(r.status).toBe(200);
+		expect((r.body as { success: boolean }).success).toBe(true);
+		expect(state.stories[0].comment_count).toBe(4);
+		expect(state.comments).toHaveLength(1);
+		expect(state.comments[0].text).toBe('a normal comment');
 	});
 });
