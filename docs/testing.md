@@ -53,6 +53,12 @@ CI では現状 **実行しない**（D1 のセットアップが複雑なため
 - ログイン失敗エラー表示
 - 投稿フロー
 - 投票フロー
+- signupバリデーション（重複ユーザー名・フォーマット不正・パスワード長）（`signup-validation.spec.ts`）
+- flag→dead自動化・vouchでの復活・showdead設定の実効果（`flag-dead-lifecycle.spec.ts`）
+- スレッドクローズ（14日経過後のコメント不可・エラー表示）（`thread-close.spec.ts`）
+- 投稿/コメントのレート制限の実動作（`rate-limit.spec.ts`）
+
+（上記以外にも`tests/e2e/`配下に多数のspecがある。網羅的な一覧は`docs/operations/notes/`のhacker-noroshi監査記録（freezaリポ）を参照）
 
 ## 新しいテストを追加するとき
 
