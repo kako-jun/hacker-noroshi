@@ -123,14 +123,22 @@ test.describe('assist element hints (#172): overlap regression guard', () => {
 		await expect(allHints).toHaveCount(4);
 		expectNoOverlaps(await boxesOf(allHints, 4));
 
+		const upvoteAnchorBox = await firstItem.locator('.story-vote').boundingBox();
 		const upvoteBox = await firstItem.locator('.story-vote .assist-hint-float').boundingBox();
 		const metaHints = firstItem.locator('.story-meta .assist-hint-float');
 		await expect(metaHints).toHaveCount(3);
 		const metaBoxes = await boxesOf(metaHints, 3);
 		expect(upvoteBox).not.toBeNull();
+		expect(upvoteAnchorBox).not.toBeNull();
 		for (const metaBox of metaBoxes) {
 			expect((upvoteBox as Box).y, 'upvote ヒントが story-meta 側ヒントより下にない').toBeGreaterThan(metaBox.y);
 		}
+		// #172 must 1 回帰ガード: 旧 190px オフセットでは upvote ヒントが自分の行から5行下（約216px）まで
+		// 離れ、無関係な行のタイトル群に重なっていた。近傍（200px以内）に留まることを確認する。
+		expect(
+			(upvoteBox as Box).y - (upvoteAnchorBox as Box).y,
+			'upvote ヒントが自分の▲から離れすぎている（無関係な行に重なる不具合の再発）'
+		).toBeLessThan(200);
 	});
 
 	test('▲（14px幅）直下のヒントは横幅つぶれで縦に潰れない（アンカー幅より明確に広く・異常な高さでない）', async ({

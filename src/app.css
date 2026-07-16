@@ -744,9 +744,20 @@ a:hover {
 }
 /* story.upvote は別アンカー（.story-vote、タイトル行と同じ高さ）だが、flex の baseline 揃えの都合で
    story-meta 側のヒント群とほぼ同じY帯に浮いて重なってしまう（実機 Playwright 確認で発覚）。
-   meta 側スタック（最大 stagger-2 まで）より確実に下まで逃がす。 */
+   meta 側スタック（最大 stagger-2 まで）より確実に下まで逃がす。
+   数値根拠（実機 Playwright 計測、#172 must 1）: この 140px は
+     stagger-2 の固定オフセット 96px
+   + .story-vote アンカーと story-meta 側 .assist-anchor の「top:100%」基準点の高さ差 11px
+     （story-vote は▲ボタン込みで height:22px、meta 側の各 assist-anchor は文字高さのみで height:14px。
+      同じ行内でもベースライン揃えにより後者の下端が 11px 下にずれる）
+   + stagger-2（flag）ヒント自体の高さ 約27px（2行文言の実測値）
+   + 余白 6px（サブピクセル丸めで meta 側ヒントに接触しないための安全マージン）
+   の合計。旧 190px は meta 側スタックの下端から実測 +55px も離れすぎており、無関係な行（5行下）に
+   ヒントが重なる不具合の原因だった。140px は meta 側スタックの直下（隙間 約10px）に収まり、かつ
+   meta 側の flag ヒント（stagger-2）が既に及んでいる行数（2行分）と同水準に留まる＝既存パターンと
+   整合する。 */
 .assist-on .assist-hint.assist-hint-float.assist-stagger-below-meta {
-	top: calc(100% + 190px);
+	top: calc(100% + 140px);
 }
 .assist-on .assist-hint.assist-hint-float.assist-stagger-4 {
 	top: calc(100% + 192px);
