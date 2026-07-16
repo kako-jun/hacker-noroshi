@@ -514,10 +514,11 @@
 		if (canEdit(data.targetComment.created_at, data.targetComment.user_id)) {
 			keys.push('comment.edit');
 		}
-		if (canFlagItem(data.targetComment.user_id)) {
+		const canFlag = canFlagItem(data.targetComment.user_id);
+		if (canFlag) {
 			keys.push('comment.flag');
 		}
-		if (canFlagItem(data.targetComment.user_id) && targetCommentDead === 1) {
+		if (canFlag && targetCommentDead === 1) {
 			keys.push('comment.vouch');
 		}
 		return keys;
