@@ -762,6 +762,23 @@ a:hover {
 .assist-on .assist-hint.assist-hint-float.assist-stagger-4 {
 	top: calc(100% + 192px);
 }
+/* item.upvote（/item 詳細ページ本体の▲、ItemPage.svelte）専用。story.upvote の below-meta と同じ問題
+   （ボタンの真上のアンカーから top:100% するとタイトル行の次に来る item-meta 行の上に落ちる）だが、
+   item-meta 側の最大スタックは stagger-4（flag、他人の投稿かつ karma 条件を満たす時のみ表示）まで
+   使うため、below-meta（story-meta 側の最大 stagger-2 基準）とは必要オフセットが異なる。同じクラスを
+   使い回さず専用クラスを切る。
+   数値根拠（実機 Playwright 計測、#172 should）: 242px は
+     stagger-4 の固定オフセット 192px
+   + .story-vote アンカーと item-meta 側 .assist-anchor の「top:100%」基準点の高さ差 16px
+     （story-vote は▲ボタン込みで height:22px、item-meta 側の各 assist-anchor は文字高さのみで
+      height:14px。ベースライン揃えで後者の下端が 16px 下にずれる。story-meta 側の 11px とは
+      レイアウトが異なるため値も異なる）
+   + stagger-4（flag）ヒント自体の高さ 約27px（2行文言の実測値）
+   + 余白 6px（サブピクセル丸めで item-meta 側ヒントに接触しないための安全マージン）
+   の合計。 */
+.assist-on .assist-hint.assist-hint-float.assist-stagger-below-item-meta {
+	top: calc(100% + 242px);
+}
 
 /* 右下の常設ドック。メタ解説（上・右寄せ）と「ⓘ＋アシストスイッチ」の横並び（下）を縦に積む。
    fixed でスクロール追従（#140・#170）。 */

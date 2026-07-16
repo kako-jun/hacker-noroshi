@@ -273,6 +273,36 @@ test.describe('assist element hints (#172): control-to-hint mapping', () => {
 		await expect(favAnchor.locator('.assist-hint-float')).toContainText('お気に入り（favorite）');
 	});
 
+	test('/item: item.upvote が本体▲直下に出て、item-meta 側の4ヒントと重ならない（#172 should）', async ({
+		page
+	}) => {
+		await page.goto('/locale?lang=ja&next=/login');
+		await signupNewUser(page);
+		const title = `mapping item upvote ${Date.now()}`;
+		await submitStory(page, { title, text: 'body' });
+		await page.goto('/newest');
+		const storyId = await findStoryIdByTitle(page, title);
+		await page.goto(`/item/${storyId}`);
+		await page.waitForLoadState('networkidle');
+		await turnAssistOn(page);
+
+		const upvoteHint = page.locator('.item-detail .story-vote.assist-anchor .assist-hint-float');
+		await expect(upvoteHint).toContainText('▲ は upvote（投票）');
+
+		// own post: edit/delete/hide/favorite の4ヒントが同時に出るシナリオでも重ならないことを確認する。
+		const metaHints = page.locator('.item-meta .assist-hint-float');
+		await expect(metaHints).toHaveCount(4);
+		const upvoteBox = await upvoteHint.boundingBox();
+		const metaBoxes = await boxesOf(metaHints, 4);
+		expect(upvoteBox).not.toBeNull();
+		for (const metaBox of metaBoxes) {
+			expect(
+				boxesOverlap(upvoteBox as Box, metaBox),
+				'item.upvote ヒントが item-meta 側ヒントと重なっている'
+			).toBe(false);
+		}
+	});
+
 	test('/item: item.comment-toggle が最初のコメント行の折り畳みリンク直下、item.reply が reply 直下に出る', async ({
 		page
 	}) => {

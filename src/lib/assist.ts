@@ -126,8 +126,9 @@ const ASSIST_HINT: Record<Locale, Record<string, string>> = {
 		'story.flag': '通報（flag）＝規約違反を運営に知らせます。',
 		'story.comments': 'このリンクから議論（コメント）に入れます。',
 		// /item のストーリー操作行・コメント行。旧「item.controls」1段落を同じく要素単位に分割（#172）。
-		// favorite/hide/flag/edit/delete は item-meta 行の各リンク直下、comment-toggle/reply は
-		// 連呼を避けるため最初のコメント行にだけ1回出す。
+		// upvote は本体▲ボタン直下、favorite/hide/flag/edit/delete は item-meta 行の各リンク直下、
+		// comment-toggle/reply は連呼を避けるため最初のコメント行にだけ1回出す。
+		'item.upvote': '▲ は upvote（投票）。良いと思った投稿を押し上げます。',
 		'item.favorite': 'お気に入り（favorite）＝あなたのプロフィールの favorites に登録します。',
 		'item.hide': '非表示（hide）＝この投稿を一覧から隠します。',
 		'item.flag': '通報（flag）＝規約違反を運営に知らせます。',
@@ -162,6 +163,7 @@ const ASSIST_HINT: Record<Locale, Record<string, string>> = {
 		'story.un-hide': 'un-hide brings this post back to that list, showing it as a normal post again.',
 		'story.flag': 'flag reports a rule violation to the mods.',
 		'story.comments': 'This link opens the discussion (comments).',
+		'item.upvote': 'The ▲ is upvote — push up posts you like.',
 		'item.favorite': "favorite bookmarks this post to your profile's favorites.",
 		'item.hide': 'hide removes this post from your list.',
 		'item.flag': 'flag reports a rule violation to the mods.',

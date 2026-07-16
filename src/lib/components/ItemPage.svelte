@@ -723,7 +723,7 @@
 {:else}
 	<div class="item-detail" style="padding-left: 40px;">
 		<div style="display: flex; align-items: baseline;">
-			<span class="story-vote" style="margin-right: 4px;">
+			<span class="story-vote assist-anchor" style="margin-right: 4px;">
 				<button
 					class="upvote"
 					class:voted={storyVoted}
@@ -732,6 +732,7 @@
 				>
 					&#9650;
 				</button>
+				<span class="assist-hint assist-hint-float assist-stagger-below-item-meta">{assistHint('item.upvote', data.locale)}</span>
 			</span>
 			<span class="item-title">
 				{#if data.story.url}
