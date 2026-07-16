@@ -25,6 +25,15 @@ function centerOf(box: { x: number; y: number; width: number; height: number }):
 	return { x: box.x + box.width / 2, y: box.y + box.height / 2 };
 }
 
+type Box = { x: number; y: number; width: number; height: number };
+
+/** 2つの矩形が実際に重なっているか（隙間なしの隣接や交差なしは false）。 */
+function boxesOverlap(a: Box, b: Box): boolean {
+	const overlapX = Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x);
+	const overlapY = Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y);
+	return overlapX > 0 && overlapY > 0;
+}
+
 /**
  * アシストモード（#140）。右下の常設スイッチで「初心者の館」風の解説層をオン/オフする。
  * - 既定オフ＝素の HN 画面（.assist-intro は CSS で非表示）。
@@ -393,6 +402,52 @@ test.describe('assist mode', () => {
 			expect(await isElementAtPointInside(page, leftPoint, '.assist-dock')).toBe(false);
 			expect(await isElementAtPointInside(page, centerOf(box!), '.assist-dock')).toBe(false);
 			expect(errors).toEqual([]);
+		});
+
+		test('実コンテンツ越しの通常クリックが通る: /item/7 の [–] を force なしで畳める (#177 e2e)', async ({
+			page
+		}) => {
+			// 上記のテスト群は document.elementFromPoint によるヒットテストそのものの検証。ここでは
+			// 「実コンテンツと重なった状態で、force なしの通常クリックが本当に通る」という end-to-end
+			// シナリオを1本足す。レビュー時の実機確認: 375×667・ja・assist ON で /item/7 を開くと、
+			// コメントスレッド5番目（id 14, sato）の [–] 折り畳みリンクが .assist-dock の bounding box と
+			// 重なる（seed データを実測して確認済み: db/seed.sql の story_id=7 は id 10/11/12/13/14 の
+			// 5コメントを持ち、DFS 表示順の最後が id 14＝sato）。
+			//
+			// 対象コメント・座標は seed データの変更で将来ズレる可能性があるので、クリック前に
+			// .assist-dock と対象トグルリンクの bounding box が実際に重なっていることをアサートする。
+			// 重ならなくなったら「重なっていない」という分かりやすい理由でここが失敗する（silent skip はしない）。
+			await page.setViewportSize({ width: 375, height: 667 });
+			await page.goto('/locale?lang=ja&next=/item/7');
+			await page.waitForLoadState('networkidle');
+			const sw = page.locator('.assist-switch');
+			await expect(sw).toHaveAttribute('aria-checked', 'false');
+			await sw.click();
+
+			const dock = page.locator('.assist-dock');
+			await expect(dock).toBeVisible();
+			const dockBox = await dock.boundingBox();
+			expect(dockBox).not.toBeNull();
+
+			const toggle = page.locator('#item-14 .comment-toggle a');
+			await expect(toggle).toBeVisible();
+			await expect(toggle).toHaveText('[–]');
+			const toggleBox = await toggle.boundingBox();
+			expect(toggleBox).not.toBeNull();
+
+			expect(
+				boxesOverlap(dockBox as Box, toggleBox as Box),
+				`前提条件が崩れている: #item-14 の [–] (${JSON.stringify(toggleBox)}) が ` +
+					`.assist-dock (${JSON.stringify(dockBox)}) と重なっていない。seed データか ` +
+					`レイアウトが変わった可能性がある（このテストの再現条件を見直すこと）`
+			).toBe(true);
+
+			// force なしの通常クリック。.assist-dock が背後のクリックを奪っていれば、ここが
+			// タイムアウトするか無関係な要素をクリックしてしまい、状態が変わらない。
+			await toggle.click();
+			await expect(toggle).toHaveText('[+]');
+			// トグルの見た目だけでなく、実際にコメントが畳まれた（本文が DOM から消えた）ことも確認する。
+			await expect(page.locator('#item-14 .comment-text')).toHaveCount(0);
 		});
 	});
 });
